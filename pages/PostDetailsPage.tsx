@@ -1,0 +1,412 @@
+
+import { useState, useEffect, useRef } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Post, User as UserType } from '../types';
+import { postService } from '../services/postService';
+import { userService } from '../services/userService';
+import { aiService, decodeBase64 } from '../services/aiService';
+import Header from '../components/common/Header';
+import Footer from '../components/common/Footer';
+import Spinner from '../components/common/Spinner';
+import SEO from '../components/common/SEO';
+import { Calendar, User, Tag, Folder, Volume2, LoaderCircle, Pause, Play, MapPin, ExternalLink, Sparkles } from 'lucide-react';
+import SocialShareButtons from '../components/common/SocialShareButtons';
+import RelatedPosts from '../components/common/RelatedPosts';
+import CommentsSection from '../components/common/CommentsSection';
+import PostContentRenderer from '../components/common/PostContentRenderer';
+
+const slugify = (text: string) =>
+  text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+
+interface Heading {
+  id: string;
+  text: string;
+  level: number;
+}
+
+const PostDetailsPage = () => {
+  const { postId: postSlug } = useParams<{ postId: string }>();
+  const [post, setPost] = useState<Post | null>(null);
+  const [author, setAuthor] = useState<UserType | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [headings, setHeadings] = useState<Heading[]>([]);
+  const [contentWithIds, setContentWithIds] = useState('');
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
+
+  // Audio State
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+
+  // Local Discoveries State
+  const [attractions, setAttractions] = useState<{ text: string; sources: any[] } | null>(null);
+  const [loadingAttractions, setLoadingAttractions] = useState(false);
+
+  useEffect(() => {
+    const fetchPostData = async () => {
+      if (!postSlug) return;
+      setLoading(true);
+      try {
+        const fetchedPost = await postService.getPostBySlug(postSlug);
+        if (fetchedPost) {
+          setPost(fetchedPost);
+          const fetchedAuthor = await userService.getUserById(fetchedPost.authorId);
+          setAuthor(fetchedAuthor || null);
+          
+          fetchAttractions(fetchedPost.title);
+        } else {
+          setPost(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch post details:", error);
+        setPost(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPostData();
+
+    return () => {
+      stopAudio();
+    };
+  }, [postSlug]);
+
+  const stopAudio = () => {
+    if (audioSourceRef.current) {
+      try {
+        audioSourceRef.current.stop();
+      } catch (e) {}
+      audioSourceRef.current = null;
+    }
+    setIsPlaying(false);
+  };
+
+  const fetchAttractions = async (query: string) => {
+    setLoadingAttractions(true);
+    let lat, lng;
+    
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+      });
+      lat = position.coords.latitude;
+      lng = position.coords.longitude;
+    } catch (e) {
+      console.debug("Geolocation not available or denied.");
+    }
+
+    const result = await aiService.getNearbyAttractions(query, lat, lng);
+    setAttractions(result);
+    setLoadingAttractions(false);
+  };
+
+  useEffect(() => {
+    if (!post?.content) {
+      setHeadings([]);
+      setContentWithIds('');
+      return;
+    }
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = post.content;
+    const newHeadings: Heading[] = [];
+    const headingElements = tempDiv.querySelectorAll('h2, h3');
+
+    headingElements.forEach((el, index) => {
+      const heading = el as HTMLElement;
+      const text = heading.innerText;
+      if (!text) return;
+      
+      const baseSlug = slugify(text);
+      const id = baseSlug ? `${baseSlug}-${index}` : `heading-${index}`;
+      heading.id = id;
+      
+      newHeadings.push({
+        id,
+        text,
+        level: Number(heading.tagName.substring(1)),
+      });
+    });
+
+    setHeadings(newHeadings);
+    setContentWithIds(tempDiv.innerHTML);
+  }, [post]);
+
+  /**
+   * Correct Raw PCM Decoding for Gemini TTS
+   */
+  async function decodeAudioData(
+    data: Uint8Array,
+    ctx: AudioContext,
+    sampleRate: number,
+    numChannels: number,
+  ): Promise<AudioBuffer> {
+    const dataInt16 = new Int16Array(data.buffer);
+    const frameCount = dataInt16.length / numChannels;
+    const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+    for (let channel = 0; channel < numChannels; channel++) {
+      const channelData = buffer.getChannelData(channel);
+      for (let i = 0; i < frameCount; i++) {
+        channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+      }
+    }
+    return buffer;
+  }
+
+  const handleToggleAudio = async () => {
+    if (isPlaying) {
+      stopAudio();
+      return;
+    }
+
+    if (!post) return;
+    setIsGeneratingAudio(true);
+    try {
+      const rawText = post.content.replace(/<[^>]*>?/gm, '');
+      const base64Audio = await aiService.generateAudio(rawText);
+      
+      if (!base64Audio) throw new Error("No audio data received");
+
+      const audioBytes = decodeBase64(base64Audio);
+      
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      }
+      
+      const ctx = audioContextRef.current;
+      const audioBuffer = await decodeAudioData(audioBytes, ctx, 24000, 1);
+
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(ctx.destination);
+      source.start();
+      
+      audioSourceRef.current = source;
+      setIsPlaying(true);
+      
+      source.onended = () => {
+        setIsPlaying(false);
+        audioSourceRef.current = null;
+      };
+
+    } catch (e) {
+      console.error("Audio generation failed:", e);
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">
+          <Spinner />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow text-center py-20">
+          <h1 className="text-4xl font-bold">Post not found</h1>
+          <p className="text-gray-600 mt-4">Sorry, we couldn't find the post you were looking for.</p>
+          <Link to="/" className="mt-8 inline-block bg-primary text-white px-6 py-2 rounded-md">
+            Back to Home
+          </Link>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <SEO
+        title={post.metaTitle || post.title}
+        description={post.metaDescription || post.excerpt}
+        keywords={post.metaKeywords || post.tags.join(', ')}
+        ogImage={post.featuredMediaType === 'image' ? post.featuredMediaUrl : undefined}
+        ogVideo={post.featuredMediaType === 'video' ? post.featuredMediaUrl : undefined}
+        type="article"
+      />
+      <Header />
+      <main className="flex-grow">
+        <div className="relative h-96 md:h-[500px] bg-black">
+          {post.featuredMediaType === 'video' ? (
+            <video 
+              src={post.featuredMediaUrl} 
+              className="absolute inset-0 w-full h-full object-cover" 
+              autoPlay 
+              muted 
+              loop 
+              playsInline
+              aria-label={post.featuredMediaAlt || post.title}
+            />
+          ) : (
+            <img src={post.featuredMediaUrl} alt={post.featuredMediaAlt || post.title} className="absolute inset-0 w-full h-full object-cover" />
+          )}
+          <div className="absolute inset-0 bg-black/60"></div>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative h-full flex flex-col justify-end pb-12 text-white">
+            <h1 className="text-4xl md:text-6xl font-bold font-serif">{post.title}</h1>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-4 mt-6 text-sm opacity-90">
+                <div className="flex items-center">
+                    <Calendar size={16} className="mr-2" />
+                    <span>{post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : 'Unpublished'}</span>
+                </div>
+                <div className="flex items-center">
+                    <Folder size={16} className="mr-2" />
+                    <Link to={`/category/${post.category}`} className="hover:underline">{post.category}</Link>
+                </div>
+                {author && (
+                  <div className="flex items-center">
+                      <User size={16} className="mr-2" />
+                      <Link to={`/author/${author.slug}`} className="hover:underline">By {author.name}</Link>
+                  </div>
+                )}
+                
+                <button 
+                  onClick={handleToggleAudio}
+                  disabled={isGeneratingAudio}
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full border border-white/20 transition-all group"
+                >
+                  {isGeneratingAudio ? (
+                    <LoaderCircle size={16} className="animate-spin" />
+                  ) : isPlaying ? (
+                    <Pause size={16} fill="currentColor" />
+                  ) : (
+                    <Play size={16} fill="currentColor" />
+                  )}
+                  <span className="font-semibold">{isGeneratingAudio ? 'Generating...' : isPlaying ? 'Stop Reader' : 'Listen to Post'}</span>
+                </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div className="lg:grid lg:grid-cols-12 lg:gap-8 xl:gap-12">
+                
+                {headings.length > 0 && (
+                    <aside className="hidden lg:block lg:col-span-3">
+                        <div className="sticky top-24">
+                            <h3 className="font-semibold font-serif text-lg mb-4 text-neutral border-b pb-2">Table of Contents</h3>
+                            <ul className="space-y-2 text-sm">
+                                {headings.map((heading) => (
+                                    <li key={heading.id}>
+                                        <a
+                                            href={`#${heading.id}`}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                document.getElementById(heading.id)?.scrollIntoView({ behavior: 'smooth' });
+                                            }}
+                                            className={`
+                                                block border-l-4 py-1 transition-colors duration-200
+                                                ${heading.level === 3 ? 'pl-8' : 'pl-4'}
+                                                ${activeHeadingId === heading.id 
+                                                    ? 'border-primary text-primary font-semibold' 
+                                                    : 'border-transparent text-gray-600 hover:text-primary hover:border-gray-300'}
+                                            `}
+                                        >
+                                            {heading.text}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            {(loadingAttractions || attractions) && (
+                              <div className="mt-12 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                <h4 className="flex items-center gap-2 text-sm font-bold text-neutral mb-3">
+                                  <MapPin size={16} className="text-primary" />
+                                  Local Discoveries
+                                </h4>
+                                {loadingAttractions ? (
+                                  <div className="animate-pulse space-y-2">
+                                    <div className="h-3 bg-gray-200 rounded w-full"></div>
+                                    <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                                  </div>
+                                ) : attractions && (
+                                  <div className="space-y-4">
+                                    <p className="text-xs text-gray-600 italic">Recommendations near this destination:</p>
+                                    <div className="space-y-3">
+                                      {attractions.sources.map((chunk, idx) => (
+                                        chunk.maps && (
+                                          <a 
+                                            key={idx}
+                                            href={chunk.maps.uri}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="group block text-xs border-b border-gray-100 pb-2 hover:text-primary transition-colors"
+                                          >
+                                            <span className="font-bold block group-hover:underline">{chunk.maps.title}</span>
+                                            <span className="text-gray-400 flex items-center gap-1 mt-1">
+                                              View on Maps <ExternalLink size={10} />
+                                            </span>
+                                          </a>
+                                        )
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                        </div>
+                    </aside>
+                )}
+
+                <div className={headings.length > 0 ? "lg:col-span-9" : "lg:col-span-12 max-w-4xl mx-auto"}>
+                    <div className="prose lg:prose-xl max-w-none">
+                        <PostContentRenderer content={contentWithIds || post.content} />
+                    </div>
+                    
+                    {attractions && (
+                      <div className="mt-16 p-8 bg-blue-50/30 rounded-2xl border border-blue-100">
+                         <h3 className="flex items-center gap-2 text-2xl font-serif font-bold text-neutral mb-4">
+                            <Sparkles size={24} className="text-primary" />
+                            AI Local Guide
+                         </h3>
+                         <div className="prose prose-blue max-w-none text-gray-700 whitespace-pre-wrap">
+                            {attractions.text}
+                         </div>
+                      </div>
+                    )}
+
+                    <div className="mt-12 pt-8 border-t">
+                        {post.tags.length > 0 && (
+                            <div className="flex items-center text-sm text-gray-500 mb-6">
+                                <Tag size={16} className="mr-2" />
+                                <div className="flex flex-wrap gap-2">
+                                    {post.tags.map(tag => (
+                                        <Link key={tag} to={`/tag/${tag}`} className="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-medium hover:bg-gray-300 transition-colors">{tag}</Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <SocialShareButtons post={post} />
+                    </div>
+                </div>
+            </div>
+        </div>
+        <RelatedPosts currentPostId={post.id} category={post.category} />
+        <CommentsSection postId={post.id} />
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default PostDetailsPage;

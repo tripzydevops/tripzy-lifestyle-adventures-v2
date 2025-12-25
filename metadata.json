@@ -1,0 +1,8 @@
+
+{
+  "name": "Tripzy Lifestyle Adventures",
+  "description": "A modern, professional, and fully editable travel blog website for sharing travel stories, tips, and destination guides.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
