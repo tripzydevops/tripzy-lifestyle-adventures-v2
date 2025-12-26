@@ -52,21 +52,31 @@ const PlanTripPage = () => {
         description="Plan your next adventure in seconds with our AI-powered travel itinerary generator."
       />
       <Header />
-      <main className="flex-grow bg-gradient-to-br from-gray-50 to-gray-100 pb-20">
+      <main className="flex-grow bg-gray-50 pb-20">
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary via-blue-900 to-indigo-900 text-white py-16 px-4">
-          <div className="container mx-auto max-w-4xl text-center">
+        <section
+          className="relative overflow-hidden"
+          style={{
+            background:
+              "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)",
+          }}
+        >
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 left-0 w-96 h-96 bg-amber-400 rounded-full filter blur-3xl"></div>
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl"></div>
+          </div>
+          <div className="container mx-auto max-w-4xl text-center relative z-10 py-16 px-4">
             <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 mb-6 backdrop-blur-sm">
-              <Sparkles size={16} className="text-yellow-300" />
-              <span className="text-sm font-semibold uppercase tracking-wider">
+              <Sparkles size={16} className="text-amber-400" />
+              <span className="text-sm font-semibold uppercase tracking-wider text-white">
                 AI Powered Planning
               </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold font-serif mb-6 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-bold font-serif mb-6 leading-tight text-white">
               Where will your next{" "}
-              <span className="text-amber-300 italic">adventure</span> take you?
+              <span className="text-amber-400 italic">adventure</span> take you?
             </h1>
-            <p className="text-lg text-gray-100 mb-10 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-300 mb-10 max-w-2xl mx-auto">
               Our AI travel consultant uses real-time Google data to build the
               perfect day-by-day itinerary just for you.
             </p>
@@ -102,7 +112,12 @@ const PlanTripPage = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 shrink-0 disabled:bg-gray-400 shadow-lg"
+                className="px-8 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 shrink-0 disabled:bg-gray-400 text-white shadow-lg"
+                style={{
+                  background: isLoading
+                    ? "#9ca3af"
+                    : "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
+                }}
               >
                 {isLoading ? (
                   <LoaderCircle size={20} className="animate-spin" />
