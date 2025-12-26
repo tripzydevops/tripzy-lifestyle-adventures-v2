@@ -115,13 +115,10 @@
 
 ## ❌ What's NOT Working Yet
 
-| Item               | Issue                             | Priority    |
-| ------------------ | --------------------------------- | ----------- |
-| **Live Database**  | Services use mock data            | 🔴 Critical |
-| **Authentication** | Not connected to Supabase Auth    | 🔴 Critical |
-| **Image Uploads**  | Not connected to Supabase Storage | 🟠 High     |
-| **Newsletter**     | Form exists but doesn't save      | 🟡 Medium   |
-| **Comments**       | Display only, no real persistence | 🟡 Medium   |
+| Item           | Issue                        | Priority  |
+| -------------- | ---------------------------- | --------- |
+| **Newsletter** | Form exists but admin view   | 🟡 Medium |
+| **Comments**   | Auto-approved, no moderation | 🟡 Medium |
 
 ---
 
@@ -163,12 +160,12 @@
 
 **Goal:** Enable image uploads and media library
 
-| Task                                        | Effort  | Priority |
-| ------------------------------------------- | ------- | -------- |
-| 3.1 Create Supabase Storage bucket          | 30 min  | 🟠 High  |
-| 3.2 Update `uploadService` for real uploads | 2 hours | 🟠 High  |
-| 3.3 Connect MediaLibraryModal to real data  | 2 hours | 🟠 High  |
-| 3.4 Test image upload in post editor        | 1 hour  | 🟠 High  |
+| Task                                        | Effort  | Priority | Status |
+| ------------------------------------------- | ------- | -------- | ------ |
+| 3.1 Create Supabase Storage bucket          | 30 min  | 🟠 High  | ✅     |
+| 3.2 Update `uploadService` for real uploads | 2 hours | 🟠 High  | ✅     |
+| 3.3 Connect MediaLibraryModal to real data  | 2 hours | 🟠 High  | ✅     |
+| 3.4 Test image upload in post editor        | 1 hour  | 🟠 High  | ✅     |
 
 **Deliverable:** Authors can upload and use images
 
@@ -254,7 +251,7 @@
 | Database Tables        | 8       | 8 ✅   |
 | Connected to Real DB   | 100%    | 100%   |
 | Authentication Working | 100%    | 100%   |
-| Image Uploads Working  | 0%      | 100%   |
+| Image Uploads Working  | 100%    | 100%   |
 | Deployed to Vercel     | 90%     | 100%   |
 
 ---
