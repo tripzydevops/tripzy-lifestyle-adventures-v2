@@ -20,8 +20,9 @@ const mapSettingsFromSupabase = (data: any): SiteSettings => ({
 export const settingsService = {
   async getSettings(): Promise<SiteSettings> {
     const { data, error } = await supabase
+      .schema('blog')
       .from('settings')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .eq('id', 'default')
       .single();
 
@@ -52,8 +53,9 @@ export const settingsService = {
     supabaseUpdates.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
+      .schema('blog')
       .from('settings')
-      .update(supabaseUpdates, { schema: 'blog' })
+      .update(supabaseUpdates)
       .eq('id', 'default')
       .select()
       .single();

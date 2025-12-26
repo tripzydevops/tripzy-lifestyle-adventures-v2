@@ -13,8 +13,9 @@ const mapCommentFromSupabase = (data: any): Comment => ({
 export const commentService = {
   async getCommentsByPostId(postId: string): Promise<Comment[]> {
     const { data, error } = await supabase
+      .schema('blog')
       .from('comments')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .eq('post_id', postId)
       .eq('is_approved', true)
       .order('created_at', { ascending: false });
@@ -36,8 +37,9 @@ export const commentService = {
     };
 
     const { data, error } = await supabase
+      .schema('blog')
       .from('comments')
-      .insert([supabaseData], { schema: 'blog' })
+      .insert([supabaseData])
       .select()
       .single();
 

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 export const newsletterService = {
   async subscribe(email: string): Promise<void> {
     const { data: existing, error: checkError } = await supabase
+      .schema('blog')
       .from('newsletter_subscribers')
       .select('id')
       .eq('email', email)
@@ -14,8 +15,9 @@ export const newsletterService = {
     }
 
     const { error } = await supabase
+      .schema('blog')
       .from('newsletter_subscribers')
-      .insert([{ email, source: 'website' }], { schema: 'blog' });
+      .insert([{ email, source: 'website' }]);
 
     if (error) {
       console.error('Supabase Error (subscribe):', error);
@@ -25,8 +27,9 @@ export const newsletterService = {
 
   async getAllSubscribers(): Promise<string[]> {
     const { data, error } = await supabase
+      .schema('blog')
       .from('newsletter_subscribers')
-      .select('email', { schema: 'blog' });
+      .select('email');
 
     if (error) {
       console.error('Supabase Error (getAllSubscribers):', error);

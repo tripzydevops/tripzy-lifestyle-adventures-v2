@@ -24,8 +24,9 @@ const mapMediaFromSupabase = (data: any): MediaItem => ({
 export const mediaService = {
   async getAllMedia(): Promise<MediaItem[]> {
     const { data, error } = await supabase
+      .schema('blog')
       .from('media')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -44,8 +45,9 @@ export const mediaService = {
     };
 
     const { data, error } = await supabase
+      .schema('blog')
       .from('media')
-      .insert([supabaseData], { schema: 'blog' })
+      .insert([supabaseData])
       .select()
       .single();
 

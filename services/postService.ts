@@ -66,8 +66,9 @@ const mapPostFromSupabase = (data: any): Post => ({
 export const postService = {
   async getAllPosts(): Promise<Post[]> {
     const { data, error } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -83,8 +84,9 @@ export const postService = {
     
     // Count first
     const { count, error: countError } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { count: 'exact', head: true, schema: 'blog' })
+      .select('*', { count: 'exact', head: true })
       .eq('status', 'published')
       .lte('published_at', now);
 
@@ -94,8 +96,9 @@ export const postService = {
     }
 
     const { data, error } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .eq('status', 'published')
       .lte('published_at', now)
       .order('published_at', { ascending: false })
@@ -115,8 +118,9 @@ export const postService = {
     const now = new Date().toISOString();
 
     const { count, error: countError } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { count: 'exact', head: true, schema: 'blog' })
+      .select('*', { count: 'exact', head: true })
       .eq('status', 'published')
       .lte('published_at', now)
       .or(`title.ilike.%${query}%,content.ilike.%${query}%`);
@@ -127,8 +131,9 @@ export const postService = {
     }
 
     const { data, error } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .eq('status', 'published')
       .lte('published_at', now)
       .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
@@ -148,8 +153,9 @@ export const postService = {
     const now = new Date().toISOString();
 
     const { count, error: countError } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { count: 'exact', head: true, schema: 'blog' })
+      .select('*', { count: 'exact', head: true })
       .eq('category', category)
       .eq('status', 'published')
       .lte('published_at', now);
@@ -160,8 +166,9 @@ export const postService = {
     }
 
     const { data, error } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .eq('category', category)
       .eq('status', 'published')
       .lte('published_at', now)
@@ -181,8 +188,9 @@ export const postService = {
     const now = new Date().toISOString();
 
     const { count, error: countError } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { count: 'exact', head: true, schema: 'blog' })
+      .select('*', { count: 'exact', head: true })
       .contains('tags', [tag])
       .eq('status', 'published')
       .lte('published_at', now);
@@ -193,8 +201,9 @@ export const postService = {
     }
 
     const { data, error } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .contains('tags', [tag])
       .eq('status', 'published')
       .lte('published_at', now)
@@ -214,8 +223,9 @@ export const postService = {
     const now = new Date().toISOString();
 
     const { count, error: countError } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { count: 'exact', head: true, schema: 'blog' })
+      .select('*', { count: 'exact', head: true })
       .eq('author_id', authorId)
       .eq('status', 'published')
       .lte('published_at', now);
@@ -226,8 +236,9 @@ export const postService = {
     }
 
     const { data, error } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .eq('author_id', authorId)
       .eq('status', 'published')
       .lte('published_at', now)
@@ -246,8 +257,9 @@ export const postService = {
   async getRelatedPosts(postId: string, category: string): Promise<Post[]> {
     const now = new Date().toISOString();
     const { data, error } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .neq('id', postId)
       .eq('category', category)
       .eq('status', 'published')
@@ -264,8 +276,9 @@ export const postService = {
 
   async getPostById(id: string): Promise<Post | undefined> {
     const { data, error } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -279,8 +292,9 @@ export const postService = {
   
   async getPostBySlug(slug: string): Promise<Post | undefined> {
     const { data, error } = await supabase
+      .schema('blog')
       .from('posts')
-      .select('*', { schema: 'blog' })
+      .select('*')
       .eq('slug', slug)
       .single();
 
@@ -317,8 +331,9 @@ export const postService = {
     };
 
     const { data, error } = await supabase
+      .schema('blog')
       .from('posts')
-      .insert([supabaseData], { schema: 'blog' })
+      .insert([supabaseData])
       .select()
       .single();
 
@@ -351,8 +366,9 @@ export const postService = {
     supabaseUpdates.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
+      .schema('blog')
       .from('posts')
-      .update(supabaseUpdates, { schema: 'blog' })
+      .update(supabaseUpdates)
       .eq('id', id)
       .select()
       .single();
@@ -367,8 +383,9 @@ export const postService = {
 
   async deletePost(id: string): Promise<void> {
     const { error } = await supabase
+      .schema('blog')
       .from('posts')
-      .delete({ schema: 'blog' })
+      .delete()
       .eq('id', id);
 
     if (error) {
