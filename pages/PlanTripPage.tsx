@@ -13,8 +13,10 @@ import {
   ExternalLink,
   Info,
 } from "lucide-react";
+import { useLanguage } from "../localization/LanguageContext";
 
 const PlanTripPage = () => {
+  const { t, language } = useLanguage();
   const [destination, setDestination] = useState("");
   const [duration, setDuration] = useState("3");
   const [itinerary, setItinerary] = useState<{
@@ -33,7 +35,9 @@ const PlanTripPage = () => {
       // Use the nearby attractions service which already leverages Maps grounding
       // We pass a more specific prompt for a full itinerary
       const result = await aiService.getNearbyAttractions(
-        `Create a detailed ${duration}-day itinerary for ${destination}. Suggest breakfast, morning activity, lunch, afternoon activity, and dinner for each day.`,
+        language === "tr"
+          ? `${destination} için ${duration} günlük detaylı bir gezi planı oluştur. Her gün için kahvaltı, sabah aktivitesi, öğle yemeği, öğlen sonrası aktivitesi ve akşam yemeği öner.`
+          : `Create a detailed ${duration}-day itinerary for ${destination}. Suggest breakfast, morning activity, lunch, afternoon activity, and dinner for each day.`,
         undefined,
         undefined
       );
@@ -69,16 +73,18 @@ const PlanTripPage = () => {
             <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 mb-6 backdrop-blur-sm">
               <Sparkles size={16} className="text-amber-400" />
               <span className="text-sm font-semibold uppercase tracking-wider text-white">
-                AI Powered Planning
+                {t.tripPlanner.badge}
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold font-serif mb-6 leading-tight text-white">
-              Where will your next{" "}
-              <span className="text-amber-400 italic">adventure</span> take you?
+              {t.tripPlanner.title}{" "}
+              <span className="text-amber-400 italic">
+                {language === "tr" ? "maceranız" : "adventure"}
+              </span>{" "}
+              {language === "tr" ? "nereye götürecek?" : "take you?"}
             </h1>
             <p className="text-lg text-gray-300 mb-10 max-w-2xl mx-auto">
-              Our AI travel consultant uses real-time Google data to build the
-              perfect day-by-day itinerary just for you.
+              {t.tripPlanner.subtitle}
             </p>
 
             <form

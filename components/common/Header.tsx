@@ -12,12 +12,15 @@ import {
   ExternalLink,
 } from "lucide-react";
 import SearchBar from "./SearchBar";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { useLanguage } from "../../localization/LanguageContext";
 
 const TRIPZY_APP_URL =
   import.meta.env.VITE_TRIPZY_APP_URL || "https://tripzy.travel";
 
 const Header = () => {
   const { isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
@@ -147,6 +150,8 @@ const Header = () => {
                   Login
                 </Link>
               )}
+
+              <LanguageSwitcher />
             </div>
 
             {/* Mobile Menu Button */}
@@ -236,6 +241,10 @@ const Header = () => {
                     Admin Login
                   </Link>
                 )}
+
+                <div className="w-full pt-2">
+                  <LanguageSwitcher />
+                </div>
               </div>
             </nav>
           </div>
