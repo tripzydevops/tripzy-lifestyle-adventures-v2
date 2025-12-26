@@ -1,8 +1,15 @@
-
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '../types';
-import { mockUsers } from '../data/mockData';
-import { useNavigate } from 'react-router-dom';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { User, UserRole } from "../types";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { userService } from "../services/userService";
+import Spinner from "../components/common/Spinner";
 
 interface AuthContextType {
   user: User | null;
@@ -10,54 +17,119 @@ interface AuthContextType {
   isAdmin: boolean;
   isEditor: boolean;
   isAuthor: boolean;
-  login: (email: string, pass: string) => Promise<boolean>;
-  logout: () => void;
+  login: (
+    email: string,
+    pass: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('tripzy-user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setUser(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, pass: string): Promise<boolean> => {
-    const foundUser = mockUsers.find(u => u.email === email);
-    if (foundUser && pass === 'password123') {
-      setUser(foundUser);
-      localStorage.setItem('tripzy-user', JSON.stringify(foundUser));
-      return true;
+  const fetchProfile = async (userId: string) => {
+    try {
+      const profile = await userService.getUserById(userId);
+      if (profile) {
+        setUser(profile);
+      } else {
+        // Handle case where auth user exists but profile doesn't (rare)
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
-    return false;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('tripzy-user');
-    navigate('/login');
+  const login = async (
+    email: string,
+    pass: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password: pass,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
   };
-  
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    navigate("/login");
+  };
+
   const updateUser = async (updates: Partial<User>): Promise<void> => {
     if (user) {
-        const updatedUser = { ...user, ...updates };
-        setUser(updatedUser);
-        localStorage.setItem('tripzy-user', JSON.stringify(updatedUser));
+      const updatedUser = await userService.updateUser(user.id, updates);
+      setUser(updatedUser);
     }
-  }
+  };
 
   const isAuthenticated = !!user;
   const isAdmin = user?.role === UserRole.Administrator;
   const isEditor = user?.role === UserRole.Editor;
   const isAuthor = user?.role === UserRole.Author;
 
-  const value = { user, isAuthenticated, isAdmin, isEditor, isAuthor, login, logout, updateUser };
+  const value = {
+    user,
+    isAuthenticated,
+    isAdmin,
+    isEditor,
+    isAuthor,
+    login,
+    logout,
+    updateUser,
+    isLoading,
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spinner size="large" />
+      </div>
+    );
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
@@ -65,7 +137,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

@@ -1,35 +1,34 @@
-
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import { SITE_NAME } from '../constants';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { SITE_NAME } from "../constants";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     if (!email || !password) {
-        setError('Please enter both email and password.');
-        setLoading(false);
-        return;
+      setError("Please enter both email and password.");
+      setLoading(false);
+      return;
     }
 
-    const success = await login(email, password);
+    const result = await login(email, password);
     setLoading(false);
 
-    if (success) {
-      navigate('/admin/dashboard');
+    if (result.success) {
+      navigate("/admin/dashboard");
     } else {
-      setError('Invalid email or password. (Hint: use password123)');
+      setError(result.error || "Invalid email or password.");
     }
   };
 
@@ -37,13 +36,20 @@ const LoginPage = () => {
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-primary font-serif">{SITE_NAME}</h1>
+          <h1 className="text-3xl font-bold text-primary font-serif">
+            {SITE_NAME}
+          </h1>
           <p className="text-gray-600">Admin Login</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
           <div>
-            <label htmlFor="email" className="text-sm font-medium text-gray-700">Email</label>
+            <label
+              htmlFor="email"
+              className="text-sm font-medium text-gray-700"
+            >
+              Email
+            </label>
             <input
               id="email"
               type="email"
@@ -54,7 +60,12 @@ const LoginPage = () => {
             />
           </div>
           <div>
-            <label htmlFor="password-login" className="text-sm font-medium text-gray-700">Password</label>
+            <label
+              htmlFor="password-login"
+              className="text-sm font-medium text-gray-700"
+            >
+              Password
+            </label>
             <input
               id="password-login"
               type="password"
@@ -69,11 +80,13 @@ const LoginPage = () => {
             disabled={loading}
             className="w-full py-2 px-4 bg-primary text-white rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400"
           >
-            {loading ? 'Signing In...' : 'Sign In'}
+            {loading ? "Signing In..." : "Sign In"}
           </button>
         </form>
-         <div className="text-center text-sm text-gray-500">
-            <Link to="/" className="hover:text-primary">← Back to website</Link>
+        <div className="text-center text-sm text-gray-500">
+          <Link to="/" className="hover:text-primary">
+            ← Back to website
+          </Link>
         </div>
       </div>
     </div>
