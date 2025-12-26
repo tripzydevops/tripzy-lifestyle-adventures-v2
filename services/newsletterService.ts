@@ -1,35 +1,38 @@
-// services/newsletterService.ts
 
-// Simulate a backend data store for newsletter subscribers.
-let subscribers: string[] = [];
-
-// Simulate API latency
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+import { supabase } from '../lib/supabase';
 
 export const newsletterService = {
-  /**
-   * Adds an email to the newsletter subscription list.
-   * @param email The email address to subscribe.
-   * @returns A promise that resolves when the subscription is complete.
-   * @throws An error if the email is already subscribed.
-   */
   async subscribe(email: string): Promise<void> {
-    await delay(1000); // Simulate network request
+    const { data: existing, error: checkError } = await supabase
+      .from('newsletter_subscribers')
+      .select('id')
+      .eq('email', email)
+      .single();
 
-    if (subscribers.includes(email)) {
+    if (existing) {
       throw new Error('This email is already subscribed.');
     }
 
-    subscribers.push(email);
-    console.log('Newsletter Subscribers:', subscribers); // For debugging, shows the "backend" list
+    const { error } = await supabase
+      .from('newsletter_subscribers')
+      .insert([{ email, source: 'website' }], { schema: 'blog' });
+
+    if (error) {
+      console.error('Supabase Error (subscribe):', error);
+      throw error;
+    }
   },
 
-  /**
-   * Retrieves all subscribed emails. (Mainly for debugging/admin purposes)
-   * @returns A promise that resolves to an array of all subscribed emails.
-   */
   async getAllSubscribers(): Promise<string[]> {
-    await delay(200);
-    return [...subscribers];
+    const { data, error } = await supabase
+      .from('newsletter_subscribers')
+      .select('email', { schema: 'blog' });
+
+    if (error) {
+      console.error('Supabase Error (getAllSubscribers):', error);
+      return [];
+    }
+
+    return data.map(s => s.email);
   }
 };

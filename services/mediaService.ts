@@ -1,56 +1,72 @@
-// services/mediaService.ts
+
 import { MediaItem } from '../types';
-import { mockMedia } from '../data/mockData';
+import { supabase } from '../lib/supabase';
 
-let media: MediaItem[] = [...mockMedia];
-
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-
-// Helper function to guess media type from URL
-const getMediaTypeFromUrl = (url: string): 'image' | 'video' => {
+const getMediaTypeFromMime = (mime: string | null, url: string): 'image' | 'video' => {
+  if (mime?.startsWith('video/')) return 'video';
+  if (mime?.startsWith('image/')) return 'image';
+  
   const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
-  const lowerUrl = url.toLowerCase().split('?')[0]; // Ignore query params for extension check
-
-  if (videoExtensions.some(ext => lowerUrl.endsWith(ext))) {
-    return 'video';
-  }
-  // Default to image if it's not a recognized video format
+  const lowerUrl = url.toLowerCase().split('?')[0];
+  if (videoExtensions.some(ext => lowerUrl.endsWith(ext))) return 'video';
+  
   return 'image';
 };
 
+const mapMediaFromSupabase = (data: any): MediaItem => ({
+  id: data.id,
+  url: data.url,
+  fileName: data.file_name || 'unnamed',
+  uploadedAt: data.created_at,
+  mediaType: getMediaTypeFromMime(data.mime_type, data.url),
+});
 
 export const mediaService = {
   async getAllMedia(): Promise<MediaItem[]> {
-    await delay(500);
-    return [...media].sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+    const { data, error } = await supabase
+      .from('media')
+      .select('*', { schema: 'blog' })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase Error (getAllMedia):', error);
+      return [];
+    }
+
+    return data.map(mapMediaFromSupabase);
   },
 
   async addMedia(mediaData: Omit<MediaItem, 'id' | 'uploadedAt'>): Promise<MediaItem> {
-    await delay(100);
-    const newMediaItem: MediaItem = {
-      ...mediaData,
-      id: `m${Date.now()}`,
-      uploadedAt: new Date().toISOString(),
+    const supabaseData = {
+      url: mediaData.url,
+      file_name: mediaData.fileName,
+      mime_type: mediaData.mediaType === 'video' ? 'video/mp4' : 'image/jpeg',
     };
-    media.unshift(newMediaItem);
-    return newMediaItem;
+
+    const { data, error } = await supabase
+      .from('media')
+      .insert([supabaseData], { schema: 'blog' })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase Error (addMedia):', error);
+      throw error;
+    }
+
+    return mapMediaFromSupabase(data);
   },
 
   async importMediaFromUrl(url: string): Promise<MediaItem> {
-    await delay(1500); // Simulate fetching the media
-    
     try {
-      // Basic URL validation
       new URL(url); 
     } catch (_) {
       throw new Error('Invalid URL provided.');
     }
     
-    const mediaType = getMediaTypeFromUrl(url);
     const fileName = url.substring(url.lastIndexOf('/') + 1).split('?')[0] || 'imported_media';
+    const mediaType = getMediaTypeFromMime(null, url);
 
-    // In a real app, you'd download the file, upload it to your storage,
-    // and then use the new storage URL. Here, we just use the original URL.
     return this.addMedia({
       url,
       fileName,
