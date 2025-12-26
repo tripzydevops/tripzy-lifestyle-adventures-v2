@@ -31,68 +31,6 @@
       content="Discover inspiring travel stories and destination guides."
     />
 
-    <!-- Tailwind CSS with Dark Theme Config -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              // Navy Palette
-              navy: {
-                950: "#020617",
-                900: "#0f172a",
-                800: "#1e293b",
-                700: "#334155",
-                600: "#475569",
-                500: "#64748b",
-              },
-              // Brand Colors
-              primary: "#3b82f6",
-              "primary-dark": "#2563eb",
-              "primary-light": "#60a5fa",
-              gold: "#fbbf24",
-              "gold-light": "#fcd34d",
-              "gold-dark": "#f59e0b",
-              accent: "#f97316",
-              // Legacy compat
-              neutral: "#f8fafc",
-              "base-100": "#0f172a",
-            },
-            fontFamily: {
-              sans: [
-                "Inter",
-                "-apple-system",
-                "BlinkMacSystemFont",
-                "sans-serif",
-              ],
-              serif: ["Lora", "Georgia", "serif"],
-            },
-            animation: {
-              "fade-in": "fadeIn 0.5s ease-out",
-              "slide-up": "slideUp 0.5s ease-out",
-              "pulse-glow": "pulseGlow 2s ease-in-out infinite",
-            },
-            keyframes: {
-              fadeIn: {
-                "0%": { opacity: "0" },
-                "100%": { opacity: "1" },
-              },
-              slideUp: {
-                "0%": { opacity: "0", transform: "translateY(20px)" },
-                "100%": { opacity: "1", transform: "translateY(0)" },
-              },
-              pulseGlow: {
-                "0%, 100%": { boxShadow: "0 0 20px rgba(251, 191, 36, 0.2)" },
-                "50%": { boxShadow: "0 0 40px rgba(251, 191, 36, 0.4)" },
-              },
-            },
-          },
-        },
-      };
-    </script>
-
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
