@@ -4,12 +4,13 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials not configured. Using mock data mode.');
+  console.error('CRITICAL ERROR: Supabase credentials are missing! Check your .env.local or Vercel Environment Variables.');
 }
 
+// Initialize with placeholders ONLY if values are missing, but log the error
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
+  supabaseUrl || 'https://MISSING_URL.supabase.co',
+  supabaseAnonKey || 'MISSING_KEY'
 );
 
 // Helper to check if Supabase is configured
