@@ -1,16 +1,24 @@
-
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Post, PostStatus, MediaItem } from '../../types';
-import { postService } from '../../services/postService';
-import { aiService } from '../../services/aiService';
-import { useAuth } from '../../hooks/useAuth';
-import WYSIWYGEditor from '../../components/admin/WYSIWYGEditor';
-import Spinner from '../../components/common/Spinner';
-import { useToast } from '../../hooks/useToast';
-import PostEditorSidebar from '../../components/admin/PostEditorSidebar';
-import MediaLibraryModal from '../../components/admin/MediaLibraryModal';
-import { Sparkles, Wand2, Image as ImageIcon, ClipboardList, LoaderCircle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Post, PostStatus, MediaItem } from "../../types";
+import { postService } from "../../services/postService";
+import { aiService } from "../../services/aiService";
+import { useAuth } from "../../hooks/useAuth";
+import WYSIWYGEditor from "../../components/admin/WYSIWYGEditor";
+import Spinner from "../../components/common/Spinner";
+import { useToast } from "../../hooks/useToast";
+import { useLanguage } from "../../localization/LanguageContext";
+import PostEditorSidebar from "../../components/admin/PostEditorSidebar";
+import MediaLibraryModal from "../../components/admin/MediaLibraryModal";
+import {
+  Sparkles,
+  Wand,
+  Image as ImageIcon,
+  ClipboardList,
+  Loader2,
+  CheckCircle,
+  Search,
+} from "lucide-react";
 
 type EditorHandle = {
   insertHtml: (html: string) => void;
@@ -21,20 +29,21 @@ const EditPostPage = () => {
   const navigate = useNavigate();
   const { user, isAuthor } = useAuth();
   const { addToast } = useToast();
-  
+  const { t } = useLanguage();
+
   const [post, setPost] = useState<Partial<Post>>({
-    title: '',
-    content: '<p>Start here...</p>',
-    excerpt: '',
-    category: 'Uncategorized',
+    title: "",
+    content: "<p>Start here...</p>",
+    excerpt: "",
+    category: "Uncategorized",
     tags: [],
     status: PostStatus.Draft,
-    featuredMediaUrl: '',
-    featuredMediaType: 'image',
-    featuredMediaAlt: '',
-    metaTitle: '',
-    metaDescription: '',
-    metaKeywords: '',
+    featuredMediaUrl: "",
+    featuredMediaType: "image",
+    featuredMediaAlt: "",
+    metaTitle: "",
+    metaDescription: "",
+    metaKeywords: "",
     publishedAt: null,
   });
 
@@ -43,7 +52,9 @@ const EditPostPage = () => {
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
-  const [mediaModalPurpose, setMediaModalPurpose] = useState<'featured' | 'insert'>('featured');
+  const [mediaModalPurpose, setMediaModalPurpose] = useState<
+    "featured" | "insert"
+  >("featured");
 
   const editorRef = useRef<EditorHandle>(null);
   const latestPost = useRef(post);
@@ -53,62 +64,65 @@ const EditPostPage = () => {
     latestPost.current = post;
     isDirtyRef.current = isDirty;
   }, [post, isDirty]);
-  
+
   const isNewPost = !postId;
 
   useEffect(() => {
     if (!isNewPost) {
       setLoading(true);
-      postService.getPostById(postId)
-        .then(fetchedPost => {
+      postService
+        .getPostById(postId)
+        .then((fetchedPost) => {
           if (fetchedPost) {
             setPost(fetchedPost);
           } else {
-            addToast('Post not found', 'error');
-            navigate('/admin/posts');
+            addToast(t("common.error"), "error");
+            navigate("/admin/posts");
           }
         })
         .finally(() => setLoading(false));
     }
-  }, [postId, isNewPost, navigate, addToast]);
+  }, [postId, isNewPost, navigate, addToast, t]);
 
   // Auto-save logic for Drafts
   useEffect(() => {
     if (isNewPost) return;
 
     const intervalId = setInterval(async () => {
-      if (isDirtyRef.current && latestPost.current.status === PostStatus.Draft) {
+      if (
+        isDirtyRef.current &&
+        latestPost.current.status === PostStatus.Draft
+      ) {
         try {
           await postService.updatePost(postId!, latestPost.current);
           setIsDirty(false);
-          console.debug("Draft auto-saved.");
         } catch (e) {
           console.error("Auto-save failed:", e);
         }
       }
-    }, 60000); // Auto-save every minute
+    }, 60000);
 
     return () => clearInterval(intervalId);
   }, [isNewPost, postId]);
 
   const handlePostChange = useCallback((field: keyof Post, value: any) => {
-    setPost(prev => ({ ...prev, [field]: value }));
+    setPost((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);
   }, []);
 
   const handleAiGenerateExcerpt = async () => {
-    if (!post.content || post.content === '<p>Start here...</p>') {
-      addToast('Please write some content first!', 'info');
+    if (!post.content || post.content === "<p>Start here...</p>") {
+      addToast(t("blog.leaveComment"), "info");
       return;
     }
     setIsAiGenerating(true);
     try {
       const excerpt = await aiService.generateExcerpt(post.content);
-      handlePostChange('excerpt', excerpt);
-      handlePostChange('metaDescription', excerpt);
-      addToast('AI generated an excerpt based on your content.', 'success');
+      handlePostChange("excerpt", excerpt);
+      handlePostChange("metaDescription", excerpt);
+      addToast(t("common.success"), "success");
     } catch (e) {
-      addToast('AI generation failed.', 'error');
+      addToast(t("common.error"), "error");
     } finally {
       setIsAiGenerating(false);
     }
@@ -116,16 +130,19 @@ const EditPostPage = () => {
 
   const handleAiGenerateSEO = async () => {
     if (!post.title) {
-      addToast('Please enter a title first!', 'info');
+      addToast(t("blog.leaveComment"), "info");
       return;
     }
     setIsAiGenerating(true);
     try {
-      const keywords = await aiService.generateSEOKeywords(post.title, post.content || "");
-      handlePostChange('metaKeywords', keywords);
-      addToast('AI generated SEO keywords.', 'success');
+      const keywords = await aiService.generateSEOKeywords(
+        post.title,
+        post.content || ""
+      );
+      handlePostChange("metaKeywords", keywords);
+      addToast(t("common.success"), "success");
     } catch (e) {
-      addToast('AI SEO generation failed.', 'error');
+      addToast(t("common.error"), "error");
     } finally {
       setIsAiGenerating(false);
     }
@@ -133,18 +150,18 @@ const EditPostPage = () => {
 
   const handleAiGenerateImage = async () => {
     if (!post.title) {
-      addToast('Please enter a title for image context!', 'info');
+      addToast(t("blog.leaveComment"), "info");
       return;
     }
     setIsAiGenerating(true);
-    addToast('Gemini is envisioning your post...', 'info');
+    addToast("Gemini is envisioning your post...", "info");
     try {
       const imageUrl = await aiService.generateFeaturedImage(post.title);
-      handlePostChange('featuredMediaUrl', imageUrl);
-      handlePostChange('featuredMediaType', 'image');
-      addToast('AI generated a custom featured image!', 'success');
+      handlePostChange("featuredMediaUrl", imageUrl);
+      handlePostChange("featuredMediaType", "image");
+      addToast(t("common.success"), "success");
     } catch (e) {
-      addToast('AI image generation failed.', 'error');
+      addToast(t("common.error"), "error");
     } finally {
       setIsAiGenerating(false);
     }
@@ -152,21 +169,23 @@ const EditPostPage = () => {
 
   const handleAiGenerateOutline = async () => {
     if (!post.title) {
-      addToast('Enter a title to generate an outline.', 'info');
+      addToast(t("blog.leaveComment"), "info");
       return;
     }
     setIsAiGenerating(true);
-    addToast('Brainstorming your story...', 'info');
     try {
       const outline = await aiService.generatePostOutline(post.title);
-      const htmlOutline = `<div class="ai-outline bg-blue-50/50 p-6 rounded-lg border-2 border-dashed border-blue-200 my-4 font-serif">
-        <h2 class="flex items-center gap-2 text-primary m-0"><Sparkles size={20} /> AI Generated Suggestions</h2>
-        <div class="mt-4 text-gray-700">${outline.replace(/\n/g, '<br>')}</div>
+      const htmlOutline = `<div class="ai-outline bg-gold/5 p-6 rounded-2xl border border-gold/20 my-6 font-serif">
+        <h2 class="flex items-center gap-2 text-gold m-0 text-xl"><Sparkles size={20} /> AI Narrative Suggestions</h2>
+        <div class="mt-4 text-gray-300 leading-relaxed">${outline.replace(
+          /\n/g,
+          "<br>"
+        )}</div>
       </div><p><br></p>`;
       editorRef.current?.insertHtml(htmlOutline);
-      addToast('Structure and tips added to editor!', 'success');
+      addToast(t("common.success"), "success");
     } catch (e) {
-      addToast('Failed to generate outline.', 'error');
+      addToast(t("common.error"), "error");
     } finally {
       setIsAiGenerating(false);
     }
@@ -174,34 +193,33 @@ const EditPostPage = () => {
 
   const handleAiProofread = async () => {
     if (!post.content || post.content.length < 50) {
-      addToast('Add more content before proofreading.', 'info');
+      addToast(t("blog.leaveComment"), "info");
       return;
     }
     setIsAiGenerating(true);
-    addToast('Improving your narrative...', 'info');
     try {
       const improved = await aiService.proofreadContent(post.content);
-      handlePostChange('content', improved);
-      addToast('Content polished by Gemini!', 'success');
+      handlePostChange("content", improved);
+      addToast(t("common.success"), "success");
     } catch (e) {
-      addToast('Proofreading failed.', 'error');
+      addToast(t("common.error"), "error");
     } finally {
       setIsAiGenerating(false);
     }
   };
-  
-  const openMediaModal = (purpose: 'featured' | 'insert') => {
+
+  const openMediaModal = (purpose: "featured" | "insert") => {
     setMediaModalPurpose(purpose);
     setIsMediaModalOpen(true);
   };
 
   const handleSelectMedia = (mediaItem: MediaItem) => {
-    if (mediaModalPurpose === 'featured') {
-      handlePostChange('featuredMediaUrl', mediaItem.url);
-      handlePostChange('featuredMediaType', mediaItem.mediaType);
+    if (mediaModalPurpose === "featured") {
+      handlePostChange("featuredMediaUrl", mediaItem.url);
+      handlePostChange("featuredMediaType", mediaItem.mediaType);
     } else {
-      let htmlToInsert = '';
-      if (mediaItem.mediaType === 'video') {
+      let htmlToInsert = "";
+      if (mediaItem.mediaType === "video") {
         htmlToInsert = `<video controls style="width: 100%; aspect-ratio: 16/9; border-radius: 0.5rem;" src="${mediaItem.url}"></video><p><br></p>`;
       } else {
         htmlToInsert = `<img src="${mediaItem.url}" alt="${mediaItem.fileName}" style="width: 100%; height: auto; border-radius: 0.5rem;" /><p><br></p>`;
@@ -212,177 +230,312 @@ const EditPostPage = () => {
   };
 
   const handleMediaRemove = useCallback(() => {
-    handlePostChange('featuredMediaUrl', '');
-    handlePostChange('featuredMediaAlt', '');
+    handlePostChange("featuredMediaUrl", "");
+    handlePostChange("featuredMediaAlt", "");
   }, [handlePostChange]);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent, newStatus?: PostStatus) => {
-    e.preventDefault();
-    if (!user || !post.title) {
-        addToast('Post title is required.', 'error');
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent, newStatus?: PostStatus) => {
+      e.preventDefault();
+      if (!user || !post.title) {
+        addToast(t("common.error"), "error");
         return;
-    }
-    setSaving(true);
-    
-    let finalStatus = newStatus || (isAuthor ? PostStatus.PendingReview : PostStatus.Published);
-    const postData = { ...post, authorId: user.id };
+      }
+      setSaving(true);
 
-    if (finalStatus === PostStatus.Scheduled && !postData.publishedAt) {
-      addToast('Please select a publication date for scheduled posts.', 'error');
-      setSaving(false);
-      return;
-    }
-    
-    if (finalStatus !== PostStatus.Scheduled) {
-        postData.publishedAt = finalStatus === PostStatus.Published ? new Date().toISOString() : null;
-    }
+      let finalStatus =
+        newStatus ||
+        (isAuthor ? PostStatus.PendingReview : PostStatus.Published);
+      const postData = { ...post, authorId: user.id };
 
-    postData.status = finalStatus;
-
-    try {
-        if(isNewPost) {
-            const savedPost = await postService.createPost(postData as Omit<Post, 'id' | 'slug' | 'createdAt' | 'updatedAt' | 'views'>);
-            addToast('Post created successfully!', 'success');
-            navigate(`/admin/posts/edit/${savedPost.id}`, { replace: true });
-        } else {
-            const savedPost = await postService.updatePost(postId!, postData);
-            addToast('Post updated successfully!', 'success');
-            setPost(savedPost);
-            setIsDirty(false);
-        }
-    } catch(error) {
-        addToast('An error occurred while saving.', 'error');
-    } finally {
+      if (finalStatus === PostStatus.Scheduled && !postData.publishedAt) {
+        addToast(t("common.error"), "error");
         setSaving(false);
-    }
-  }, [user, post, isAuthor, isNewPost, addToast, navigate, postId]);
+        return;
+      }
 
-  if (loading) return <Spinner />;
+      if (finalStatus !== PostStatus.Scheduled) {
+        postData.publishedAt =
+          finalStatus === PostStatus.Published
+            ? new Date().toISOString()
+            : null;
+      }
+
+      postData.status = finalStatus;
+
+      try {
+        if (isNewPost) {
+          const savedPost = await postService.createPost(
+            postData as Omit<
+              Post,
+              "id" | "slug" | "createdAt" | "updatedAt" | "views"
+            >
+          );
+          addToast(t("admin.saveSuccess"), "success");
+          navigate(`/admin/posts/edit/${savedPost.id}`, { replace: true });
+        } else {
+          const savedPost = await postService.updatePost(postId!, postData);
+          addToast(t("admin.saveSuccess"), "success");
+          setPost(savedPost);
+          setIsDirty(false);
+        }
+      } catch (error) {
+        addToast(t("common.error"), "error");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [user, post, isAuthor, isNewPost, addToast, navigate, postId, t]
+  );
+
+  if (loading)
+    return (
+      <div className="py-20 flex justify-center">
+        <Spinner />
+      </div>
+    );
 
   return (
-    <>
-    <MediaLibraryModal isOpen={isMediaModalOpen} onClose={() => setIsMediaModalOpen(false)} onSelect={handleSelectMedia} />
-    <form onSubmit={(e) => handleSubmit(e)}>
-        <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">{isNewPost ? 'Create New Post' : 'Edit Post'}</h1>
-            <div className="flex gap-2">
-                 <button type="button" onClick={(e) => handleSubmit(e, PostStatus.Draft)} disabled={saving} className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition disabled:bg-gray-300 flex items-center gap-2">
-                    {saving ? <LoaderCircle size={16} className="animate-spin" /> : null}
-                    Save Draft
-                </button>
-                <button type="submit" disabled={saving} className="bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-800 transition disabled:bg-gray-300 flex items-center gap-2">
-                    {saving ? <LoaderCircle size={16} className="animate-spin" /> : null}
-                    {post.status === PostStatus.Scheduled ? 'Schedule' : (isAuthor ? 'Submit for Review' : 'Publish')}
-                </button>
-            </div>
+    <div className="animate-in fade-in duration-500 pb-20">
+      <MediaLibraryModal
+        isOpen={isMediaModalOpen}
+        onClose={() => setIsMediaModalOpen(false)}
+        onSelect={handleSelectMedia}
+      />
+
+      <form onSubmit={(e) => handleSubmit(e)}>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-serif font-bold text-white mb-2">
+              {isNewPost ? t("admin.newPost") : t("admin.editPost")}
+            </h1>
+            <p className="text-gray-400 text-sm">
+              Create immersive travel stories powered by Gemini Intelligence.
+            </p>
+          </div>
+          <div className="flex gap-3 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e, PostStatus.Draft)}
+              disabled={saving}
+              className="flex-1 md:flex-none px-6 py-3 bg-navy-800 text-white rounded-xl font-bold border border-white/5 hover:bg-navy-700 transition-all flex items-center justify-center gap-2"
+            >
+              {saving ? <Loader2 size={18} className="animate-spin" /> : null}
+              Save Draft
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 md:flex-none px-6 py-3 bg-gold text-navy-950 rounded-xl font-bold hover:shadow-xl hover:shadow-gold/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              {saving ? <Loader2 size={18} className="animate-spin" /> : null}
+              {post.status === PostStatus.Scheduled
+                ? "Schedule"
+                : isAuthor
+                ? "Submit For Review"
+                : "Publish Now"}
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-                <div className="bg-white p-6 rounded-lg shadow-md border-t-4 border-primary">
-                    <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1 uppercase tracking-wider">Title</label>
-                    <div className="flex gap-2">
-                      <input type="text" name="title" id="title" value={post.title} onChange={(e) => handlePostChange('title', e.target.value)} className="w-full border-gray-300 rounded-md text-xl font-bold focus:ring-primary focus:border-primary" required placeholder="Your Post Title" />
-                      <button 
-                        type="button" 
-                        title="AI Envision Image"
-                        disabled={isAiGenerating}
-                        onClick={handleAiGenerateImage}
-                        className="p-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition shrink-0"
-                      >
-                        {isAiGenerating ? <LoaderCircle size={20} className="animate-spin" /> : <ImageIcon size={20} />}
-                      </button>
-                    </div>
-                </div>
-                
-                {/* AI Assistant Toolbar */}
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-1 rounded-lg shadow-lg">
-                  <div className="bg-white rounded-md p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 text-primary font-bold">
-                      <Sparkles size={20} className="text-yellow-500" />
-                      <span>Gemini Intelligence Assistant</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                       <button 
-                        type="button" 
-                        onClick={handleAiGenerateOutline}
-                        disabled={isAiGenerating}
-                        className="flex items-center gap-1.5 text-xs font-semibold bg-indigo-50 text-indigo-700 px-4 py-2 rounded-md hover:bg-indigo-100 transition border border-indigo-100"
-                      >
-                        <ClipboardList size={14} /> Structure Post
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={handleAiProofread}
-                        disabled={isAiGenerating}
-                        className="flex items-center gap-1.5 text-xs font-semibold bg-green-50 text-green-700 px-4 py-2 rounded-md hover:bg-green-100 transition border border-green-100"
-                      >
-                        <CheckCircle2 size={14} /> Proofread & Polish
-                      </button>
-                    </div>
+          <div className="lg:col-span-2 space-y-6">
+            {/* Title Section */}
+            <div className="bg-navy-900/50 backdrop-blur-xl p-6 rounded-3xl border border-white/5">
+              <label
+                htmlFor="title"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 ml-1"
+              >
+                {t("admin.form.postTitle")}
+              </label>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  name="title"
+                  id="title"
+                  value={post.title}
+                  onChange={(e) => handlePostChange("title", e.target.value)}
+                  className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-2xl font-bold text-white focus:outline-none focus:border-gold/50 transition-all placeholder:text-navy-700"
+                  required
+                  placeholder="Enter a captivating headline..."
+                />
+                <button
+                  type="button"
+                  title="Generate Featured Image with AI"
+                  disabled={isAiGenerating}
+                  onClick={handleAiGenerateImage}
+                  className="p-4 bg-navy-800 border border-white/5 text-purple-400 rounded-2xl hover:border-purple-400/50 hover:bg-purple-400/10 transition-all shrink-0 group"
+                >
+                  {isAiGenerating ? (
+                    <LoaderCircle size={24} className="animate-spin" />
+                  ) : (
+                    <ImageIcon
+                      size={24}
+                      className="group-hover:scale-110 transition-transform"
+                    />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* AI Assistant Toolbar */}
+            <div className="bg-gradient-to-r from-gold/20 via-blue-500/10 to-purple-500/10 h-1 rounded-t-3xl mx-4"></div>
+            <div className="bg-navy-900/50 backdrop-blur-xl p-6 rounded-b-3xl border border-white/5 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gold/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gold/10 rounded-xl flex items-center justify-center text-gold">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <span className="block text-sm font-bold text-white tracking-tight">
+                      Gemini Intelligence
+                    </span>
+                    <span className="block text-[10px] text-gray-500 uppercase tracking-widest">
+                      Autonomous Assistant
+                    </span>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-md">
-                    <WYSIWYGEditor 
-                      ref={editorRef}
-                      value={post.content || ''} 
-                      onChange={(content) => handlePostChange('content', content)}
-                      onMediaButtonClick={() => openMediaModal('insert')}
-                    />
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={handleAiGenerateOutline}
+                    disabled={isAiGenerating}
+                    className="flex items-center gap-2 text-xs font-bold bg-navy-800 text-white px-5 py-2.5 rounded-xl hover:bg-navy-700 border border-white/5 transition-all shadow-lg"
+                  >
+                    <ClipboardList size={14} className="text-blue-400" />{" "}
+                    Structure Post
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAiProofread}
+                    disabled={isAiGenerating}
+                    className="flex items-center gap-2 text-xs font-bold bg-navy-800 text-white px-5 py-2.5 rounded-xl hover:bg-navy-700 border border-white/5 transition-all shadow-lg"
+                  >
+                    <CheckCircle size={14} className="text-green-400" />{" "}
+                    Proofread & Polish
+                  </button>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-medium text-gray-900 font-serif">SEO & Metadata</h3>
-                      <div className="flex gap-2">
-                        <button 
-                          type="button" 
-                          onClick={handleAiGenerateExcerpt}
-                          disabled={isAiGenerating}
-                          className="flex items-center gap-1 text-xs font-semibold bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition disabled:opacity-50"
-                        >
-                          <Sparkles size={14} /> AI Excerpt
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={handleAiGenerateSEO}
-                          disabled={isAiGenerating}
-                          className="flex items-center gap-1 text-xs font-semibold bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-100 transition disabled:opacity-50"
-                        >
-                          <Wand2 size={14} /> AI Keywords
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                        <div>
-                            <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700 mb-1">Search Snippet (Excerpt)</label>
-                            <textarea id="excerpt" value={post.excerpt} onChange={(e) => handlePostChange('excerpt', e.target.value)} rows={2} className="w-full border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="A short summary for lists and search results." />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 mb-1">Meta Title</label>
-                                <input type="text" id="metaTitle" value={post.metaTitle || ''} onChange={(e) => handlePostChange('metaTitle', e.target.value)} className="w-full border-gray-300 rounded-md" placeholder={post.title} />
-                            </div>
-                            <div>
-                                <label htmlFor="metaKeywords" className="block text-sm font-medium text-gray-700 mb-1">Meta Keywords</label>
-                                <input type="text" id="metaKeywords" value={post.metaKeywords || ''} onChange={(e) => handlePostChange('metaKeywords', e.target.value)} className="w-full border-gray-300 rounded-md" placeholder="travel, guide, adventure" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+              </div>
             </div>
-            
-            <PostEditorSidebar 
-                post={post}
-                onPostChange={handlePostChange}
-                onMediaRemove={handleMediaRemove}
-                onSetFeaturedMedia={() => openMediaModal('featured')}
-                isNewPost={isNewPost}
-                isAuthor={!!isAuthor}
-            />
+
+            {/* Main Editor */}
+            <div className="bg-navy-900/50 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden shadow-2xl min-h-[500px]">
+              <WYSIWYGEditor
+                ref={editorRef}
+                value={post.content || ""}
+                onChange={(content) => handlePostChange("content", content)}
+                onMediaButtonClick={() => openMediaModal("insert")}
+              />
+            </div>
+
+            {/* SEO & metadata */}
+            <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-3xl border border-white/5">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div>
+                  <h3 className="text-xl font-serif font-bold text-white flex items-center gap-2">
+                    <Search size={20} className="text-gold" />
+                    {t("admin.form.metaInformation")}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold">
+                    SEO & Discovery Configuration
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAiGenerateExcerpt}
+                    disabled={isAiGenerating}
+                    className="flex items-center gap-1.5 text-[10px] font-bold bg-blue-500/10 text-blue-400 px-4 py-2 rounded-full border border-blue-500/20 hover:bg-blue-500/20 transition-all uppercase tracking-widest"
+                  >
+                    <Sparkles size={12} /> AI Excerpt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAiGenerateSEO}
+                    disabled={isAiGenerating}
+                    className="flex items-center gap-1.5 text-[10px] font-bold bg-purple-500/10 text-purple-400 px-4 py-2 rounded-full border border-purple-500/20 hover:bg-purple-500/20 transition-all uppercase tracking-widest"
+                  >
+                    <Wand size={12} /> AI Keywords
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="excerpt"
+                    className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
+                  >
+                    {t("admin.form.postExcerpt")}
+                  </label>
+                  <textarea
+                    id="excerpt"
+                    value={post.excerpt}
+                    onChange={(e) =>
+                      handlePostChange("excerpt", e.target.value)
+                    }
+                    rows={3}
+                    className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-4 text-gray-300 focus:outline-none focus:border-gold/30 transition-all"
+                    placeholder="A short, catchy summary for travel lists..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="metaTitle"
+                      className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
+                    >
+                      {t("admin.form.metaTitle")}
+                    </label>
+                    <input
+                      type="text"
+                      id="metaTitle"
+                      value={post.metaTitle || ""}
+                      onChange={(e) =>
+                        handlePostChange("metaTitle", e.target.value)
+                      }
+                      className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
+                      placeholder={post.title}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="metaKeywords"
+                      className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
+                    >
+                      {t("admin.form.metaKeywords")}
+                    </label>
+                    <input
+                      type="text"
+                      id="metaKeywords"
+                      value={post.metaKeywords || ""}
+                      onChange={(e) =>
+                        handlePostChange("metaKeywords", e.target.value)
+                      }
+                      className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
+                      placeholder="adventure, city guide, hidden gem"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <PostEditorSidebar
+            post={post}
+            onPostChange={handlePostChange}
+            onMediaRemove={handleMediaRemove}
+            onSetFeaturedMedia={() => openMediaModal("featured")}
+            isNewPost={isNewPost}
+            isAuthor={!!isAuthor}
+          />
         </div>
-    </form>
-    </>
+      </form>
+    </div>
   );
 };
 

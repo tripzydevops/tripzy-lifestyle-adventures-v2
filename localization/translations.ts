@@ -96,6 +96,103 @@ export interface Translations {
     errorEmpty: string;
     errorFailedGoogle: string;
   };
+  // Search
+  search: {
+    resultsFor: string;
+    noResults: string;
+    noResultsSub: string;
+    aiOverview: string;
+    aiOverviewError: string;
+    blogResults: string;
+  };
+  // About Page
+  about: {
+    title: string;
+    mission: string;
+    missionText: string;
+    story: string;
+    storyText: string;
+    stats: {
+      destinations: string;
+      readers: string;
+      guides: string;
+    };
+  };
+  // Contact Page
+  contact: {
+    title: string;
+    subtitle: string;
+    formTitle: string;
+    nameLabel: string;
+    emailLabel: string;
+    messageLabel: string;
+    submitButton: string;
+    submitting: string;
+    success: string;
+    info: {
+      email: string;
+      phone: string;
+      address: string;
+    };
+  };
+  // Admin Panel
+  admin: {
+    managePosts: string;
+    newPost: string;
+    editPost: string;
+    title: string;
+    author: string;
+    status: string;
+    date: string;
+    actions: string;
+    noPosts: string;
+    createFirst: string;
+    deleteConfirm: string;
+    deleteSuccess: string;
+    saveSuccess: string;
+    form: {
+      postTitle: string;
+      postExcerpt: string;
+      postContent: string;
+      category: string;
+      tags: string;
+      featuredImage: string;
+      status: string;
+      youtubeUrl: string;
+      metaInformation: string;
+      metaTitle: string;
+      metaDescription: string;
+      publishing: string;
+      publishedAt: string;
+      metaKeywords: string;
+    };
+    settings: {
+      title: string;
+      subtitle: string;
+      general: string;
+      branding: string;
+      platformName: string;
+      tagline: string;
+      appearance: string;
+      designSystem: string;
+      primaryAccents: string;
+      typographyHeadings: string;
+      typographyBody: string;
+      socialGraph: string;
+      socialHeadline: string;
+      socialDesc: string;
+      shareImageUrl: string;
+      commitChanges: string;
+      synchronizing: string;
+    };
+    profile: {
+      title: string;
+      subtitle: string;
+      fullName: string;
+      photoUrl: string;
+      saveProfile: string;
+    };
+  };
 }
 
 export const translations: Record<Language, Translations> = {
@@ -186,6 +283,99 @@ export const translations: Record<Language, Translations> = {
       errorEmpty: 'Please enter both email and password.',
       errorFailedGoogle: 'Failed to sign in with Google.',
     },
+    search: {
+      resultsFor: 'Results for:',
+      noResults: 'No blog posts found.',
+      noResultsSub: 'Try searching for keywords like "Italy", "Kyoto", or "Adventure".',
+      aiOverview: 'Gemini AI Overview',
+      aiOverviewError: 'Could not generate AI overview for this query.',
+      blogResults: 'Blog Results',
+    },
+    about: {
+      title: 'Our Story & Mission',
+      mission: 'Our Mission',
+      missionText: 'Our mission is to inspire and empower you to explore the world. Through our detailed guides, personal stories, and practical tips, we aim to make travel more accessible and enjoyable for everyone.',
+      story: 'Our Story',
+      storyText: 'Tripzy Lifestyle Adventures started as a small personal blog to document our own journeys. It has since grown into a community of passionate travelers who share a love for adventure and discovery.',
+      stats: {
+        destinations: 'Destinations Explored',
+        readers: 'Monthly Readers',
+        guides: 'Travel Guides',
+      },
+    },
+    contact: {
+      title: 'Get In Touch',
+      subtitle: 'Have a question, suggestion, or just want to say hello? We\'d love to hear from you!',
+      formTitle: 'Send us a Message',
+      nameLabel: 'Full Name',
+      emailLabel: 'Email Address',
+      messageLabel: 'Message',
+      submitButton: 'Submit Message',
+      submitting: 'Submitting...',
+      success: 'Your message has been sent successfully!',
+      info: {
+        email: 'Email',
+        phone: 'Phone',
+        address: 'Address',
+      },
+    },
+    admin: {
+      managePosts: 'Manage Posts',
+      newPost: 'New Post',
+      editPost: 'Edit Post',
+      title: 'Title',
+      author: 'Author',
+      status: 'Status',
+      date: 'Date',
+      actions: 'Actions',
+      noPosts: 'No posts found.',
+      createFirst: 'Create your first story!',
+      deleteConfirm: 'Are you sure you want to delete this story? This action cannot be undone.',
+      deleteSuccess: 'Story deleted successfully',
+      saveSuccess: 'Story saved successfully',
+      form: {
+        postTitle: 'Story Title',
+        postExcerpt: 'Short Excerpt',
+        postContent: 'Full Story Content',
+        category: 'Category',
+        tags: 'Tags (comma separated)',
+        featuredImage: 'Featured Image URL',
+        status: 'Publishing Status',
+        youtubeUrl: 'YouTube Video URL (Optional)',
+        metaInformation: 'SEO & Meta Information',
+        metaTitle: 'Meta Title',
+        metaDescription: 'Meta Description',
+        publishing: 'Publishing Settings',
+        publishedAt: 'Publication Date',
+        metaKeywords: 'Meta Keywords',
+      },
+      settings: {
+        title: 'System Configuration',
+        subtitle: "Fine-tune your Tripzy platform's core identity and performance.",
+        general: 'General',
+        branding: 'General Branding',
+        platformName: 'Platform Name',
+        tagline: 'Brand Tagline',
+        appearance: 'Appearance',
+        designSystem: 'Visual Design System',
+        primaryAccents: 'Primary Accents',
+        typographyHeadings: 'Typography (Headings)',
+        typographyBody: 'Typography (Body)',
+        socialGraph: 'Social Graph & Discovery',
+        socialHeadline: 'OG Title (Social Headline)',
+        socialDesc: 'OG Description',
+        shareImageUrl: 'Share Image URL',
+        commitChanges: 'Commit Changes',
+        synchronizing: 'Synchronizing...',
+      },
+      profile: {
+        title: 'Executive Profile',
+        subtitle: 'Manage your administrative identity and credentials.',
+        fullName: 'Full Name',
+        photoUrl: 'Profile Photo (URL)',
+        saveProfile: 'Save Profile',
+      },
+    },
   },
   tr: {
     header: {
@@ -273,6 +463,99 @@ export const translations: Record<Language, Translations> = {
       backToWebsite: 'Web sitesine dön',
       errorEmpty: 'Lütfen hem e-posta hem de şifre girin.',
       errorFailedGoogle: 'Google ile giriş yapılamadı.',
+    },
+    search: {
+      resultsFor: 'Sonuçlar:',
+      noResults: 'Blog yazısı bulunamadı.',
+      noResultsSub: '"İtalya", "Kyoto" veya "Macera" gibi anahtar kelimeleri aramayı deneyin.',
+      aiOverview: 'Gemini Yapay Zeka Özeti',
+      aiOverviewError: 'Bu sorgu için yapay zeka özeti oluşturulamadı.',
+      blogResults: 'Blog Sonuçları',
+    },
+    about: {
+      title: 'Hikayemiz ve Misyonumuz',
+      mission: 'Misyonumuz',
+      missionText: 'Misyonumuz, dünyayı keşfetmeniz için size ilham vermek ve sizi güçlendirmektir. Detaylı rehberlerimiz, kişisel hikayelerimiz ve pratik ipuçlarımızla, seyahati herkes için daha erişilebilir ve keyifli hale getirmeyi hedefliyoruz.',
+      story: 'Hikayemiz',
+      storyText: 'Tripzy Lifestyle Adventures, kendi yolculuklarımızı belgelemek için küçük bir kişisel blog olarak başladı. O zamandan beri, macera ve keşif sevgisini paylaşan tutkulu gezginlerden oluşan bir topluluğa dönüştü.',
+      stats: {
+        destinations: 'Keşfedilen Destinasyonlar',
+        readers: 'Aylık Okuyucu',
+        guides: 'Seyahat Rehberi',
+      },
+    },
+    contact: {
+      title: 'İletişime Geçin',
+      subtitle: 'Bir sorunuz, öneriniz mi var yoksa sadece merhaba mı demek istiyorsunuz? Sizden haber almayı çok isteriz!',
+      formTitle: 'Bize Mesaj Gönderin',
+      nameLabel: 'Ad Soyad',
+      emailLabel: 'E-posta Adresi',
+      messageLabel: 'Mesajınız',
+      submitButton: 'Mesaj Gönder',
+      submitting: 'Gönderiliyor...',
+      success: 'Mesajınız başarıyla gönderildi!',
+      info: {
+        email: 'E-posta',
+        phone: 'Telefon',
+        address: 'Adres',
+      },
+    },
+    admin: {
+      managePosts: 'Yazıları Yönet',
+      newPost: 'Yeni Yazı',
+      editPost: 'Yazıyı Düzenle',
+      title: 'Başlık',
+      author: 'Yazar',
+      status: 'Durum',
+      date: 'Tarih',
+      actions: 'İşlemler',
+      noPosts: 'Yazı bulunamadı.',
+      createFirst: 'İlk hikayenizi oluşturun!',
+      deleteConfirm: 'Bu hikayeyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
+      deleteSuccess: 'Hikaye başarıyla silindi',
+      saveSuccess: 'Hikaye başarıyla kaydedildi',
+      form: {
+        postTitle: 'Hikaye Başlığı',
+        postExcerpt: 'Kısa Özet',
+        postContent: 'Tüm Hikaye İçeriği',
+        category: 'Kategori',
+        tags: 'Etiketler (virgülle ayırın)',
+        featuredImage: 'Öne Çıkan Görsel URL',
+        status: 'Yayın Durumu',
+        youtubeUrl: 'YouTube Video URL (Opsiyonel)',
+        metaInformation: 'SEO ve Meta Bilgileri',
+        metaTitle: 'Meta Başlığı',
+        metaDescription: 'Meta Açıklaması',
+        publishing: 'Yayınlama Ayarları',
+        publishedAt: 'Yayınlanma Tarihi',
+        metaKeywords: 'Meta Anahtar Kelimeler',
+      },
+      settings: {
+        title: 'Sistem Yapılandırması',
+        subtitle: 'Tripzy platformunuzun temel kimliğini ve performansını hassaslaştırın.',
+        general: 'Genel',
+        branding: 'Genel Markalama',
+        platformName: 'Platform Adı',
+        tagline: 'Marka Sloganı',
+        appearance: 'Görünüm',
+        designSystem: 'Görsel Tasarım Sistemi',
+        primaryAccents: 'Birincil Vurgular',
+        typographyHeadings: 'Tipografi (Başlıklar)',
+        typographyBody: 'Tipografi (Gövde)',
+        socialGraph: 'Sosyal Grafik ve Keşif',
+        socialHeadline: 'OG Başlığı (Sosyal Başlık)',
+        socialDesc: 'OG Açıklaması',
+        shareImageUrl: 'Paylaşım Görseli URL\'si',
+        commitChanges: 'Değişiklikleri Kaydet',
+        synchronizing: 'Senkronize ediliyor...',
+      },
+      profile: {
+        title: 'Yönetici Profili',
+        subtitle: 'Yönetici kimliğinizi ve kimlik bilgilerinizi yönetin.',
+        fullName: 'Tam Ad',
+        photoUrl: 'Profil Fotoğrafı (URL)',
+        saveProfile: 'Profili Kaydet',
+      },
     },
   },
 };

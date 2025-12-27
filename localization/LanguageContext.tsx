@@ -10,7 +10,7 @@ import { Language, Translations, translations } from "./translations";
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: Translations;
+  t: (path: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(
@@ -38,10 +38,27 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({
     document.documentElement.lang = language;
   }, [language]);
 
+  // Translation helper function
+  const t = (path: string): string => {
+    const keys = path.split(".");
+    let result: any = translations[language];
+
+    for (const key of keys) {
+      if (result && Object.prototype.hasOwnProperty.call(result, key)) {
+        result = result[key];
+      } else {
+        console.warn(`Translation key not found: ${path}`);
+        return path;
+      }
+    }
+
+    return typeof result === "string" ? result : path;
+  };
+
   const value = {
     language,
     setLanguage,
-    t: translations[language],
+    t,
   };
 
   return (

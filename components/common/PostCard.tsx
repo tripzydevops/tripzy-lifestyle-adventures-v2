@@ -2,12 +2,21 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Post } from "../../types";
 import { Calendar, Tag, PlayCircle, ArrowRight } from "lucide-react";
+import { useSignalTracker } from "../../hooks/useSignalTracker";
 
 interface PostCardProps {
   post: Post;
 }
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
+  const { trackClick } = useSignalTracker();
+
+  const handlePostClick = () => {
+    trackClick("post", post.slug, {
+      title: post.title,
+      category: post.category,
+    });
+  };
   return (
     <article className="bg-navy-800 rounded-2xl overflow-hidden border border-white/5 hover:border-gold/30 transition-all duration-300 group flex flex-col hover:-translate-y-2 hover:shadow-xl hover:shadow-gold/10">
       {/* Image Container */}
@@ -15,6 +24,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         <Link
           to={`/post/${post.slug}`}
           aria-label={`Read more about ${post.title}`}
+          onClick={handlePostClick}
         >
           {post.featuredMediaType === "video" ? (
             <div className="relative w-full h-56">
@@ -69,7 +79,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
         {/* Title */}
         <h2 className="text-xl font-serif font-bold text-white mb-3 line-clamp-2 group-hover:text-gold transition-colors">
-          <Link to={`/post/${post.slug}`}>{post.title}</Link>
+          <Link to={`/post/${post.slug}`} onClick={handlePostClick}>
+            {post.title}
+          </Link>
         </h2>
 
         {/* Excerpt */}
@@ -101,6 +113,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             to={`/post/${post.slug}`}
             className="inline-flex items-center gap-2 text-gold font-medium hover:text-gold-light transition-colors group/btn"
             aria-label={`Read more about ${post.title}`}
+            onClick={handlePostClick}
           >
             Read More
             <ArrowRight

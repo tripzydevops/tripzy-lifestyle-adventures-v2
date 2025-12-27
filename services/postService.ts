@@ -4,6 +4,7 @@
 import { Post, PostStatus } from '../types';
 import { POSTS_PER_PAGE } from '../constants';
 import { supabase } from '../lib/supabase';
+import { embeddingService } from './embeddingService';
 
 export interface PaginatedPostsResponse {
     posts: Post[];
@@ -147,6 +148,44 @@ export const postService = {
 
     const totalPages = Math.ceil((count || 0) / limit);
     return { posts: data.map(mapPostFromSupabase), totalPages };
+  },
+
+  async semanticSearchPosts(query: string, matchCount: number = 6): Promise<Post[]> {
+    if (!query) return [];
+    
+    try {
+      const embedding = await embeddingService.generateEmbedding(query);
+      if (!embedding) return [];
+
+      const { data, error } = await supabase
+        .rpc('match_posts', {
+          query_embedding: embedding,
+          match_threshold: 0.5,
+          match_count: matchCount,
+        });
+
+      if (error) {
+        console.error('Supabase Error (semanticSearchPosts):', error);
+        return [];
+      }
+
+      const postIds = data.map((d: any) => d.id);
+      if (postIds.length === 0) return [];
+
+      const { data: postsData, error: postsError } = await supabase
+        .schema('blog')
+        .from('posts')
+        .select('*')
+        .in('id', postIds);
+
+      if (postsError) {
+        return [];
+      }
+
+      return postsData.map(mapPostFromSupabase);
+    } catch (err) {
+      return [];
+    }
   },
 
   async getPostsByCategory(category: string, page: number = 1, limit: number = POSTS_PER_PAGE): Promise<PaginatedPostsResponse> {
@@ -313,6 +352,16 @@ export const postService = {
 
   async createPost(postData: Omit<Post, 'id' | 'slug' | 'createdAt' | 'updatedAt' | 'views'>): Promise<Post> {
     const slug = slugify(postData.title);
+    
+    // Generate embedding for semantic search
+    let embedding = null;
+    try {
+      const textToEmbed = `${postData.title} ${postData.excerpt} ${postData.content.substring(0, 1000)}`;
+      embedding = await embeddingService.generateEmbedding(textToEmbed);
+    } catch (err) {
+      console.warn('Failed to generate embedding for new post:', err);
+    }
+
     const supabaseData = {
       title: postData.title,
       slug: slug,
@@ -328,6 +377,7 @@ export const postService = {
       meta_description: postData.metaDescription,
       meta_keywords: postData.metaKeywords,
       published_at: postData.publishedAt || (postData.status === PostStatus.Published ? new Date().toISOString() : null),
+      embedding: embedding
     };
 
     const { data, error } = await supabase
@@ -363,6 +413,20 @@ export const postService = {
     if (updates.metaDescription !== undefined) supabaseUpdates.meta_description = updates.metaDescription;
     if (updates.metaKeywords !== undefined) supabaseUpdates.meta_keywords = updates.metaKeywords;
     
+    // Update embedding if title or content changed
+    if (updates.title || updates.content || updates.excerpt) {
+      try {
+        const currentPost = await this.getPostById(id);
+        const title = updates.title || currentPost?.title || '';
+        const excerpt = updates.excerpt || currentPost?.excerpt || '';
+        const content = updates.content || currentPost?.content || '';
+        const textToEmbed = `${title} ${excerpt} ${content.substring(0, 1000)}`;
+        supabaseUpdates.embedding = await embeddingService.generateEmbedding(textToEmbed);
+      } catch (err) {
+        console.warn('Failed to update embedding for post:', err);
+      }
+    }
+
     supabaseUpdates.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase

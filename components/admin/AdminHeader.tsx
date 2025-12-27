@@ -1,37 +1,93 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../hooks/useAuth';
-import { ChevronDown, LogOut, User } from 'lucide-react';
-// FIX: Ensure react-router-dom import is correct.
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import { useAuth } from "../../hooks/useAuth";
+import { ChevronDown, LogOut, User, Bell, Search } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const AdminHeader = () => {
   const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-white border-b-2 border-gray-200">
-      <div>
-        {/* Placeholder for breadcrumbs or page title */}
+    <header className="flex items-center justify-between px-8 h-24 bg-navy-900 border-b border-white/5 relative z-10">
+      <div className="flex items-center gap-6">
+        <div className="relative group hidden lg:block">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors"
+            size={18}
+          />
+          <input
+            type="text"
+            placeholder="Search admin..."
+            className="bg-navy-800 border-none rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:ring-1 focus:ring-gold/30 w-64 transition-all"
+          />
+        </div>
       </div>
-      <div className="relative">
-        <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center space-x-2">
-          <img src={user?.avatarUrl} alt={user?.name} className="w-10 h-10 rounded-full object-cover" />
-          <span className="font-medium hidden md:block">{user?.name}</span>
-          <ChevronDown size={20} />
+
+      <div className="flex items-center gap-6">
+        <button className="text-gray-400 hover:text-gold transition-colors relative">
+          <Bell size={20} />
+          <span className="absolute -top-1 -right-1 w-2 h-2 bg-gold rounded-full ring-2 ring-navy-900"></span>
         </button>
-        {dropdownOpen && (
-          <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-            <Link to="/admin/profile" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setDropdownOpen(false)}>
-              <User size={16} className="mr-2" /> Profile
-            </Link>
-            <button
-              onClick={logout}
-              className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              <LogOut size={16} className="mr-2" /> Sign Out
-            </button>
-          </div>
-        )}
+
+        <div className="h-8 w-px bg-white/5"></div>
+
+        <div className="relative">
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-white/5 transition-all"
+          >
+            <div className="relative">
+              <img
+                src={user?.avatarUrl}
+                alt={user?.name}
+                className="w-10 h-10 rounded-xl object-cover ring-2 ring-white/5"
+              />
+              <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-navy-900 rounded-full"></div>
+            </div>
+            <div className="text-left hidden md:block">
+              <div className="text-sm font-bold text-white leading-none mb-1">
+                {user?.name}
+              </div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
+                Administrator
+              </div>
+            </div>
+            <ChevronDown
+              size={18}
+              className={`text-gray-500 transition-transform ${
+                dropdownOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-3 w-56 bg-navy-800 border border-white/10 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/5 mb-2 bg-navy-900/50">
+                <div className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-1">
+                  Signed in as
+                </div>
+                <div className="text-sm text-gold truncate">{user?.email}</div>
+              </div>
+
+              <Link
+                to="/admin/profile"
+                className="flex items-center px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                onClick={() => setDropdownOpen(false)}
+              >
+                <User size={18} className="mr-3 text-gray-500" /> My Profile
+              </Link>
+
+              <div className="h-px bg-white/5 my-2"></div>
+
+              <button
+                onClick={logout}
+                className="w-full text-left flex items-center px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                <LogOut size={18} className="mr-3" /> Sign Out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

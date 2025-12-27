@@ -25,6 +25,7 @@ import ManageMediaPage from "./pages/admin/ManageMediaPage";
 import ImportMediaPage from "./pages/admin/ImportMediaPage";
 import AuthorPage from "./pages/AuthorPage";
 import PlanTripPage from "./pages/PlanTripPage";
+import SignalTracker from "./components/common/SignalTracker";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
         <ToastProvider>
           <SettingsProvider>
             <AuthProvider>
+              <SignalTracker />
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<HomePage />} />
