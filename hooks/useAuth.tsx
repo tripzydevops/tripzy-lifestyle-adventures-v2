@@ -21,6 +21,7 @@ interface AuthContextType {
     email: string,
     pass: string
   ) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   isLoading: boolean;
@@ -93,6 +94,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return { success: true };
   };
 
+  const loginWithGoogle = async (): Promise<{
+    success: boolean;
+    error?: string;
+  }> => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -118,6 +137,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     isEditor,
     isAuthor,
     login,
+    loginWithGoogle,
     logout,
     updateUser,
     isLoading,

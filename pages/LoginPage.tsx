@@ -2,14 +2,21 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { SITE_NAME } from "../constants";
+import { Mail, Lock, LogIn, ArrowLeft } from "lucide-react";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, loginWithGoogle, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/admin/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,61 +39,127 @@ const LoginPage = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setError("");
+    const result = await loginWithGoogle();
+    if (!result.success) {
+      setError(result.error || "Failed to sign in with Google.");
+    }
+  };
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-primary font-serif">
-            {SITE_NAME}
-          </h1>
-          <p className="text-gray-600">Admin Login</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-          <div>
-            <label
-              htmlFor="email"
-              className="text-sm font-medium text-gray-700"
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-              placeholder="e.g., admin@tripzy.com"
-            />
+    <div className="flex items-center justify-center min-h-screen bg-navy-950 px-4">
+      <div className="w-full max-w-md p-8 bg-navy-900 rounded-3xl shadow-2xl border border-white/10 relative overflow-hidden">
+        {/* Background Glow */}
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-gold/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl"></div>
+
+        <div className="relative z-10">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-bold text-gold font-serif mb-2">
+              {SITE_NAME}
+            </h1>
+            <p className="text-gray-400">Welcome back, Traveler</p>
           </div>
-          <div>
-            <label
-              htmlFor="password-login"
-              className="text-sm font-medium text-gray-700"
+
+          <div className="space-y-4 mb-8">
+            <button
+              onClick={handleGoogleLogin}
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white text-navy-950 font-bold rounded-xl hover:bg-gray-100 transition-all active:scale-95 shadow-lg shadow-white/5"
             >
-              Password
-            </label>
-            <input
-              id="password-login"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-              placeholder="••••••••"
-            />
+              <img
+                src="https://www.google.com/favicon.ico"
+                alt="Google"
+                className="w-5 h-5"
+              />
+              Continue with Google
+            </button>
+
+            <div className="flex items-center gap-4 py-2">
+              <div className="h-px bg-white/10 flex-grow"></div>
+              <span className="text-gray-500 text-sm font-medium">OR</span>
+              <div className="h-px bg-white/10 flex-grow"></div>
+            </div>
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 px-4 bg-primary text-white rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400"
-          >
-            {loading ? "Signing In..." : "Sign In"}
-          </button>
-        </form>
-        <div className="text-center text-sm text-gray-500">
-          <Link to="/" className="hover:text-primary">
-            ← Back to website
-          </Link>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg text-center animate-shake">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="email"
+                className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1"
+              >
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+                  size={18}
+                />
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3.5 bg-navy-800 border border-white/5 text-white rounded-xl focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/20 transition-all"
+                  placeholder="admin@tripzy.com"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password-login"
+                className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <Lock
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+                  size={18}
+                />
+                <input
+                  id="password-login"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3.5 bg-navy-800 border border-white/5 text-white rounded-xl focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/20 transition-all"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-4 px-4 bg-gradient-to-r from-gold to-gold-dark text-navy-950 font-bold rounded-xl hover:shadow-xl hover:shadow-gold/20 transition-all disabled:opacity-50 active:scale-95"
+            >
+              {loading ? (
+                "Signing In..."
+              ) : (
+                <>
+                  <LogIn size={20} />
+                  Sign In to Dashboard
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="text-center mt-8">
+            <Link
+              to="/"
+              className="text-gray-500 hover:text-gold text-sm flex items-center justify-center gap-2 transition-colors"
+            >
+              <ArrowLeft size={16} />
+              Back to website
+            </Link>
+          </div>
         </div>
       </div>
     </div>
