@@ -3,6 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { SITE_NAME } from "../constants";
 import { Mail, Lock, LogIn, ArrowLeft } from "lucide-react";
+import { useLanguage } from "../localization/LanguageContext";
+import LanguageSwitcher from "../components/common/LanguageSwitcher";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -10,6 +12,7 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login, loginWithGoogle, isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -24,7 +27,7 @@ const LoginPage = () => {
     setLoading(true);
 
     if (!email || !password) {
-      setError("Please enter both email and password.");
+      setError(t("login.errorEmpty"));
       setLoading(false);
       return;
     }
@@ -43,13 +46,18 @@ const LoginPage = () => {
     setError("");
     const result = await loginWithGoogle();
     if (!result.success) {
-      setError(result.error || "Failed to sign in with Google.");
+      setError(t("login.errorFailedGoogle"));
     }
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-navy-950 px-4">
       <div className="w-full max-w-md p-8 bg-navy-900 rounded-3xl shadow-2xl border border-white/10 relative overflow-hidden">
+        {/* Language Switcher in Login */}
+        <div className="absolute top-4 right-4 z-20">
+          <LanguageSwitcher />
+        </div>
+
         {/* Background Glow */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-gold/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl"></div>
@@ -57,9 +65,9 @@ const LoginPage = () => {
         <div className="relative z-10">
           <div className="text-center mb-10">
             <h1 className="text-4xl font-bold text-gold font-serif mb-2">
-              {SITE_NAME}
+              {t("login.title")}
             </h1>
-            <p className="text-gray-400">Welcome back, Traveler</p>
+            <p className="text-gray-400">{t("login.subtitle")}</p>
           </div>
 
           <div className="space-y-4 mb-8">
@@ -72,12 +80,14 @@ const LoginPage = () => {
                 alt="Google"
                 className="w-5 h-5"
               />
-              Continue with Google
+              {t("login.googleButton")}
             </button>
 
             <div className="flex items-center gap-4 py-2">
               <div className="h-px bg-white/10 flex-grow"></div>
-              <span className="text-gray-500 text-sm font-medium">OR</span>
+              <span className="text-gray-500 text-sm font-medium">
+                {t("login.or")}
+              </span>
               <div className="h-px bg-white/10 flex-grow"></div>
             </div>
           </div>
@@ -94,7 +104,7 @@ const LoginPage = () => {
                 htmlFor="email"
                 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1"
               >
-                Email Address
+                {t("login.emailLabel")}
               </label>
               <div className="relative">
                 <Mail
@@ -117,7 +127,7 @@ const LoginPage = () => {
                 htmlFor="password-login"
                 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1"
               >
-                Password
+                {t("login.passwordLabel")}
               </label>
               <div className="relative">
                 <Lock
@@ -141,11 +151,11 @@ const LoginPage = () => {
               className="w-full flex items-center justify-center gap-2 py-4 px-4 bg-gradient-to-r from-gold to-gold-dark text-navy-950 font-bold rounded-xl hover:shadow-xl hover:shadow-gold/20 transition-all disabled:opacity-50 active:scale-95"
             >
               {loading ? (
-                "Signing In..."
+                t("common.loading")
               ) : (
                 <>
                   <LogIn size={20} />
-                  Sign In to Dashboard
+                  {t("login.submitButton")}
                 </>
               )}
             </button>
@@ -157,7 +167,7 @@ const LoginPage = () => {
               className="text-gray-500 hover:text-gold text-sm flex items-center justify-center gap-2 transition-colors"
             >
               <ArrowLeft size={16} />
-              Back to website
+              {t("login.backToWebsite")}
             </Link>
           </div>
         </div>

@@ -83,6 +83,19 @@ export interface Translations {
     search: string;
     searchPlaceholder: string;
   };
+  // Login Page
+  login: {
+    title: string;
+    subtitle: string;
+    googleButton: string;
+    or: string;
+    emailLabel: string;
+    passwordLabel: string;
+    submitButton: string;
+    backToWebsite: string;
+    errorEmpty: string;
+    errorFailedGoogle: string;
+  };
 }
 
 export const translations: Record<Language, Translations> = {
@@ -161,6 +174,18 @@ export const translations: Record<Language, Translations> = {
       search: 'Search',
       searchPlaceholder: 'Search posts...',
     },
+    login: {
+      title: 'Tripzy Lifestyle',
+      subtitle: 'Welcome back, Traveler',
+      googleButton: 'Continue with Google',
+      or: 'OR',
+      emailLabel: 'Email Address',
+      passwordLabel: 'Password',
+      submitButton: 'Sign In to Dashboard',
+      backToWebsite: 'Back to website',
+      errorEmpty: 'Please enter both email and password.',
+      errorFailedGoogle: 'Failed to sign in with Google.',
+    },
   },
   tr: {
     header: {
@@ -236,6 +261,18 @@ export const translations: Record<Language, Translations> = {
       edit: 'Düzenle',
       search: 'Ara',
       searchPlaceholder: 'Yazı ara...',
+    },
+    login: {
+      title: 'Tripzy Lifestyle',
+      subtitle: 'Hoş geldiniz, Gezgin',
+      googleButton: 'Google ile Devam Et',
+      or: 'VEYA',
+      emailLabel: 'E-posta Adresi',
+      passwordLabel: 'Şifre',
+      submitButton: 'Panele Giriş Yap',
+      backToWebsite: 'Web sitesine dön',
+      errorEmpty: 'Lütfen hem e-posta hem de şifre girin.',
+      errorFailedGoogle: 'Google ile giriş yapılamadı.',
     },
   },
 };
