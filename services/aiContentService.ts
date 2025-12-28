@@ -550,11 +550,13 @@ export const aiContentService = {
     
     const prompt = `Create a comprehensive, structured travel blog post outline for the title: "${title}". 
     Include suggestions for H2/H3 headings, key points to cover, and cultural nuances. 
-    Format as a clean Markdown list.`;
+    Format as clean HTML using <h2>, <h3>, <ul>, and <li> tags. Do not use Markdown syntax like # or *.`;
     
     const response = await callGemini(prompt);
+    // Strip code blocks if present
+    const cleanResponse = response.replace(/^```html|```$/g, '').replace(/^```markdown|```$/g, '').trim();
     console.log('✅ Outline generated');
-    return response.trim();
+    return cleanResponse;
   },
 
   /**
