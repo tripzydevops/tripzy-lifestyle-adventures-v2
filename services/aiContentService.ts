@@ -98,25 +98,31 @@ const POST_GENERATION_PROMPT = (params: GeneratePostParams) => {
 - ${isTurkish ? 'Yaklaşık Uzunluk' : 'Approximate Length'}: ${params.wordCount || 1200} ${isTurkish ? 'kelime' : 'words'}
 - ${isTurkish ? 'Ton' : 'Tone'}: ${params.tone || (isTurkish ? 'İlham verici ama pratik' : 'Inspiring yet practical')}
 
-**${isTurkish ? 'GEREKLİ UNSURLAR' : 'REQUIRED ELEMENTS'}:**
+**${isTurkish ? 'GEREKLİ UNSURLAR & FORMAT (DERGİ STİLİ)' : 'REQUIRED ELEMENTS & FORMAT (MAGAZINE STYLE)'}:**
 ${isTurkish ? `
-1. Değer vaat eden ve merak uyandıran manyetik bir başlık
-2. Okuyucuyu destinasyona taşıyan bir açılış kancası
-3. Destinasyonun farklı yönlerini kapsayan 4-6 ayrı bölüm
-4. Yaklaşık fiyatlarla en az 3 spesifik restoran/kafe önerisi
-5. Farklı bütçeler için 2-3 konaklama önerisi
-6. Temel pratik bilgiler: ziyaret için en iyi zaman, vize gereksinimleri, yerel adetler
-7. İçeriden bilgi gösteren bir "Yöre Halkının Sırrı" ipucu
-8. Eyleme ilham veren akılda kalıcı bir kapanış
+1. GÖRSEL YAPILANDIRMA: Uzun paragraflardan kaçın. Maksimum 3-4 cümlelik kısa paragraflar kullan.
+2. BAŞLIKLAR: Her 300 kelimede bir <h2> veya <h3> başlık kullanarak metni böl.
+3. VURGULAMA: Önemli yerleri, restoran isimlerini ve "İçeriden İpuçlarını" <strong> etiketiyle kalınlaştır.
+4. GÖRSEL YERLEŞİMİ: Metnin içine en az 4 adet [RESİM: görsel açıklaması] yer tutucusu ekle.
+5. LİSTELEME: Pratik bilgileri <ul> listeleri maddeler halinde ver.
+6. İÇERİK:
+   - Sizi oraya götüren atmosferik bir giriş
+   - Belirgin başlıklarla ayrılmış ana bölümler
+   - Fiyatlarıyla birlikte 3 somut restoran önerisi
+   - Bütçeye göre 2-3 konaklama önerisi
+   - Yerel sırlar ve pratik ipuçları
 ` : `
-1. A magnetic headline that promises value and creates curiosity
-2. An opening hook that transports the reader to the destination
-3. 4-6 distinct sections covering different aspects of the destination
-4. At least 3 specific restaurant/cafe recommendations with approximate prices
-5. 2-3 accommodation suggestions across different budgets
-6. Essential practical info: best time to visit, visa requirements, local customs
-7. A "Local's Secret" tip that shows insider knowledge
-8. A memorable closing that inspires action
+1. VISUAL STRUCTURE: Avoid walls of text. Use SHORT paragraphs (max 3-4 sentences).
+2. HEADINGS: Break up text frequently with <h2> and <h3> headers.
+3. EMPHASIS: Use <strong> tags for key phrases, restaurant names, and "Insider Tips".
+4. IMAGE PLACEHOLDERS: Insert at least 4 [IMAGE: description of scene] placeholders throughout the text where photos should naturally go.
+5. LISTS: Use <ul> for practical details.
+6. CONTENT:
+   - An atmospheric opening that transports the reader
+   - Distinct sections with clear headers
+   - 3 specific restaurant w/ prices
+   - 2-3 accommodation options
+   - Local secrets & practical tips
 `}
 
 **${isTurkish ? 'YANITINI JSON OLARAK FORMATLA' : 'FORMAT YOUR RESPONSE AS JSON'}:**
