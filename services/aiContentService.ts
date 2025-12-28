@@ -124,7 +124,7 @@ IMPORTANT: Ensure all newlines in JSON strings are properly escaped as \\n. Do n
 {
   "title": "${isTurkish ? 'Çekici Türkçe başlığınız' : 'Your compelling headline here'}",
   "excerpt": "${isTurkish ? 'Okuyucuları tıklamaya teşvik eden 150-160 karakterlik özet' : 'A 150-160 character summary that entices readers to click'}",
-  "content": "${isTurkish ? 'Markdown formatında ## başlıklarla tam makale içeriği' : 'Full article content in Markdown format with ## headings'}",
+  "content": "${isTurkish ? 'HTML formatında (<h2>, <h3>, <p>, <ul>, <strong> etiketlerini kullan) tam makale içeriği. Markdown kullanma.' : 'Full article content in HTML format (use <h2>, <h3>, <p>, <ul>, <strong> tags). Do not use Markdown.'}",
   "metaTitle": "${isTurkish ? '60 karakterin altında SEO optimize başlık' : 'SEO-optimized title under 60 characters'}",
   "metaDescription": "${isTurkish ? 'SEO meta açıklaması, 150-160 karakter' : 'SEO meta description, 150-160 characters'}",
   "metaKeywords": "${isTurkish ? 'virgülle, ayrılmış, anahtar, kelimeler' : 'comma, separated, keywords, for, seo'}",
@@ -181,6 +181,7 @@ ${content}
 - ${isTurkish ? 'Düzyazı kalitesini ve okuyucu katılımını artır' : 'Enhance the prose quality and reader engagement'}
 - ${isTurkish ? 'Uygun yerlerde duyusal detaylar ekle' : 'Add sensory details where appropriate'}
 - ${isTurkish ? 'Geliştirilmiş versiyonun yayına hazır olduğundan emin ol' : 'Ensure the improved version is publication-ready'}
+- ${isTurkish ? 'HTML formatında (<h2>, <p>, vb.) yanıt ver' : 'Respond in HTML format (using <h2>, <p>, etc.)'}
 
 **${isTurkish ? 'SADECE GELİŞTİRİLMİŞ İÇERİĞİ YANITLA, açıklama veya meta veri yok.' : 'RESPOND WITH ONLY THE IMPROVED CONTENT, no explanation or metadata.'}**`;
 };
