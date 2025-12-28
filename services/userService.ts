@@ -2,14 +2,30 @@
 import { User, UserRole } from '../types';
 import { supabase } from '../lib/supabase';
 
-const mapUserFromSupabase = (data: any): User => ({
-  id: data.id,
-  slug: data.slug || data.name?.toLowerCase().replace(/\s+/g, '-') || data.id,
-  name: data.name || 'Anonymous',
-  email: data.email || '',
-  role: (data.role as UserRole) || (data.is_admin ? UserRole.Administrator : UserRole.Author),
-  avatarUrl: data.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || 'A')}&background=random`,
-});
+const mapUserFromSupabase = (data: any): User => {
+  // Normalize roles from Tripzy.travel database
+  let role = UserRole.Author;
+  const dbRole = data.role?.toLowerCase();
+  
+  if (dbRole === 'admin' || dbRole === 'administrator' || data.is_admin) {
+    role = UserRole.Administrator;
+  } else if (dbRole === 'editor') {
+    role = UserRole.Editor;
+  } else if (dbRole === 'author') {
+    role = UserRole.Author;
+  } else if (Object.values(UserRole).includes(data.role)) {
+    role = data.role as UserRole;
+  }
+
+  return {
+    id: data.id,
+    slug: data.slug || data.name?.toLowerCase().replace(/\s+/g, '-') || data.id,
+    name: data.name || 'Anonymous',
+    email: data.email || '',
+    role,
+    avatarUrl: data.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || 'A')}&background=random`,
+  };
+};
 
 export const userService = {
   async getAllUsers(): Promise<User[]> {

@@ -36,10 +36,16 @@ const AdminDashboardPage = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        console.log("🔍 AdminDashboard: Starting to fetch stats...");
         const [posts, users] = await Promise.all([
           postService.getAllPosts(),
           userService.getAllUsers(),
         ]);
+
+        console.log("📊 AdminDashboard: Fetched data:", {
+          postsCount: posts.length,
+          usersCount: users.length,
+        });
 
         const totalPosts = posts.length;
         const totalUsers = users.length;
@@ -55,8 +61,12 @@ const AdminDashboardPage = () => {
 
         setStats({ totalPosts, totalUsers, pendingPosts, draftPosts });
         setError(null);
+        console.log("✅ AdminDashboard: Stats set successfully");
       } catch (error) {
-        console.error("Failed to load dashboard stats:", error);
+        console.error(
+          "❌ AdminDashboard: Failed to load dashboard stats:",
+          error
+        );
         setError(
           error instanceof Error
             ? error.message
@@ -64,6 +74,7 @@ const AdminDashboardPage = () => {
         );
       } finally {
         setLoading(false);
+        console.log("🏁 AdminDashboard: Loading complete");
       }
     };
 
