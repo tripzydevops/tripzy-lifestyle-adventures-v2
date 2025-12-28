@@ -506,8 +506,13 @@ export const aiContentService = {
     const prompt = CONTENT_IMPROVEMENT_PROMPT(content, instruction);
     const response = await callGemini(prompt);
     
+    // Aggressively strip code blocks and whitespace
+    let cleanResponse = response.trim();
+    cleanResponse = cleanResponse.replace(/^```(?:markdown|html)?\s*/i, "");
+    cleanResponse = cleanResponse.replace(/\s*```$/, "");
+    
     console.log('✅ Content improved');
-    return response.trim();
+    return cleanResponse.trim();
   },
 
   /**
