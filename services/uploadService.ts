@@ -1,6 +1,6 @@
 // services/uploadService.ts
-import { mediaService } from './mediaService';
-import { supabase } from '../lib/supabase';
+import { mediaService } from "./mediaService";
+import { supabase } from "../lib/supabase";
 
 /**
  * Generates a unique filename by appending a timestamp
@@ -8,9 +8,9 @@ import { supabase } from '../lib/supabase';
 const generateUniqueFileName = (originalName: string): string => {
   const timestamp = Date.now();
   const randomString = Math.random().toString(36).substring(2, 8);
-  const extension = originalName.split('.').pop();
-  const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
-  const sanitized = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, '_');
+  const extension = originalName.split(".").pop();
+  const nameWithoutExt = originalName.replace(/\.[^/.]+$/, "");
+  const sanitized = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, "_");
   return `${sanitized}_${timestamp}_${randomString}.${extension}`;
 };
 
@@ -18,9 +18,7 @@ const generateUniqueFileName = (originalName: string): string => {
  * Get the public URL for an uploaded file
  */
 const getPublicUrl = (fileName: string): string => {
-  const { data } = supabase.storage
-    .from('blog-media')
-    .getPublicUrl(fileName);
+  const { data } = supabase.storage.from("blog-media").getPublicUrl(fileName);
   return data.publicUrl;
 };
 
@@ -31,67 +29,76 @@ export const uploadService = {
    * @returns The public URL of the uploaded file.
    */
   async uploadFile(file: File): Promise<string> {
-    console.log(`Uploading file: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
-    
+    console.log(
+      `Uploading file: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`
+    );
+
     // Generate unique filename
     const uniqueFileName = generateUniqueFileName(file.name);
-    
+
     // Upload to Supabase Storage
     const { error: uploadError } = await supabase.storage
-      .from('blog-media')
+      .from("blog-media")
       .upload(uniqueFileName, file, {
-        cacheControl: '3600',
-        upsert: false
+        cacheControl: "3600",
+        upsert: false,
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
+      console.error("Upload error:", uploadError);
       throw new Error(`Failed to upload file: ${uploadError.message}`);
     }
 
     // Get the public URL
     const publicUrl = getPublicUrl(uniqueFileName);
-    
+
     // Determine media type
-    const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
-    
+    const mediaType = file.type.startsWith("video/") ? "video" : "image";
+
     // Add the new item to the media library database
     await mediaService.addMedia({
       url: publicUrl,
       fileName: file.name,
       mediaType: mediaType,
     });
-    
+
     console.log(`File uploaded successfully. URL: ${publicUrl}`);
     return publicUrl;
   },
 
   /**
-   * Deletes a file from Supabase Storage.
-   * @param fileName The name of the file to delete (extracted from URL).
+   * Deletes a file from Supabase Storage and database.
+   * @param id The ID of the media record in the database.
+   * @param fileUrl The URL of the file.
    */
-  async deleteFile(fileUrl: string): Promise<void> {
+  async deleteFile(id: string, fileUrl: string): Promise<void> {
     try {
-      // Extract the file path from the URL
-      const urlParts = fileUrl.split('/blog-media/');
+      // 1. Delete from database first (if this fails, we still have the file)
+      await mediaService.deleteMedia(id);
+
+      // 2. Extract the file path from the URL and delete from storage
+      const urlParts = fileUrl.split("/blog-media/");
       if (urlParts.length < 2) {
-        throw new Error('Invalid file URL');
+        console.warn(
+          "Could not extract filename from URL for storage deletion:",
+          fileUrl
+        );
+      } else {
+        const fileName = urlParts[1];
+        const { error: storageError } = await supabase.storage
+          .from("blog-media")
+          .remove([fileName]);
+
+        if (storageError) {
+          console.error("Storage delete error:", storageError);
+          // We don't throw here because the DB record is already gone
+        }
       }
-      const fileName = urlParts[1];
 
-      const { error } = await supabase.storage
-        .from('blog-media')
-        .remove([fileName]);
-
-      if (error) {
-        console.error('Delete error:', error);
-        throw new Error(`Failed to delete file: ${error.message}`);
-      }
-
-      console.log(`File deleted successfully: ${fileName}`);
+      console.log(`Media deleted successfully: ${id}`);
     } catch (error) {
-      console.error('Error deleting file:', error);
+      console.error("Error deleting media:", error);
       throw error;
     }
-  }
+  },
 };

@@ -68,9 +68,7 @@ const ManageMediaPage = () => {
       return;
 
     try {
-      await uploadService.deleteFile(item.url);
-      // Also need to delete from DB - assuming updateService handles this or we need to add it
-      // For now we'll just refresh
+      await uploadService.deleteFile(item.id, item.url);
       addToast("File deleted successfully.", "success");
       fetchMedia();
     } catch (error) {
