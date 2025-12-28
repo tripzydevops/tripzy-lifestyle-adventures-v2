@@ -553,10 +553,16 @@ export const aiContentService = {
     Format as clean HTML using <h2>, <h3>, <ul>, and <li> tags. Do not use Markdown syntax like # or *.`;
     
     const response = await callGemini(prompt);
-    // Strip code blocks if present
-    const cleanResponse = response.replace(/^```html|```$/g, '').replace(/^```markdown|```$/g, '').trim();
+    
+    // Aggressively strip code blocks and whitespace
+    let cleanResponse = response.trim();
+    // Remove opening code fence with optional language
+    cleanResponse = cleanResponse.replace(/^```(?:markdown|html)?\s*/i, "");
+    // Remove closing code fence
+    cleanResponse = cleanResponse.replace(/\s*```$/, "");
+    
     console.log('✅ Outline generated');
-    return cleanResponse;
+    return cleanResponse.trim();
   },
 
   /**
