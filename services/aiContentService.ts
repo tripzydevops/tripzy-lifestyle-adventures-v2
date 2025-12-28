@@ -333,8 +333,72 @@ export const aiContentService = {
   async analyzeImageFromUrl(
     url: string
   ): Promise<{ altText: string; caption: string }> {
-    // Basic implementation since vision requires base64
-    return { altText: "Travel Image", caption: "Beautiful destination" };
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) throw new Error("Gemini API key not configured.");
+
+    try {
+      // 1. Fetch image and convert to base64
+      const imgResp = await fetch(url);
+      const blob = await imgResp.blob();
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(",")[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      // 2. Call Gemini Vision
+      const prompt = `Analyze this travel image and provide a JSON response with:
+      - 'altText': A descriptive, SEO-friendly alt text (max 100 chars).
+      - 'caption': A professional, engaging travel-style caption (max 200 chars).
+      Return ONLY valid JSON.`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: prompt },
+                  {
+                    inline_data: {
+                      mime_type: blob.type || "image/jpeg",
+                      data: base64Data,
+                    },
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              temperature: 0.4,
+              topK: 32,
+              topP: 1,
+              maxOutputTokens: 1024,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Gemini Vision API error");
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error("No analysis result from Gemini");
+
+      return parseJSON<{ altText: string; caption: string }>(text);
+    } catch (err) {
+      console.error("AI Vision Error:", err);
+      return {
+        altText: "Travel Image",
+        caption: "A beautiful moment from Tripzy Lifestyle Adventures.",
+      };
+    }
   },
 
   isConfigured(): boolean {

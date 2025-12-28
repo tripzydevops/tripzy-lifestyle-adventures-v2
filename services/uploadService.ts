@@ -1,6 +1,7 @@
 // services/uploadService.ts
 import { mediaService } from "./mediaService";
 import { supabase } from "../lib/supabase";
+import { aiContentService } from "./aiContentService";
 
 /**
  * Generates a unique filename by appending a timestamp
@@ -55,11 +56,27 @@ export const uploadService = {
     // Determine media type
     const mediaType = file.type.startsWith("video/") ? "video" : "image";
 
+    // AI Metadata Generation for Images
+    let altText = "";
+    let caption = "";
+    if (mediaType === "image") {
+      try {
+        console.log("Analyzing image with Tripzy AI...");
+        const analysis = await aiContentService.analyzeImageFromUrl(publicUrl);
+        altText = analysis.altText;
+        caption = analysis.caption;
+      } catch (aiErr) {
+        console.warn("AI Analysis failed for upload, using defaults:", aiErr);
+      }
+    }
+
     // Add the new item to the media library database
     await mediaService.addMedia({
       url: publicUrl,
       fileName: file.name,
       mediaType: mediaType,
+      altText,
+      caption,
     });
 
     console.log(`File uploaded successfully. URL: ${publicUrl}`);
