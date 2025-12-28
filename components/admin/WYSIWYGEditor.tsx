@@ -1,5 +1,21 @@
-import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { Bold, Italic, Underline, List, ListOrdered, Link as LinkIcon, Pilcrow, Heading2, Heading3, Film } from 'lucide-react';
+import React, {
+  useRef,
+  useEffect,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
+import {
+  Bold,
+  Italic,
+  Underline,
+  List,
+  ListOrdered,
+  Link as LinkIcon,
+  Pilcrow,
+  Heading2,
+  Heading3,
+  Film,
+} from "lucide-react";
 
 interface WYSIWYGEditorProps {
   value: string;
@@ -28,22 +44,26 @@ const WYSIWYGEditor = forwardRef<
 
       editor.focus();
       const selection = window.getSelection();
-      
+
       // Restore the last known selection if the editor lost focus
-      if (lastSelection.current && selection && !editor.contains(selection.anchorNode)) {
-          selection.removeAllRanges();
-          selection.addRange(lastSelection.current);
+      if (
+        lastSelection.current &&
+        selection &&
+        !editor.contains(selection.anchorNode)
+      ) {
+        selection.removeAllRanges();
+        selection.addRange(lastSelection.current);
       }
-      
-      document.execCommand('insertHTML', false, html);
+
+      document.execCommand("insertHTML", false, html);
       onChange(editor.innerHTML);
-    }
+    },
   }));
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
     onChange(e.currentTarget.innerHTML);
   };
-  
+
   const saveSelection = () => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
@@ -53,42 +73,50 @@ const WYSIWYGEditor = forwardRef<
 
   const handleBlur = () => {
     saveSelection();
-  }
+  };
 
   const execCmd = (command: string, valueArg?: string) => {
     document.execCommand(command, false, valueArg);
     editorRef.current?.focus();
-    if(editorRef.current) onChange(editorRef.current.innerHTML);
+    if (editorRef.current) onChange(editorRef.current.innerHTML);
   };
-  
+
   const createLink = () => {
     saveSelection();
-    const url = prompt('Enter the URL:');
+    const url = prompt("Enter the URL:");
     if (url) {
       const selection = window.getSelection();
-      if(lastSelection.current && selection) {
-          selection.removeAllRanges();
-          selection.addRange(lastSelection.current);
+      if (lastSelection.current && selection) {
+        selection.removeAllRanges();
+        selection.addRange(lastSelection.current);
       }
-      execCmd('createLink', url);
+      execCmd("createLink", url);
     }
   };
 
   const formatBlock = (tag: string) => {
-    execCmd('formatBlock', tag);
+    execCmd("formatBlock", tag);
   };
 
   const toolbarButtons = [
-    { icon: Bold, action: () => execCmd('bold'), title: 'Bold' },
-    { icon: Italic, action: () => execCmd('italic'), title: 'Italic' },
-    { icon: Underline, action: () => execCmd('underline'), title: 'Underline' },
-    { icon: Pilcrow, action: () => formatBlock('p'), title: 'Paragraph' },
-    { icon: Heading2, action: () => formatBlock('h2'), title: 'Heading 2' },
-    { icon: Heading3, action: () => formatBlock('h3'), title: 'Heading 3' },
-    { icon: List, action: () => execCmd('insertUnorderedList'), title: 'Unordered List' },
-    { icon: ListOrdered, action: () => execCmd('insertOrderedList'), title: 'Ordered List' },
-    { icon: LinkIcon, action: createLink, title: 'Link' },
-    { icon: Film, action: onMediaButtonClick, title: 'Insert Media' },
+    { icon: Bold, action: () => execCmd("bold"), title: "Bold" },
+    { icon: Italic, action: () => execCmd("italic"), title: "Italic" },
+    { icon: Underline, action: () => execCmd("underline"), title: "Underline" },
+    { icon: Pilcrow, action: () => formatBlock("p"), title: "Paragraph" },
+    { icon: Heading2, action: () => formatBlock("h2"), title: "Heading 2" },
+    { icon: Heading3, action: () => formatBlock("h3"), title: "Heading 3" },
+    {
+      icon: List,
+      action: () => execCmd("insertUnorderedList"),
+      title: "Unordered List",
+    },
+    {
+      icon: ListOrdered,
+      action: () => execCmd("insertOrderedList"),
+      title: "Ordered List",
+    },
+    { icon: LinkIcon, action: createLink, title: "Link" },
+    { icon: Film, action: onMediaButtonClick, title: "Insert Media" },
   ];
 
   return (
@@ -101,7 +129,7 @@ const WYSIWYGEditor = forwardRef<
             onClick={btn.action}
             title={btn.title}
             className="p-2 rounded-md hover:bg-gray-200 text-gray-600"
-            onMouseDown={e => e.preventDefault()} // Prevent editor from losing focus on click
+            onMouseDown={(e) => e.preventDefault()} // Prevent editor from losing focus on click
           >
             <btn.icon size={16} />
           </button>
@@ -114,7 +142,7 @@ const WYSIWYGEditor = forwardRef<
         onMouseUp={saveSelection}
         onKeyUp={saveSelection}
         contentEditable
-        className="w-full h-96 p-4 focus:outline-none overflow-y-auto prose prose-lg max-w-none font-serif"
+        className="w-full h-96 p-4 focus:outline-none overflow-y-auto prose prose-lg max-w-none font-serif text-black"
         suppressContentEditableWarning={true}
         dangerouslySetInnerHTML={{ __html: value }}
       />
