@@ -85,21 +85,21 @@ const getSystemPrompt = (language: 'en' | 'tr') => {
 
 const POST_GENERATION_PROMPT = (params: GeneratePostParams) => {
   const systemPrompt = getSystemPrompt(params.language || 'en');
-  const isTrirkish = params.language === 'tr';
+  const isTurkish = params.language === 'tr';
   
   return `${systemPrompt}
 
-**${isTrirkish ? 'GÖREV' : 'ASSIGNMENT'}:** ${isTrirkish ? `${params.destination} hakkında kapsamlı bir seyahat makalesi yaz.` : `Write a comprehensive travel article about ${params.destination}.`}
+**${isTurkish ? 'GÖREV' : 'ASSIGNMENT'}:** ${isTurkish ? `${params.destination} hakkında kapsamlı bir seyahat makalesi yaz.` : `Write a comprehensive travel article about ${params.destination}.`}
 
-**${isTrirkish ? 'PARAMETRELER' : 'PARAMETERS'}:**
-- ${isTrirkish ? 'Seyahat Stili' : 'Travel Style'}: ${params.travelStyle || (isTrirkish ? 'Genel' : 'General')}
-- ${isTrirkish ? 'Hedef Kitle' : 'Target Audience'}: ${params.targetAudience || (isTrirkish ? 'Otantik deneyimler arayan meraklı gezginler' : 'Curious travelers seeking authentic experiences')}
-- ${isTrirkish ? 'Kapsanacak Konular' : 'Key Topics to Cover'}: ${params.keyPoints?.join(', ') || (isTrirkish ? 'En iyi mekanlar, yerel yemekler, pratik ipuçları' : 'Best attractions, local food, practical tips')}
-- ${isTrirkish ? 'Yaklaşık Uzunluk' : 'Approximate Length'}: ${params.wordCount || 1200} ${isTrirkish ? 'kelime' : 'words'}
-- ${isTrirkish ? 'Ton' : 'Tone'}: ${params.tone || (isTrirkish ? 'İlham verici ama pratik' : 'Inspiring yet practical')}
+**${isTurkish ? 'PARAMETRELER' : 'PARAMETERS'}:**
+- ${isTurkish ? 'Seyahat Stili' : 'Travel Style'}: ${params.travelStyle || (isTurkish ? 'Genel' : 'General')}
+- ${isTurkish ? 'Hedef Kitle' : 'Target Audience'}: ${params.targetAudience || (isTurkish ? 'Otantik deneyimler arayan meraklı gezginler' : 'Curious travelers seeking authentic experiences')}
+- ${isTurkish ? 'Kapsanacak Konular' : 'Key Topics to Cover'}: ${params.keyPoints?.join(', ') || (isTurkish ? 'En iyi mekanlar, yerel yemekler, pratik ipuçları' : 'Best attractions, local food, practical tips')}
+- ${isTurkish ? 'Yaklaşık Uzunluk' : 'Approximate Length'}: ${params.wordCount || 1200} ${isTurkish ? 'kelime' : 'words'}
+- ${isTurkish ? 'Ton' : 'Tone'}: ${params.tone || (isTurkish ? 'İlham verici ama pratik' : 'Inspiring yet practical')}
 
-**${isTrirkish ? 'GEREKLİ UNSURLAR' : 'REQUIRED ELEMENTS'}:**
-${isTrirkish ? `
+**${isTurkish ? 'GEREKLİ UNSURLAR' : 'REQUIRED ELEMENTS'}:**
+${isTurkish ? `
 1. Değer vaat eden ve merak uyandıran manyetik bir başlık
 2. Okuyucuyu destinasyona taşıyan bir açılış kancası
 3. Destinasyonun farklı yönlerini kapsayan 4-6 ayrı bölüm
@@ -119,15 +119,15 @@ ${isTrirkish ? `
 8. A memorable closing that inspires action
 `}
 
-**${isTrirkish ? 'YANITINI JSON OLARAK FORMATLA' : 'FORMAT YOUR RESPONSE AS JSON'}:**
+**${isTurkish ? 'YANITINI JSON OLARAK FORMATLA' : 'FORMAT YOUR RESPONSE AS JSON'}:**
 {
-  "title": "${isTrirkish ? 'Çekici Türkçe başlığınız' : 'Your compelling headline here'}",
-  "excerpt": "${isTrirkish ? 'Okuyucuları tıklamaya teşvik eden 150-160 karakterlik özet' : 'A 150-160 character summary that entices readers to click'}",
-  "content": "${isTrirkish ? 'Markdown formatında ## başlıklarla tam makale içeriği' : 'Full article content in Markdown format with ## headings'}",
-  "metaTitle": "${isTrirkish ? '60 karakterin altında SEO optimize başlık' : 'SEO-optimized title under 60 characters'}",
-  "metaDescription": "${isTrirkish ? 'SEO meta açıklaması, 150-160 karakter' : 'SEO meta description, 150-160 characters'}",
-  "metaKeywords": "${isTrirkish ? 'virgülle, ayrılmış, anahtar, kelimeler' : 'comma, separated, keywords, for, seo'}",
-  "suggestedCategory": "${isTrirkish ? 'Şunlardan biri: Macera, Kültürel, Yeme-İçme, Lüks, Bütçe Dostu, Aile, Solo, Romantik, Wellness' : 'One of: Adventure, Cultural, Food & Drink, Luxury, Budget, Family, Solo, Romantic, Wellness'}",
+  "title": "${isTurkish ? 'Çekici Türkçe başlığınız' : 'Your compelling headline here'}",
+  "excerpt": "${isTurkish ? 'Okuyucuları tıklamaya teşvik eden 150-160 karakterlik özet' : 'A 150-160 character summary that entices readers to click'}",
+  "content": "${isTurkish ? 'Markdown formatında ## başlıklarla tam makale içeriği' : 'Full article content in Markdown format with ## headings'}",
+  "metaTitle": "${isTurkish ? '60 karakterin altında SEO optimize başlık' : 'SEO-optimized title under 60 characters'}",
+  "metaDescription": "${isTurkish ? 'SEO meta açıklaması, 150-160 karakter' : 'SEO meta description, 150-160 characters'}",
+  "metaKeywords": "${isTurkish ? 'virgülle, ayrılmış, anahtar, kelimeler' : 'comma, separated, keywords, for, seo'}",
+  "suggestedCategory": "${isTurkish ? 'Şunlardan biri: Macera, Kültürel, Yeme-İçme, Lüks, Bütçe Dostu, Aile, Solo, Romantik, Wellness' : 'One of: Adventure, Cultural, Food & Drink, Luxury, Budget, Family, Solo, Romantic, Wellness'}",
   "suggestedTags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
 }`;
 };
