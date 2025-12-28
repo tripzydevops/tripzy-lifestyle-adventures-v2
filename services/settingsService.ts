@@ -54,7 +54,8 @@ export const settingsService = {
       // Convert key-value pairs to SiteSettings object
       const settings: any = {};
       data?.forEach(item => {
-        settings[item.key] = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
+        // Value is already JSONB, no need to parse
+        settings[item.key] = item.value;
       });
 
       return {
@@ -116,7 +117,7 @@ export const settingsService = {
           .from('settings')
           .upsert({
             key: setting.key,
-            value: JSON.stringify(setting.value),
+            value: setting.value, // No need to stringify, column is JSONB
             updated_at: new Date().toISOString()
           });
       }
