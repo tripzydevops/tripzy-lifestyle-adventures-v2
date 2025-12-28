@@ -142,7 +142,7 @@ const WYSIWYGEditor = forwardRef<
         onMouseUp={saveSelection}
         onKeyUp={saveSelection}
         contentEditable
-        className="w-full h-96 p-4 focus:outline-none overflow-y-auto prose prose-lg max-w-none font-serif text-black"
+        className="w-full h-96 p-4 focus:outline-none overflow-y-auto prose prose-lg max-w-none font-serif text-black prose-headings:font-bold prose-headings:text-black prose-p:text-gray-800 prose-ul:list-disc prose-ul:pl-4 prose-a:text-blue-600 prose-li:text-gray-800"
         suppressContentEditableWarning={true}
         dangerouslySetInnerHTML={{ __html: value }}
       />

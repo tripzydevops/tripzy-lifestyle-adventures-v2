@@ -202,7 +202,7 @@ const EditPostPage = () => {
       const outline = await aiContentService.generatePostOutline(post.title);
       const htmlOutline = `<div class="ai-outline bg-gold/5 p-6 rounded-2xl border border-gold/20 my-6 font-serif">
         <h2 class="flex items-center gap-2 text-gold m-0 text-xl"><Sparkles size={20} /> AI Narrative Suggestions</h2>
-        <div class="mt-4 text-gray-300 leading-relaxed">${outline.replace(
+        <div class="mt-4 text-gray-800 leading-relaxed">${outline.replace(
           /\n/g,
           "<br>"
         )}</div>
