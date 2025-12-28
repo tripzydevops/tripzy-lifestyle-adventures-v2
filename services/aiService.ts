@@ -25,6 +25,19 @@ const getGenAIModel = () => {
   return genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 };
 
+/**
+ * Helper to decode base64 string to Uint8Array
+ */
+export function decodeBase64(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
 export const aiService = {
   async generateExcerpt(content: string): Promise<string> {
     try {
