@@ -402,6 +402,46 @@ async function imageUrlToBase64(url: string): Promise<{ base64: string; mimeType
 }  // Try to extract JSON from the response (Gemini sometimes wraps in markdown)
 
 
+
+function parseJSON<T>(text: string): T {
+  // Try to extract JSON from the response (Gemini sometimes wraps in markdown)
+  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const jsonStr = jsonMatch ? jsonMatch[1].trim() : text.trim();
+  
+  try {
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    // Attempt to fix common LLM JSON errors: unescaped newlines in strings
+    try {
+      const sanitizedStr = jsonStr.replace(/"((?:[^"\\]|\\.)*)"/g, (match, content) => {
+        // Escape newlines, tabs, etc. inside string values
+        const escaped = content
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t');
+        return `"${escaped}"`;
+      });
+      return JSON.parse(sanitizedStr);
+    } catch (sanitizationError) {
+      // If sanitization fails, fall back to regex extraction for partial recovery
+      console.warn("JSON sanitization failed, trying regex extraction", sanitizationError);
+    }
+
+    // Try to find JSON-like content
+    const objectMatch = jsonStr.match(/\{[\s\S]*\}/);
+    const arrayMatch = jsonStr.match(/\[[\s\S]*\]/);
+    
+    if (objectMatch) {
+      return JSON.parse(objectMatch[0]);
+    }
+    if (arrayMatch) {
+      return JSON.parse(arrayMatch[0]);
+    }
+    
+    throw new Error('Failed to parse AI response as JSON: ' + (e instanceof Error ? e.message : String(e)));
+  }
+}
+
 // ============================================================
 // EXPORTED SERVICE FUNCTIONS
 // ============================================================
