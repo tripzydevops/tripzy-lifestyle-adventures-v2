@@ -81,7 +81,9 @@ export interface Translations {
     delete: string;
     edit: string;
     search: string;
+    search: string;
     searchPlaceholder: string;
+    processing: string;
   };
   // Login Page
   login: {
@@ -138,7 +140,11 @@ export interface Translations {
   // Admin Panel
   admin: {
     managePosts: string;
+    managePosts: string;
+    manageMedia: string;
     newPost: string;
+    newMedia: string;
+    noMedia: string;
     editPost: string;
     title: string;
     author: string;
@@ -270,6 +276,7 @@ export const translations: Record<Language, Translations> = {
       edit: 'Edit',
       search: 'Search',
       searchPlaceholder: 'Search posts...',
+      processing: 'Processing...',
     },
     login: {
       title: 'Tripzy Lifestyle',
@@ -321,7 +328,10 @@ export const translations: Record<Language, Translations> = {
     },
     admin: {
       managePosts: 'Manage Posts',
+      manageMedia: 'Manage Media',
       newPost: 'New Post',
+      newMedia: 'Add New Media',
+      noMedia: 'No media found. Start by uploading your first asset.',
       editPost: 'Edit Post',
       title: 'Title',
       author: 'Author',
@@ -451,6 +461,7 @@ export const translations: Record<Language, Translations> = {
       edit: 'Düzenle',
       search: 'Ara',
       searchPlaceholder: 'Yazı ara...',
+      processing: 'İşleniyor...',
     },
     login: {
       title: 'Tripzy Lifestyle',
@@ -502,7 +513,10 @@ export const translations: Record<Language, Translations> = {
     },
     admin: {
       managePosts: 'Yazıları Yönet',
+      manageMedia: 'Medyayı Yönet',
       newPost: 'Yeni Yazı',
+      newMedia: 'Yeni Medya Ekle',
+      noMedia: 'Medya bulunamadı. İlk dosyanızı yükleyerek başlayın.',
       editPost: 'Yazıyı Düzenle',
       title: 'Başlık',
       author: 'Yazar',
