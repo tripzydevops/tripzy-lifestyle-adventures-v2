@@ -19,6 +19,10 @@ const mapMediaFromSupabase = (data: any): MediaItem => ({
   fileName: data.file_name || 'unnamed',
   uploadedAt: data.created_at,
   mediaType: getMediaTypeFromMime(data.mime_type, data.url),
+  altText: data.alt_text,
+  caption: data.caption,
+  mimeType: data.mime_type,
+  sizeBytes: data.size_bytes,
 });
 
 export const mediaService = {
@@ -74,5 +78,29 @@ export const mediaService = {
       fileName,
       mediaType,
     });
+  },
+
+  async updateMedia(id: string, updates: Partial<MediaItem>): Promise<MediaItem> {
+    const supabaseUpdates: any = {};
+    if (updates.fileName !== undefined) supabaseUpdates.file_name = updates.fileName;
+    if (updates.altText !== undefined) supabaseUpdates.alt_text = updates.altText;
+    if (updates.caption !== undefined) supabaseUpdates.caption = updates.caption;
+    if (updates.mimeType !== undefined) supabaseUpdates.mime_type = updates.mimeType;
+    if (updates.sizeBytes !== undefined) supabaseUpdates.size_bytes = updates.sizeBytes;
+
+    const { data, error } = await supabase
+      .schema('blog')
+      .from('media')
+      .update(supabaseUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase Error (updateMedia):', error);
+      throw error;
+    }
+
+    return mapMediaFromSupabase(data);
   },
 };

@@ -316,6 +316,16 @@ async function callGemini(prompt: string): Promise<string> {
       }),
     }
   );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+  }
+
+  const data = await response.json();
+  
+  if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+    throw new Error('Invalid response from Gemini API');
+  }
 
   return data.candidates[0].content.parts[0].text;
 }

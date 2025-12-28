@@ -34,7 +34,7 @@ const ImportMediaPage = () => {
       const newItem = await mediaService.importMediaFromUrl(url);
 
       // AI Enhancement
-      if (newItem.type === "image") {
+      if (newItem.mediaType === "image") {
         addToast("Tripzy AI is analyzing your image...", "info");
         try {
           const analysis = await aiContentService.analyzeImageFromUrl(url);
@@ -168,8 +168,8 @@ const ImportMediaPage = () => {
                 </div>
               </div>
 
-              <div className="p-4 bg-navy-800/40 rounded-2xl border border-white/5">
-                <div className="flex justify-between items-start mb-2">
+              <div className="p-6 bg-navy-800/40 rounded-2xl border border-white/5 space-y-4">
+                <div className="flex justify-between items-start">
                   <p className="font-bold text-white text-sm truncate pr-4">
                     {importedItem.fileName}
                   </p>
@@ -177,7 +177,32 @@ const ImportMediaPage = () => {
                     {importedItem.mediaType}
                   </span>
                 </div>
-                <p className="text-[10px] text-gray-500 truncate font-mono">
+
+                {importedItem.altText && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                      <Sparkles size={10} className="text-gold" />
+                      Alt Text (AI Generated)
+                    </div>
+                    <p className="text-white text-xs leading-relaxed">
+                      {importedItem.altText}
+                    </p>
+                  </div>
+                )}
+
+                {importedItem.caption && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                      <Wand2 size={10} className="text-purple-400" />
+                      Story Caption
+                    </div>
+                    <p className="text-gray-400 text-xs leading-relaxed italic">
+                      {importedItem.caption}
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-[10px] text-gray-500 truncate font-mono pt-2 border-t border-white/5">
                   {importedItem.url}
                 </p>
               </div>

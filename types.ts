@@ -71,4 +71,8 @@ export interface MediaItem {
     fileName: string;
     uploadedAt: string;
     mediaType: 'image' | 'video';
+    altText?: string;
+    caption?: string;
+    mimeType?: string;
+    sizeBytes?: number;
 }

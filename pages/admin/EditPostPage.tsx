@@ -21,6 +21,7 @@ import {
   CheckCircle,
   Search,
   Bot,
+  Globe,
 } from "lucide-react";
 
 type EditorHandle = {
