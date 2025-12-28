@@ -20,6 +20,7 @@ import {
   Loader2,
   Search,
   Bot,
+  X,
 } from "lucide-react";
 
 type EditorHandle = {
@@ -55,6 +56,7 @@ const EditPostPage = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string | null>(null);
   const [mediaModalPurpose, setMediaModalPurpose] = useState<
     "featured" | "insert"
   >("featured");
@@ -200,14 +202,7 @@ const EditPostPage = () => {
     setIsAiGenerating(true);
     try {
       const outline = await aiContentService.generatePostOutline(post.title);
-      const htmlOutline = `<div class="ai-outline bg-gold/5 p-6 rounded-2xl border border-gold/20 my-6 font-serif">
-        <h2 class="flex items-center gap-2 text-gold m-0 text-xl"><Sparkles size={20} /> AI Narrative Suggestions</h2>
-        <div class="mt-4 text-gray-800 leading-relaxed">${outline.replace(
-          /\n/g,
-          "<br>"
-        )}</div>
-      </div><p><br></p>`;
-      editorRef.current?.insertHtml(htmlOutline);
+      setAiSuggestions(outline);
       addToast(t("common.success"), "success");
     } catch (e) {
       addToast(t("common.error"), "error");
@@ -453,6 +448,23 @@ const EditPostPage = () => {
             </div>
 
             {/* AI Assistant Toolbar */}
+            {aiSuggestions && (
+              <div className="bg-navy-800/80 backdrop-blur-md p-6 rounded-2xl border border-gold/20 mb-6 font-serif relative shadow-lg">
+                <button
+                  onClick={() => setAiSuggestions(null)}
+                  className="absolute top-4 right-4 text-gold/50 hover:text-gold transition-colors"
+                  title="Dismiss suggestions"
+                >
+                  <X size={20} />
+                </button>
+                <h2 className="flex items-center gap-2 text-gold m-0 text-lg font-bold mb-4">
+                  <Sparkles size={20} /> AI Narrative Guidelines
+                </h2>
+                <div className="text-gray-200 leading-relaxed whitespace-pre-line text-sm border-l-2 border-gold/30 pl-4">
+                  {aiSuggestions}
+                </div>
+              </div>
+            )}
             <AIQuickActions
               onImprove={handleAiImprove}
               onTranslate={handleAiTranslateToTurkish}
