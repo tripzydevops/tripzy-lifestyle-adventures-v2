@@ -3,6 +3,10 @@
 // Designed to produce content rivaling Lonely Planet, Condé Nast Traveler, and Nomadic Matt
 // Supports: Turkish (TR) and English (EN)
 
+import { BlogPost, BlogSection } from '../types/blog';
+import { GeneratePostParams, GeneratedPost, SEOResult, GeneratedSocial } from '../types'; // Verify where types are come from
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 const getGeminiApiKey = () => {
   // 1. Check system environment (Vite/Build-time)
   const envKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -83,60 +87,84 @@ const getSystemPrompt = (language: 'en' | 'tr') => {
   return language === 'tr' ? TRAVEL_BLOG_SYSTEM_PROMPT_TR : TRAVEL_BLOG_SYSTEM_PROMPT_EN;
 };
 
+// Helper to convert structured blog content to HTML for the legacy WYSIWYG editor
+const convertCanonicalToHtml = (sections: BlogSection[]): string => {
+  return sections
+    .map((section) => {
+      let sectionHtml = `<h2 id="${section.id}">${section.title}</h2>\n${section.body}`; 
+      
+      // Simple Markdown-to-HTML conversion
+      sectionHtml = sectionHtml
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\[IMAGE: (.*?)\]/g, '<p><em>[IMAGE: $1]</em></p>');
+
+      if (!sectionHtml.startsWith('<p>')) sectionHtml = `<p>${sectionHtml}`;
+      if (!sectionHtml.endsWith('</p>')) sectionHtml = `${sectionHtml}</p>`;
+
+      if (section.subsections) {
+        sectionHtml += section.subsections
+          .map((sub) => {
+             let subBody = sub.body.replace(/\n\n/g, '</p><p>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+             return `<h3 id="${sub.id}">${sub.title}</h3>\n<p>${subBody}</p>`;
+          })
+          .join('\n');
+      }
+      return sectionHtml;
+    })
+    .join('\n\n');
+};
+
 const POST_GENERATION_PROMPT = (params: GeneratePostParams) => {
-  const systemPrompt = getSystemPrompt(params.language || 'en');
   const isTurkish = params.language === 'tr';
   
-  return `${systemPrompt}
+  return `
+    You are a professional travel editor for a high-end magazine.
+    Task: Write a travel blog post about "${params.destination}".
+    
+    STRICT DATA MODEL (JSON ONLY):
+    You must return a JSON object that strictly matches this specific TypeScript structure:
+    
+    interface Response {
+      title: string;
+      excerpt: string;
+      content: {
+        sections: Array<{
+          id: string; // unique slug
+          title: string; // H2 level
+          body: string; // HTML format with <p>, <ul>, <strong>. Keep paragraphs SHORT (2-4 sentences). Insert [IMAGE: description] placeholders.
+          subsections?: Array<{
+            id: string;
+            title: string; // H3 level
+            body: string; // HTML format
+          }>;
+        }>;
+      };
+      tags: string[];
+      category: string;
+      metaTitle: string;
+      metaDescription: string;
+    }
 
-**${isTurkish ? 'GÖREV' : 'ASSIGNMENT'}:** ${isTurkish ? `${params.destination} hakkında kapsamlı bir seyahat makalesi yaz.` : `Write a comprehensive travel article about ${params.destination}.`}
-
-**${isTurkish ? 'PARAMETRELER' : 'PARAMETERS'}:**
-- ${isTurkish ? 'Seyahat Stili' : 'Travel Style'}: ${params.travelStyle || (isTurkish ? 'Genel' : 'General')}
-- ${isTurkish ? 'Hedef Kitle' : 'Target Audience'}: ${params.targetAudience || (isTurkish ? 'Otantik deneyimler arayan meraklı gezginler' : 'Curious travelers seeking authentic experiences')}
-- ${isTurkish ? 'Kapsanacak Konular' : 'Key Topics to Cover'}: ${params.keyPoints?.join(', ') || (isTurkish ? 'En iyi mekanlar, yerel yemekler, pratik ipuçları' : 'Best attractions, local food, practical tips')}
-- ${isTurkish ? 'Yaklaşık Uzunluk' : 'Approximate Length'}: ${params.wordCount || 1200} ${isTurkish ? 'kelime' : 'words'}
-- ${isTurkish ? 'Ton' : 'Tone'}: ${params.tone || (isTurkish ? 'İlham verici ama pratik' : 'Inspiring yet practical')}
-
-**${isTurkish ? 'GEREKLİ UNSURLAR & FORMAT (DERGİ STİLİ)' : 'REQUIRED ELEMENTS & FORMAT (MAGAZINE STYLE)'}:**
-${isTurkish ? `
-1. GÖRSEL YAPILANDIRMA: Uzun paragraflardan kaçın. Maksimum 3-4 cümlelik kısa paragraflar kullan.
-2. BAŞLIKLAR: Her 300 kelimede bir <h2> veya <h3> başlık kullanarak metni böl.
-3. VURGULAMA: Önemli yerleri, restoran isimlerini ve "İçeriden İpuçlarını" <strong> etiketiyle kalınlaştır.
-4. GÖRSEL YERLEŞİMİ: Metnin içine en az 4 adet [RESİM: görsel açıklaması] yer tutucusu ekle.
-5. LİSTELEME: Pratik bilgileri <ul> listeleri maddeler halinde ver.
-6. İÇERİK:
-   - Sizi oraya götüren atmosferik bir giriş
-   - Belirgin başlıklarla ayrılmış ana bölümler
-   - Fiyatlarıyla birlikte 3 somut restoran önerisi
-   - Bütçeye göre 2-3 konaklama önerisi
-   - Yerel sırlar ve pratik ipuçları
-` : `
-1. VISUAL STRUCTURE: Avoid walls of text. Use SHORT paragraphs (max 3-4 sentences).
-2. HEADINGS: Break up text frequently with <h2> and <h3> headers.
-3. EMPHASIS: Use <strong> tags for key phrases, restaurant names, and "Insider Tips".
-4. IMAGE PLACEHOLDERS: Insert at least 4 [IMAGE: description of scene] placeholders throughout the text where photos should naturally go.
-5. LISTS: Use <ul> for practical details.
-6. CONTENT:
-   - An atmospheric opening that transports the reader
-   - Distinct sections with clear headers
-   - 3 specific restaurant w/ prices
-   - 2-3 accommodation options
-   - Local secrets & practical tips
-`}
-
-**${isTurkish ? 'YANITINI JSON OLARAK FORMATLA' : 'FORMAT YOUR RESPONSE AS JSON'}:**
-IMPORTANT: Ensure all newlines in JSON strings are properly escaped as \\n. Do not use literal newlines inside string values.
-{
-  "title": "${isTurkish ? 'Çekici Türkçe başlığınız' : 'Your compelling headline here'}",
-  "excerpt": "${isTurkish ? 'Okuyucuları tıklamaya teşvik eden 150-160 karakterlik özet' : 'A 150-160 character summary that entices readers to click'}",
-  "content": "${isTurkish ? 'HTML formatında (<h2>, <h3>, <p>, <ul>, <strong> etiketlerini kullan) tam makale içeriği. Markdown kullanma.' : 'Full article content in HTML format (use <h2>, <h3>, <p>, <ul>, <strong> tags). Do not use Markdown.'}",
-  "metaTitle": "${isTurkish ? '60 karakterin altında SEO optimize başlık' : 'SEO-optimized title under 60 characters'}",
-  "metaDescription": "${isTurkish ? 'SEO meta açıklaması, 150-160 karakter' : 'SEO meta description, 150-160 characters'}",
-  "metaKeywords": "${isTurkish ? 'virgülle, ayrılmış, anahtar, kelimeler' : 'comma, separated, keywords, for, seo'}",
-  "suggestedCategory": "${isTurkish ? 'Şunlardan biri: Macera, Kültürel, Yeme-İçme, Lüks, Bütçe Dostu, Aile, Solo, Romantik, Wellness' : 'One of: Adventure, Cultural, Food & Drink, Luxury, Budget, Family, Solo, Romantic, Wellness'}",
-  "suggestedTags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
-}`;
+    CONTENT RULES:
+    1. Tone: ${params.tone || 'Inspiring, practical, and sophisticated'}.
+    2. Structure: 
+       - "Introduction" section to hook the reader.
+       - 3-5 distinct main sections (e.g., "Where to Eat", "Hidden Gems").
+       - "Local Secrets" section is MANDATORY.
+       - "Conclusion" section.
+    3. Formatting:
+       - Use HTML tags in 'body' fields: <p>, <ul>/<li>, <strong>.
+       - NO "walls of text". Max 3-4 sentences per paragraph.
+       - Use [IMAGE: ...] placeholders frequently.
+    
+    Context:
+    - Travel Style: ${params.travelStyle || 'General'}
+    - Duration: ${params.duration || '3 days'}
+    - Budget: ${params.budget || 'Moderate'}
+    
+    Return ONLY valid JSON. Escape newlines in strings.
+  `;
 };
 
 const EXCERPT_GENERATION_PROMPT = (content: string, language: 'en' | 'tr' = 'en') => {
@@ -464,9 +492,37 @@ export const aiContentService = {
     const response = await callGemini(prompt);
     
     try {
-      const parsed = parseJSON<GeneratedPost>(response);
-      console.log('✅ Post generated successfully');
-      return parsed;
+      // Define the expected structure from the new prompt
+      interface CanonicalAIResponse {
+        title: string;
+        excerpt: string;
+        content: {
+          sections: BlogSection[];
+        };
+        tags: string[];
+        category: string;
+        metaTitle: string;
+        metaDescription: string;
+      }
+
+      const parsed = parseJSON<CanonicalAIResponse>(response);
+      
+      // Convert structured sections to HTML string for the legacy editor
+      const htmlContent = convertCanonicalToHtml(parsed.content.sections);
+
+      console.log('✅ Post generated and converted to HTML successfully');
+      
+      return {
+        title: parsed.title,
+        content: htmlContent,
+        excerpt: parsed.excerpt,
+        tags: parsed.tags,
+        category: parsed.category,
+        metaTitle: parsed.metaTitle,
+        metaDescription: parsed.metaDescription,
+        suggestedCategory: parsed.category,
+        suggestedTags: parsed.tags
+      };
     } catch (error) {
        console.error("Failed to parse generated post:", response); // Log raw response for debugging
        throw error;
