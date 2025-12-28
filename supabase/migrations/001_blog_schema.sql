@@ -34,6 +34,12 @@ CREATE TABLE IF NOT EXISTS blog.posts (
   youtube_url TEXT,
   gallery_images TEXT[] DEFAULT '{}',
   
+  -- Analytics
+  views INTEGER DEFAULT 0,
+  
+  -- Vector embedding for semantic search (optional, requires pgvector)
+  -- embedding vector(768),
+  
   -- Timestamps
   published_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),

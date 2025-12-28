@@ -31,6 +31,7 @@ const AdminDashboardPage = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [topPosts, setTopPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -53,8 +54,14 @@ const AdminDashboardPage = () => {
         setTopPosts(sortedPosts.slice(0, 5));
 
         setStats({ totalPosts, totalUsers, pendingPosts, draftPosts });
+        setError(null);
       } catch (error) {
         console.error("Failed to load dashboard stats:", error);
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load dashboard data. Please check your Supabase connection."
+        );
       } finally {
         setLoading(false);
       }
@@ -90,6 +97,53 @@ const AdminDashboardPage = () => {
       {loading ? (
         <div className="py-20 flex justify-center">
           <Spinner />
+        </div>
+      ) : error ? (
+        <div className="py-20 flex flex-col items-center justify-center gap-6">
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-8 max-w-2xl">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-red-500/20 rounded-xl">
+                <svg
+                  className="w-6 h-6 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-red-500 mb-2">
+                  Dashboard Error
+                </h3>
+                <p className="text-gray-300 mb-4">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl text-red-400 font-bold transition-all"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="text-center text-gray-500 text-sm max-w-xl">
+            <p className="mb-2">Common issues:</p>
+            <ul className="text-left space-y-1">
+              <li>
+                • Check that your Supabase credentials in .env.local are correct
+              </li>
+              <li>
+                • Verify that the 'blog' schema exists in your Supabase database
+              </li>
+              <li>• Ensure you've run the migration scripts</li>
+              <li>• Check browser console for detailed error messages</li>
+            </ul>
+          </div>
         </div>
       ) : (
         stats && (
