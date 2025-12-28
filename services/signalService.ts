@@ -1,93 +1,74 @@
-import { supabase } from '../lib/supabase';
-import { v4 as uuidv4 } from 'uuid';
+// services/signalService.ts
+import { supabase } from "../lib/supabase";
 
-export type SignalEventType = 'view' | 'click' | 'hover' | 'search' | 'language_change' | 'scroll' | 'time_spent';
+export type SignalType =
+  | "view"
+  | "click"
+  | "hover"
+  | "scroll"
+  | "search"
+  | "engagement";
 
 export interface UserSignal {
-  event_type: SignalEventType;
-  target_type?: string;
-  target_id?: string;
+  userId?: string;
+  sessionId?: string;
+  signalType: SignalType;
+  targetId?: string;
   metadata?: Record<string, any>;
-  user_id?: string;
-  session_id?: string;
 }
 
-class SignalService {
-  private buffer: UserSignal[] = [];
-  private sessionId: string;
-  private flushInterval: number = 10000; // Flush every 10 seconds
-  private maxBufferSize: number = 50;
-  private timer: NodeJS.Timeout | null = null;
-
-  constructor() {
-    this.sessionId = this.getOrCreateSessionId();
-    this.startTimer();
-    
-    // Flush on page unload
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', () => this.flush());
-    }
+// Session ID persistence (temporary for anonymous tracking)
+const getSessionId = () => {
+  let sessionId = sessionStorage.getItem("tripzy_session_id");
+  if (!sessionId) {
+    sessionId = Math.random().toString(36).substring(2, 15);
+    sessionStorage.setItem("tripzy_session_id", sessionId);
   }
+  return sessionId;
+};
 
-  private getOrCreateSessionId(): string {
-    if (typeof window === 'undefined') return '';
-    let sid = sessionStorage.getItem('tripzy_session_id');
-    if (!sid) {
-      sid = uuidv4();
-      sessionStorage.setItem('tripzy_session_id', sid);
-    }
-    return sid;
-  }
-
-  private startTimer() {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = setInterval(() => this.flush(), this.flushInterval);
-  }
-
-  public track(signal: UserSignal) {
-    const enrichedSignal = {
-      ...signal,
-      session_id: this.sessionId,
-      created_at: new Date().toISOString(),
-    };
-
-    this.buffer.push(enrichedSignal);
-
-    if (this.buffer.length >= this.maxBufferSize) {
-      this.flush();
-    }
-  }
-
-  public async flush() {
-    if (this.buffer.length === 0) return;
-
-    const signalsToFlush = [...this.buffer];
-    this.buffer = [];
-
+export const signalService = {
+  /**
+   * Tracks a user signal to Supabase for the Autonomous Reasoning Engine (Layer 1)
+   */
+  async trackSignal(signal: Omit<UserSignal, "sessionId">): Promise<void> {
     try {
-      // Map to database schema
-      const dbSignals = signalsToFlush.map(signal => ({
-        signal_type: signal.event_type, // Map event_type to signal_type
-        session_id: signal.session_id,
-        user_id: signal.user_id || null,
-        metadata: signal.metadata || {},
-        // Add other fields if needed
-      }));
+      const sessionId = getSessionId();
 
       const { error } = await supabase
-        .schema('blog')
-        .from('user_signals')
-        .insert(dbSignals);
+        .schema("blog")
+        .from("user_signals")
+        .insert([
+          {
+            user_id: signal.userId || null,
+            session_id: sessionId,
+            signal_type: signal.signalType,
+            target_id: signal.targetId || null,
+            metadata: signal.metadata || {},
+            created_at: new Date().toISOString(),
+          },
+        ]);
 
       if (error) {
-        console.error('Failed to flush signals:', error);
-        // Put back in buffer if failed? (maybe limited retry)
-        this.buffer = [...signalsToFlush, ...this.buffer].slice(0, this.maxBufferSize * 2);
+        // Silently fail to not disrupt user experience
+        console.warn("Signal error:", error.message);
       }
     } catch (err) {
-      console.error('Error flushing signals:', err);
+      console.warn("Failed to track signal:", err);
     }
-  }
-}
+  },
 
-export const signalService = new SignalService();
+  /**
+   * Specifically tracks post engagement (scroll depth, time spent)
+   */
+  async trackPostEngagement(
+    postId: string,
+    metrics: { scrollDepth: number; timeSpentSeconds: number }
+  ) {
+    return this.trackSignal({
+      signalType: "engagement",
+      targetId: postId,
+      metadata: metrics,
+    });
+  },
+};

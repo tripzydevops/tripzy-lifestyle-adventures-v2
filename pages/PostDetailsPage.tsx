@@ -4,6 +4,7 @@ import { Post, User as UserType } from "../types";
 import { postService } from "../services/postService";
 import { userService } from "../services/userService";
 import { aiService, decodeBase64 } from "../services/aiService";
+import { useSignalTracking } from "../hooks/useSignalTracking";
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
 import Spinner from "../components/common/Spinner";
@@ -48,6 +49,9 @@ const PostDetailsPage = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [author, setAuthor] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Initialize Signal Tracking (Layer 1)
+  const { trackHover } = useSignalTracking(post?.id, "post");
 
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [contentWithIds, setContentWithIds] = useState("");
@@ -393,7 +397,10 @@ const PostDetailsPage = () => {
                   </ul>
 
                   {(loadingAttractions || attractions) && (
-                    <div className="mt-12 bg-navy-800 p-4 rounded-xl border border-white/10 shadow-lg">
+                    <div
+                      onMouseEnter={() => trackHover("local-discoveries")}
+                      className="mt-12 bg-navy-800 p-4 rounded-xl border border-white/10 shadow-lg"
+                    >
                       <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-3">
                         <MapPin size={16} className="text-gold" />
                         Local Discoveries
