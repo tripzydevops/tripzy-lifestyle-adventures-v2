@@ -10,6 +10,8 @@ import { useToast } from "../../hooks/useToast";
 import { useLanguage } from "../../localization/LanguageContext";
 import PostEditorSidebar from "../../components/admin/PostEditorSidebar";
 import MediaLibraryModal from "../../components/admin/MediaLibraryModal";
+import AIGenerateModal from "../../components/admin/AIGenerateModal";
+import { GeneratedPost } from "../../services/aiContentService";
 import {
   Sparkles,
   Wand,
@@ -18,6 +20,7 @@ import {
   Loader2,
   CheckCircle,
   Search,
+  Bot,
 } from "lucide-react";
 
 type EditorHandle = {
@@ -52,6 +55,7 @@ const EditPostPage = () => {
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [mediaModalPurpose, setMediaModalPurpose] = useState<
     "featured" | "insert"
   >("featured");
@@ -107,6 +111,22 @@ const EditPostPage = () => {
 
   const handlePostChange = useCallback((field: keyof Post, value: any) => {
     setPost((prev) => ({ ...prev, [field]: value }));
+    setIsDirty(true);
+  }, []);
+
+  // Handler for when AI generates a complete blog post
+  const handleAiPostGenerated = useCallback((generatedPost: GeneratedPost) => {
+    setPost((prev) => ({
+      ...prev,
+      title: generatedPost.title,
+      content: generatedPost.content,
+      excerpt: generatedPost.excerpt,
+      category: generatedPost.suggestedCategory || prev.category,
+      tags: generatedPost.suggestedTags || prev.tags,
+      metaTitle: generatedPost.metaTitle,
+      metaDescription: generatedPost.metaDescription,
+      metaKeywords: generatedPost.metaKeywords,
+    }));
     setIsDirty(true);
   }, []);
 
@@ -303,6 +323,12 @@ const EditPostPage = () => {
         onSelect={handleSelectMedia}
       />
 
+      <AIGenerateModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        onGenerated={handleAiPostGenerated}
+      />
+
       <form onSubmit={(e) => handleSubmit(e)}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
@@ -314,6 +340,19 @@ const EditPostPage = () => {
             </p>
           </div>
           <div className="flex gap-3 w-full md:w-auto">
+            {/* AI Generate Button - Only show for new posts or empty content */}
+            {(isNewPost ||
+              !post.content ||
+              post.content === "<p>Start here...</p>") && (
+              <button
+                type="button"
+                onClick={() => setIsAiModalOpen(true)}
+                className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-purple-500 to-gold text-white rounded-xl font-bold hover:shadow-xl hover:shadow-purple-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <Bot size={18} />
+                Generate with AI
+              </button>
+            )}
             <button
               type="button"
               onClick={(e) => handleSubmit(e, PostStatus.Draft)}
