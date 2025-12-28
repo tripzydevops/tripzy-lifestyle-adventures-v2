@@ -1,70 +1,131 @@
-
 import { SiteSettings } from '../types';
 import { supabase } from '../lib/supabase';
 
-const mapSettingsFromSupabase = (data: any): SiteSettings => ({
-  siteName: data.site_name,
-  tagline: data.tagline,
-  primaryColor: data.primary_color,
-  secondaryColor: data.secondary_color,
-  accentColor: data.accent_color,
-  primaryFont: data.primary_font,
-  secondaryFont: data.secondary_font,
-  seo: {
-    ogTitle: data.og_title,
-    ogDescription: data.og_description,
-    ogImage: data.og_image,
-  }
-});
+// Helper to get a setting value
+async function getSetting(key: string): Promise<any> {
+  const { data, error } = await supabase
+    .schema('blog')
+    .from('settings')
+    .select('value')
+    .eq('key', key)
+    .single();
+  
+  if (error) return null;
+  return data?.value;
+}
+
+// Helper to set a setting value
+async function setSetting(key: string, value: any): Promise<void> {
+  await supabase
+    .schema('blog')
+    .from('settings')
+    .upsert({ key, value: JSON.stringify(value) });
+}
 
 export const settingsService = {
   async getSettings(): Promise<SiteSettings> {
-    const { data, error } = await supabase
-      .schema('blog')
-      .from('settings')
-      .select('*')
-      .eq('id', 'default')
-      .single();
+    try {
+      // Fetch all settings at once
+      const { data, error } = await supabase
+        .schema('blog')
+        .from('settings')
+        .select('key, value')
+        .eq('is_public', true);
 
-    if (error) {
-      console.error('Supabase Error (getSettings):', error);
-      // Fallback or re-throw
-      throw error;
+      if (error) {
+        console.error('Supabase Error (getSettings):', error);
+        // Return defaults
+        return {
+          siteName: 'Tripzy Lifestyle Adventures',
+          tagline: 'Discover. Explore. Experience.',
+          primaryColor: '#1e3a8a',
+          secondaryColor: '#d4af37',
+          accentColor: '#f59e0b',
+          primaryFont: 'Inter',
+          secondaryFont: 'Playfair Display',
+          seo: {
+            ogTitle: 'Tripzy Lifestyle Adventures',
+            ogDescription: 'Your ultimate guide to lifestyle travel',
+            ogImage: '',
+          }
+        };
+      }
+
+      // Convert key-value pairs to SiteSettings object
+      const settings: any = {};
+      data?.forEach(item => {
+        settings[item.key] = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
+      });
+
+      return {
+        siteName: settings.site_name || 'Tripzy Lifestyle Adventures',
+        tagline: settings.site_tagline || 'Discover. Explore. Experience.',
+        primaryColor: settings.primary_color || '#1e3a8a',
+        secondaryColor: settings.secondary_color || '#d4af37',
+        accentColor: settings.accent_color || '#f59e0b',
+        primaryFont: settings.primary_font || 'Inter',
+        secondaryFont: settings.secondary_font || 'Playfair Display',
+        seo: {
+          ogTitle: settings.og_title || 'Tripzy Lifestyle Adventures',
+          ogDescription: settings.meta_description || 'Your ultimate guide to lifestyle travel',
+          ogImage: settings.og_image || '',
+        }
+      };
+    } catch (err) {
+      console.error('Error loading settings:', err);
+      // Return defaults
+      return {
+        siteName: 'Tripzy Lifestyle Adventures',
+        tagline: 'Discover. Explore. Experience.',
+        primaryColor: '#1e3a8a',
+        secondaryColor: '#d4af37',
+        accentColor: '#f59e0b',
+        primaryFont: 'Inter',
+        secondaryFont: 'Playfair Display',
+        seo: {
+          ogTitle: 'Tripzy Lifestyle Adventures',
+          ogDescription: 'Your ultimate guide to lifestyle travel',
+          ogImage: '',
+        }
+      };
     }
-
-    return mapSettingsFromSupabase(data);
   },
 
   async updateSettings(updates: Partial<SiteSettings>): Promise<SiteSettings> {
-    const supabaseUpdates: any = {};
-    if (updates.siteName) supabaseUpdates.site_name = updates.siteName;
-    if (updates.tagline) supabaseUpdates.tagline = updates.tagline;
-    if (updates.primaryColor) supabaseUpdates.primary_color = updates.primaryColor;
-    if (updates.secondaryColor) supabaseUpdates.secondary_color = updates.secondaryColor;
-    if (updates.accentColor) supabaseUpdates.accent_color = updates.accentColor;
-    if (updates.primaryFont) supabaseUpdates.primary_font = updates.primaryFont;
-    if (updates.secondaryFont) supabaseUpdates.secondary_font = updates.secondaryFont;
-    if (updates.seo) {
-      if (updates.seo.ogTitle) supabaseUpdates.og_title = updates.seo.ogTitle;
-      if (updates.seo.ogDescription) supabaseUpdates.og_description = updates.seo.ogDescription;
-      if (updates.seo.ogImage) supabaseUpdates.og_image = updates.seo.ogImage;
+    try {
+      const settingsToUpdate: Array<{ key: string; value: any }> = [];
+
+      if (updates.siteName) settingsToUpdate.push({ key: 'site_name', value: updates.siteName });
+      if (updates.tagline) settingsToUpdate.push({ key: 'site_tagline', value: updates.tagline });
+      if (updates.primaryColor) settingsToUpdate.push({ key: 'primary_color', value: updates.primaryColor });
+      if (updates.secondaryColor) settingsToUpdate.push({ key: 'secondary_color', value: updates.secondaryColor });
+      if (updates.accentColor) settingsToUpdate.push({ key: 'accent_color', value: updates.accentColor });
+      if (updates.primaryFont) settingsToUpdate.push({ key: 'primary_font', value: updates.primaryFont });
+      if (updates.secondaryFont) settingsToUpdate.push({ key: 'secondary_font', value: updates.secondaryFont });
+      
+      if (updates.seo) {
+        if (updates.seo.ogTitle) settingsToUpdate.push({ key: 'og_title', value: updates.seo.ogTitle });
+        if (updates.seo.ogDescription) settingsToUpdate.push({ key: 'meta_description', value: updates.seo.ogDescription });
+        if (updates.seo.ogImage) settingsToUpdate.push({ key: 'og_image', value: updates.seo.ogImage });
+      }
+
+      // Upsert each setting
+      for (const setting of settingsToUpdate) {
+        await supabase
+          .schema('blog')
+          .from('settings')
+          .upsert({
+            key: setting.key,
+            value: JSON.stringify(setting.value),
+            updated_at: new Date().toISOString()
+          });
+      }
+
+      // Return updated settings
+      return await this.getSettings();
+    } catch (err) {
+      console.error('Error updating settings:', err);
+      throw err;
     }
-    
-    supabaseUpdates.updated_at = new Date().toISOString();
-
-    const { data, error } = await supabase
-      .schema('blog')
-      .from('settings')
-      .update(supabaseUpdates)
-      .eq('id', 'default')
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase Error (updateSettings):', error);
-      throw error;
-    }
-
-    return mapSettingsFromSupabase(data);
   },
 };

@@ -65,10 +65,19 @@ class SignalService {
     this.buffer = [];
 
     try {
+      // Map to database schema
+      const dbSignals = signalsToFlush.map(signal => ({
+        signal_type: signal.event_type, // Map event_type to signal_type
+        session_id: signal.session_id,
+        user_id: signal.user_id || null,
+        metadata: signal.metadata || {},
+        // Add other fields if needed
+      }));
+
       const { error } = await supabase
         .schema('blog')
         .from('user_signals')
-        .insert(signalsToFlush);
+        .insert(dbSignals);
 
       if (error) {
         console.error('Failed to flush signals:', error);
