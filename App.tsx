@@ -23,6 +23,7 @@ import SearchPage from "./pages/SearchPage";
 import ArchivePage from "./pages/ArchivePage";
 import ManageMediaPage from "./pages/admin/ManageMediaPage";
 import ImportMediaPage from "./pages/admin/ImportMediaPage";
+import AIStudioPage from "./pages/admin/AIStudioPage";
 import AuthorPage from "./pages/AuthorPage";
 import PlanTripPage from "./pages/PlanTripPage";
 import SignalTracker from "./components/common/SignalTracker";
@@ -105,6 +106,20 @@ function App() {
                     element={
                       <ProtectedRoute allowedRoles={[UserRole.Administrator]}>
                         <ManageUsersPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="ai-studio"
+                    element={
+                      <ProtectedRoute
+                        allowedRoles={[
+                          UserRole.Administrator,
+                          UserRole.Editor,
+                          UserRole.Author,
+                        ]}
+                      >
+                        <AIStudioPage />
                       </ProtectedRoute>
                     }
                   />

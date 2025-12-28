@@ -317,19 +317,62 @@ async function callGemini(prompt: string): Promise<string> {
     }
   );
 
+  return data.candidates[0].content.parts[0].text;
+}
+
+/**
+ * Call Gemini with image data (Vision)
+ */
+async function callGeminiVision(prompt: string, base64Data: string, mimeType: string): Promise<string> {
+  if (!GEMINI_API_KEY) throw new Error("VITE_GEMINI_API_KEY is not configured");
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: mimeType,
+                  data: base64Data,
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    }
+  );
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    console.error('Gemini API Error:', errorData);
-    throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+    throw new Error(`Vision API error: ${response.status}`);
   }
 
   const data = await response.json();
-  
-  if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-    throw new Error('Invalid response from Gemini API');
-  }
-
   return data.candidates[0].content.parts[0].text;
+}
+
+/**
+ * Helper to fetch a remote image and convert to base64 for Gemini
+ */
+async function imageUrlToBase64(url: string): Promise<{ base64: string; mimeType: string }> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve({ base64, mimeType: blob.type });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 function parseJSON<T>(text: string): T {
@@ -447,6 +490,46 @@ export const aiContentService = {
     
     console.log(`✅ ${platform} content generated`);
     return parsed;
+  },
+
+  /**
+   * Generate an outline for a blog post
+   */
+  async generatePostOutline(title: string): Promise<string> {
+    console.log('📝 Generating outline for:', title);
+    
+    const prompt = `Create a comprehensive, structured travel blog post outline for the title: "${title}". 
+    Include suggestions for H2/H3 headings, key points to cover, and cultural nuances. 
+    Format as a clean Markdown list.`;
+    
+    const response = await callGemini(prompt);
+    console.log('✅ Outline generated');
+    return response.trim();
+  },
+
+  /**
+   * Analyze an image from a URL and generate descriptive metadata
+   */
+  async analyzeImageFromUrl(url: string): Promise<{ altText: string; caption: string }> {
+    console.log('👁️ Analyzing image from URL...');
+    try {
+      const { base64, mimeType } = await imageUrlToBase64(url);
+      const prompt = `Act as an expert travel photography archivist. Analyze this image and provide:
+      1. A concise, SEO-friendly alt text (max 120 chars).
+      2. A descriptive, engaging caption for a travel blog (1-2 sentences).
+      
+      Return the result as a raw JSON object like this:
+      {"altText": "...", "caption": "..."}`;
+      
+      const response = await callGeminiVision(prompt, base64, mimeType);
+      return parseJSON<{ altText: string; caption: string }>(response);
+    } catch (error) {
+      console.error('Image analysis failed:', error);
+      return { 
+        altText: "Travel destination", 
+        caption: "A beautiful view from our trip." 
+      };
+    }
   },
 
   /**

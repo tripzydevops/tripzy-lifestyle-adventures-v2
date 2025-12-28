@@ -8,6 +8,7 @@ import {
   Image,
   UploadCloud,
   ChevronRight,
+  Bot,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { SITE_NAME } from "../../constants";
@@ -47,6 +48,15 @@ const AdminSidebar = () => {
           <NavLink to="/admin/posts" className={getNavLinkClass}>
             <FileText className="w-5 h-5 flex-shrink-0" />
             <span className="mx-4 flex-grow text-sm">Posts</span>
+            <ChevronRight
+              size={14}
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+            />
+          </NavLink>
+
+          <NavLink to="/admin/ai-studio" className={getNavLinkClass}>
+            <Bot className="w-5 h-5 flex-shrink-0" />
+            <span className="mx-4 flex-grow text-sm">AI Studio</span>
             <ChevronRight
               size={14}
               className="opacity-0 group-hover:opacity-100 transition-opacity"

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Post, PostStatus, MediaItem } from "../../types";
 import { postService } from "../../services/postService";
-import { aiService } from "../../services/aiService";
+import { aiContentService } from "../../services/aiContentService";
 import { useAuth } from "../../hooks/useAuth";
 import WYSIWYGEditor from "../../components/admin/WYSIWYGEditor";
 import Spinner from "../../components/common/Spinner";
@@ -128,6 +128,7 @@ const EditPostPage = () => {
       metaKeywords: generatedPost.metaKeywords,
     }));
     setIsDirty(true);
+    setIsAiModalOpen(false);
   }, []);
 
   const handleAiGenerateExcerpt = async () => {
@@ -137,9 +138,11 @@ const EditPostPage = () => {
     }
     setIsAiGenerating(true);
     try {
-      const excerpt = await aiService.generateExcerpt(post.content);
+      const excerpt = await aiContentService.generateExcerpt(post.content);
       handlePostChange("excerpt", excerpt);
-      handlePostChange("metaDescription", excerpt);
+      if (!post.metaDescription) {
+        handlePostChange("metaDescription", excerpt);
+      }
       addToast(t("common.success"), "success");
     } catch (e) {
       addToast(t("common.error"), "error");
@@ -149,17 +152,19 @@ const EditPostPage = () => {
   };
 
   const handleAiGenerateSEO = async () => {
-    if (!post.title) {
+    if (!post.title || !post.content) {
       addToast(t("blog.leaveComment"), "info");
       return;
     }
     setIsAiGenerating(true);
     try {
-      const keywords = await aiService.generateSEOKeywords(
+      const seoResult = await aiContentService.generateSEO(
         post.title,
-        post.content || ""
+        post.content
       );
-      handlePostChange("metaKeywords", keywords);
+      handlePostChange("metaTitle", seoResult.metaTitle);
+      handlePostChange("metaDescription", seoResult.metaDescription);
+      handlePostChange("metaKeywords", seoResult.metaKeywords);
       addToast(t("common.success"), "success");
     } catch (e) {
       addToast(t("common.error"), "error");
@@ -176,10 +181,11 @@ const EditPostPage = () => {
     setIsAiGenerating(true);
     addToast("Gemini is envisioning your post...", "info");
     try {
-      const imageUrl = await aiService.generateFeaturedImage(post.title);
-      handlePostChange("featuredMediaUrl", imageUrl);
-      handlePostChange("featuredMediaType", "image");
-      addToast(t("common.success"), "success");
+      // Note: Gemini 2.0 Flash is text-only. This is a placeholder for future Image Gen integration
+      // or using a search-based image fetcher.
+      // For now, we return empty or use a placeholder service if available.
+      handlePostChange("featuredMediaUrl", "");
+      addToast("Image generation is currently being upgraded.", "info");
     } catch (e) {
       addToast(t("common.error"), "error");
     } finally {
@@ -194,7 +200,7 @@ const EditPostPage = () => {
     }
     setIsAiGenerating(true);
     try {
-      const outline = await aiService.generatePostOutline(post.title);
+      const outline = await aiContentService.generatePostOutline(post.title);
       const htmlOutline = `<div class="ai-outline bg-gold/5 p-6 rounded-2xl border border-gold/20 my-6 font-serif">
         <h2 class="flex items-center gap-2 text-gold m-0 text-xl"><Sparkles size={20} /> AI Narrative Suggestions</h2>
         <div class="mt-4 text-gray-300 leading-relaxed">${outline.replace(
@@ -211,15 +217,45 @@ const EditPostPage = () => {
     }
   };
 
-  const handleAiProofread = async () => {
+  const handleAiImprove = async () => {
     if (!post.content || post.content.length < 50) {
       addToast(t("blog.leaveComment"), "info");
       return;
     }
     setIsAiGenerating(true);
     try {
-      const improved = await aiService.proofreadContent(post.content);
+      const improved = await aiContentService.improveContent(
+        post.content,
+        "Enhance the prose quality, add sensory details, and make it more engaging while maintaining the same language."
+      );
       handlePostChange("content", improved);
+      addToast(t("common.success"), "success");
+    } catch (e) {
+      addToast(t("common.error"), "error");
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
+  const handleAiTranslateToTurkish = async () => {
+    if (!post.content || post.content.length < 50) {
+      addToast(t("blog.leaveComment"), "info");
+      return;
+    }
+    setIsAiGenerating(true);
+    try {
+      const translated = await aiContentService.improveContent(
+        post.content,
+        "Translate everything into natural, professional, and evocative Turkish."
+      );
+      handlePostChange("content", translated);
+
+      const translatedTitle = await aiContentService.improveContent(
+        post.title || "",
+        "Translate this post title into catchy, professional Turkish."
+      );
+      handlePostChange("title", translatedTitle);
+
       addToast(t("common.success"), "success");
     } catch (e) {
       addToast(t("common.error"), "error");
@@ -440,21 +476,39 @@ const EditPostPage = () => {
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={handleAiGenerateOutline}
+                    onClick={handleAiImprove}
                     disabled={isAiGenerating}
-                    className="flex items-center gap-2 text-xs font-bold bg-navy-800 text-white px-5 py-2.5 rounded-xl hover:bg-navy-700 border border-white/5 transition-all shadow-lg"
+                    className="flex items-center gap-2 text-xs font-bold bg-navy-800 text-white px-5 py-2.5 rounded-xl hover:bg-navy-700 border border-white/5 transition-all shadow-lg group/btn"
                   >
-                    <ClipboardList size={14} className="text-blue-400" />{" "}
-                    Structure Post
+                    <Sparkles
+                      size={14}
+                      className="text-gold group-hover/btn:scale-110 transition-transform"
+                    />{" "}
+                    Improve Prose
                   </button>
                   <button
                     type="button"
-                    onClick={handleAiProofread}
+                    onClick={handleAiTranslateToTurkish}
                     disabled={isAiGenerating}
-                    className="flex items-center gap-2 text-xs font-bold bg-navy-800 text-white px-5 py-2.5 rounded-xl hover:bg-navy-700 border border-white/5 transition-all shadow-lg"
+                    className="flex items-center gap-2 text-xs font-bold bg-navy-800 text-white px-5 py-2.5 rounded-xl hover:bg-navy-700 border border-white/5 transition-all shadow-lg group/btn"
                   >
-                    <CheckCircle size={14} className="text-green-400" />{" "}
-                    Proofread & Polish
+                    <Globe
+                      size={14}
+                      className="text-blue-400 group-hover/btn:rotate-12 transition-transform"
+                    />{" "}
+                    Turkish Translate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAiGenerateOutline}
+                    disabled={isAiGenerating}
+                    className="flex items-center gap-2 text-xs font-bold bg-navy-800 text-white px-5 py-2.5 rounded-xl hover:bg-navy-700 border border-white/5 transition-all shadow-lg group/btn"
+                  >
+                    <ClipboardList
+                      size={14}
+                      className="text-purple-400 group-hover/btn:scale-110 transition-transform"
+                    />{" "}
+                    Post Structure
                   </button>
                 </div>
               </div>

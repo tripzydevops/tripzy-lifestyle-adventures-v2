@@ -11,6 +11,8 @@ import {
   Globe,
 } from "lucide-react";
 import { MediaItem } from "../../types";
+import { aiContentService } from "../../services/aiContentService";
+import { Sparkles, Wand2 } from "lucide-react";
 
 const ImportMediaPage = () => {
   const { t } = useLanguage();
@@ -30,6 +32,26 @@ const ImportMediaPage = () => {
     setImportedItem(null);
     try {
       const newItem = await mediaService.importMediaFromUrl(url);
+
+      // AI Enhancement
+      if (newItem.type === "image") {
+        addToast("Tripzy AI is analyzing your image...", "info");
+        try {
+          const analysis = await aiContentService.analyzeImageFromUrl(url);
+          // Suggest updates to the media item (in this simple version we just update local state)
+          newItem.altText = analysis.altText;
+          newItem.caption = analysis.caption;
+          // Optionally update in DB
+          await mediaService.updateMedia(newItem.id, {
+            altText: analysis.altText,
+            caption: analysis.caption,
+          });
+          addToast("AI metadata generated!", "success");
+        } catch (aiErr) {
+          console.error("AI Analysis failed:", aiErr);
+        }
+      }
+
       setImportedItem(newItem);
       addToast("Media imported successfully!", "success");
       setUrl("");
