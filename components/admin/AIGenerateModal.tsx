@@ -86,6 +86,7 @@ const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState<GenerationStep>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [tempKey, setTempKey] = useState("");
 
   const handleGenerate = async () => {
     if (!destination.trim()) {
@@ -149,6 +150,20 @@ const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
       );
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSaveKey = () => {
+    if (tempKey.trim().length > 10) {
+      localStorage.setItem("TRIPZY_AI_KEY", tempKey.trim());
+      addToast(
+        language === "tr"
+          ? "API Anahtarı tarayıcıya kaydedildi!"
+          : "API Key saved to browser!",
+        "success"
+      );
+      setTempKey(""); // Clear input
+      // Page will re-render and isConfigured() will now be true
     }
   };
 
@@ -231,19 +246,42 @@ const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
               <h3 className="text-xl font-serif font-bold text-white mb-3">
                 API Key Required
               </h3>
-              <p className="text-gray-400 max-w-md mx-auto mb-6">
+              <p className="text-gray-400 max-w-md mx-auto mb-8 text-sm">
                 {language === "tr"
-                  ? "Gemini API anahtarı yapılandırılmamış. Lütfen .env.local dosyanıza VITE_GEMINI_API_KEY ekleyin."
-                  : "Gemini API key is not configured. Please add VITE_GEMINI_API_KEY to your .env.local file."}
+                  ? "Gemini API anahtarı Bulut ortamında (Vercel gibi) eksik görünüyor. Kalıcı çözüm için Vercel Dashboard'a ekleyin veya hemen kullanmak için aşağıya yapıştırın."
+                  : "The Gemini API key is missing from your deployment environment. Add it to your Vercel Dashboard for a permanent fix, or paste it below to use it instantly in this browser."}
               </p>
-              <a
-                href="https://aistudio.google.com/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-gold text-navy-950 px-6 py-3 rounded-xl font-bold hover:shadow-lg hover:shadow-gold/20 transition-all"
-              >
-                Get API Key <Globe size={16} />
-              </a>
+
+              <div className="max-w-md mx-auto space-y-4">
+                <div className="relative group">
+                  <input
+                    type="password"
+                    value={tempKey}
+                    onChange={(e) => setTempKey(e.target.value)}
+                    placeholder="AIzaSy..."
+                    className="w-full pl-6 pr-12 py-4 bg-navy-800/50 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700"
+                  />
+                  <button
+                    onClick={handleSaveKey}
+                    disabled={tempKey.length < 10}
+                    className="absolute right-2 top-2 bottom-2 px-4 bg-gold text-navy-950 rounded-xl font-bold text-xs disabled:opacity-50 transition-all"
+                  >
+                    {language === "tr" ? "Kaydet" : "Save"}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-center gap-4 text-xs">
+                  <span className="text-gray-600">OR</span>
+                  <a
+                    href="https://aistudio.google.com/apikey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gold hover:underline flex items-center gap-1 font-bold"
+                  >
+                    Get a new key <Globe size={12} />
+                  </a>
+                </div>
+              </div>
             </div>
           ) : isGenerating || generationStep === "complete" ? (
             /* Generation Progress */

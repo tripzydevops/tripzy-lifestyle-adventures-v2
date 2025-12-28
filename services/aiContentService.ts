@@ -3,7 +3,21 @@
 // Designed to produce content rivaling Lonely Planet, Condé Nast Traveler, and Nomadic Matt
 // Supports: Turkish (TR) and English (EN)
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const getGeminiApiKey = () => {
+  // 1. Check system environment (Vite/Build-time)
+  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (envKey && envKey !== 'PLACEHOLDER_API_KEY' && envKey.length > 10) return envKey;
+  
+  // 2. Check localStorage (Runtime fallback for testing on deployed sites)
+  try {
+    const localKey = localStorage.getItem('TRIPZY_AI_KEY');
+    if (localKey && localKey.length > 10) return localKey;
+  } catch (e) {
+    // Ignore storage errors
+  }
+  
+  return null;
+};
 
 // ============================================================
 // LANGUAGE-SPECIFIC SYSTEM PROMPTS
@@ -266,9 +280,9 @@ export interface GeneratedSocial {
 // ============================================================
 
 async function callGemini(prompt: string): Promise<string> {
-  const apiKey = GEMINI_API_KEY;
+  const apiKey = getGeminiApiKey();
   
-  if (!apiKey || apiKey === 'PLACEHOLDER_API_KEY') {
+  if (!apiKey) {
     throw new Error('Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your .env.local file.');
   }
 
@@ -334,10 +348,11 @@ async function callGemini(prompt: string): Promise<string> {
  * Call Gemini with image data (Vision)
  */
 async function callGeminiVision(prompt: string, base64Data: string, mimeType: string): Promise<string> {
-  if (!GEMINI_API_KEY) throw new Error("VITE_GEMINI_API_KEY is not configured");
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) throw new Error("VITE_GEMINI_API_KEY is not configured");
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -546,8 +561,7 @@ export const aiContentService = {
    * Check if the AI service is properly configured
    */
   isConfigured(): boolean {
-    const key = GEMINI_API_KEY;
-    return Boolean(key && key !== 'PLACEHOLDER_API_KEY' && key.length > 10);
+    return !!getGeminiApiKey();
   }
 };
 

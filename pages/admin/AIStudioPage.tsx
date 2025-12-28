@@ -7,24 +7,23 @@ import {
 } from "../../services/aiContentService";
 import { useToast } from "../../hooks/useToast";
 import {
-  Sparkles,
   Bot,
   Instagram,
   Twitter,
   Facebook,
   Zap,
   History,
-  Plus,
   Copy,
   Check,
   Globe,
   Wand2,
   Layout,
   MessageSquare,
+  Sparkles,
 } from "lucide-react";
 
 const AIStudioPage = () => {
-  const { t } = useLanguage();
+  const { language: appLanguage } = useLanguage();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<"social" | "titles" | "history">(
     "social"
@@ -44,6 +43,7 @@ const AIStudioPage = () => {
   const [titleContext, setTitleContext] = useState("");
   const [generatingTitles, setGeneratingTitles] = useState(false);
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([]);
+  const [tempKey, setTempKey] = useState("");
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -60,7 +60,7 @@ const AIStudioPage = () => {
   ) => {
     if (!socialTarget) {
       addToast(
-        language === "tr" ? "Lütfen bir başlık girin" : "Please enters a title",
+        language === "tr" ? "Lütfen bir başlık girin" : "Please enter a title",
         "error"
       );
       return;
@@ -115,6 +115,21 @@ const AIStudioPage = () => {
       setGeneratingTitles(false);
     }
   };
+
+  const handleSaveKey = () => {
+    if (tempKey.trim().length > 10) {
+      localStorage.setItem("TRIPZY_AI_KEY", tempKey.trim());
+      addToast(
+        language === "tr"
+          ? "API Anahtarı tarayıcıya kaydedildi!"
+          : "API Key saved to browser!",
+        "success"
+      );
+      setTempKey("");
+    }
+  };
+
+  const isConfigured = aiContentService.isConfigured();
 
   return (
     <div className="animate-in fade-in duration-500 pb-20">
@@ -468,6 +483,57 @@ const AIStudioPage = () => {
           </div>
         </div>
       </div>
+
+      {/* API Key Modal Overlay for AI Studio */}
+      {!isConfigured && (
+        <div className="fixed inset-0 bg-navy-950/90 backdrop-blur-md z-50 flex items-center justify-center p-6">
+          <div className="bg-navy-900 border border-white/10 p-10 rounded-[40px] max-w-lg w-full text-center shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -mt-32 pointer-events-none"></div>
+
+            <div className="w-20 h-20 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 text-red-500">
+              <Bot size={44} />
+            </div>
+
+            <h2 className="text-3xl font-serif font-bold text-white mb-4">
+              {language === "tr"
+                ? "API Anahtarı Gerekli"
+                : "Secret Key Required"}
+            </h2>
+            <p className="text-gray-400 mb-8 leading-relaxed">
+              {language === "tr"
+                ? "Görünüşe göre Gemini API anahtarı Bulut (Vercel) ortamında tanımlanmamış. Hemen kullanmaya başlamak için geçici bir anahtar girebilirsiniz."
+                : "The Gemini API key is not configured in your Vercel Environment. You can enter a temporary key below to unlock AI features in this browser."}
+            </p>
+
+            <div className="relative group mb-6">
+              <input
+                type="password"
+                value={tempKey}
+                onChange={(e) => setTempKey(e.target.value)}
+                placeholder="AIzaSy..."
+                className="w-full pl-6 pr-12 py-4 bg-navy-800 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-gold/30 transition-all font-mono"
+              />
+              <button
+                onClick={handleSaveKey}
+                disabled={tempKey.length < 10}
+                className="absolute right-2 top-2 bottom-2 px-6 bg-gold text-navy-950 rounded-xl font-bold flex items-center gap-2 hover:shadow-lg hover:shadow-gold/20 transition-all disabled:opacity-50"
+              >
+                {language === "tr" ? "Aktive Et" : "Unlock"} <Zap size={16} />
+              </button>
+            </div>
+
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-500 text-sm hover:text-white transition-colors flex items-center justify-center gap-2"
+            >
+              <Globe size={14} />{" "}
+              {language === "tr" ? "API anahtarım yok" : "I don't have a key"}
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
