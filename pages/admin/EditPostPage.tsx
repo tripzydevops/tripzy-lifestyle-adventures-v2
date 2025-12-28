@@ -367,7 +367,7 @@ const EditPostPage = () => {
                   className="p-4 bg-navy-800 border border-white/5 text-purple-400 rounded-2xl hover:border-purple-400/50 hover:bg-purple-400/10 transition-all shrink-0 group"
                 >
                   {isAiGenerating ? (
-                    <LoaderCircle size={24} className="animate-spin" />
+                    <Loader2 size={24} className="animate-spin" />
                   ) : (
                     <ImageIcon
                       size={24}

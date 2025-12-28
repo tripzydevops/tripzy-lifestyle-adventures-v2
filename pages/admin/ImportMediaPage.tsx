@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
-import { mediaService } from '../../services/mediaService';
-import { useToast } from '../../hooks/useToast';
-import { Link2, LoaderCircle, PlayCircle } from 'lucide-react';
-import { MediaItem } from '../../types';
+import React, { useState } from "react";
+import { mediaService } from "../../services/mediaService";
+import { useToast } from "../../hooks/useToast";
+import { useLanguage } from "../../localization/LanguageContext";
+import {
+  Link2,
+  Loader2,
+  PlayCircle,
+  PlusCircle,
+  ExternalLink,
+  Globe,
+} from "lucide-react";
+import { MediaItem } from "../../types";
 
 const ImportMediaPage = () => {
-  const [url, setUrl] = useState('');
+  const { t } = useLanguage();
+  const [url, setUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [importedItem, setImportedItem] = useState<MediaItem | null>(null);
   const { addToast } = useToast();
@@ -13,7 +22,7 @@ const ImportMediaPage = () => {
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) {
-      addToast('Please enter a valid URL.', 'error');
+      addToast("Please enter a valid URL.", "error");
       return;
     }
 
@@ -22,13 +31,13 @@ const ImportMediaPage = () => {
     try {
       const newItem = await mediaService.importMediaFromUrl(url);
       setImportedItem(newItem);
-      addToast('Media imported successfully!', 'success');
-      setUrl('');
+      addToast("Media imported successfully!", "success");
+      setUrl("");
     } catch (error) {
       if (error instanceof Error) {
-        addToast(error.message, 'error');
+        addToast(error.message, "error");
       } else {
-        addToast('Failed to import media.', 'error');
+        addToast("Failed to import media.", "error");
       }
     } finally {
       setIsImporting(false);
@@ -36,73 +45,131 @@ const ImportMediaPage = () => {
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Import External Media</h1>
-      <div className="bg-white p-8 rounded-lg shadow-md max-w-2xl mx-auto">
-        <p className="text-gray-600 mb-4">
-          Paste the URL of an image or video to import it directly into your media library.
-        </p>
-        <form onSubmit={handleImport} className="space-y-4">
-          <div>
-            <label htmlFor="media-url" className="block text-sm font-medium text-gray-700 mb-1">
-              Media URL
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Link2 className="h-5 w-5 text-gray-400" />
+    <div className="animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-white mb-2 flex items-center gap-3">
+            <Globe className="text-gold" />
+            {t("admin.importMedia") || "External Import"}
+          </h1>
+          <p className="text-gray-400 text-sm">
+            Fetch media directly from external travel sources and CDNs.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gold/5 rounded-full blur-3xl -mr-32 -mt-32 transition-transform duration-1000 group-hover:scale-110"></div>
+
+          <p className="text-gray-300 mb-8 relative z-10 leading-relaxed font-light">
+            Paste the direct URL of an image or video to bridge it into your
+            Tripzy media library.
+          </p>
+
+          <form onSubmit={handleImport} className="space-y-6 relative z-10">
+            <div className="space-y-2">
+              <label
+                htmlFor="media-url"
+                className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
+              >
+                Resource URL
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-gold">
+                  <Link2 size={18} />
+                </div>
+                <input
+                  type="url"
+                  id="media-url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 bg-navy-800/40 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700"
+                  placeholder="https://images.unsplash.com/..."
+                  required
+                  disabled={isImporting}
+                />
               </div>
-              <input
-                type="url"
-                id="media-url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                placeholder="https://example.com/image.jpg"
-                required
-                disabled={isImporting}
-              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isImporting}
+              className="w-full bg-gold text-navy-950 py-4 px-6 rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-gold/20 transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 size={20} className="animate-spin" />
+                  Safely Bridging...
+                </>
+              ) : (
+                <>
+                  <PlusCircle size={20} />
+                  Import to Library
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {importedItem ? (
+          <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-2xl animate-in slide-in-from-right duration-500">
+            <h3 className="text-lg font-serif font-bold text-white mb-6 flex items-center gap-2">
+              <PlusCircle size={20} className="text-green-400" />
+              Resource Imported
+            </h3>
+
+            <div className="space-y-6">
+              <div className="aspect-video bg-navy-800 rounded-2xl border border-white/5 overflow-hidden group relative">
+                {importedItem.mediaType === "video" ? (
+                  <video
+                    src={importedItem.url}
+                    className="w-full h-full object-cover"
+                    controls
+                  />
+                ) : (
+                  <img
+                    src={importedItem.url}
+                    alt={importedItem.fileName}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                )}
+                <div className="absolute top-4 right-4 group-hover:translate-x-0 translate-x-12 opacity-0 group-hover:opacity-100 transition-all">
+                  <a
+                    href={importedItem.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-3 bg-navy-900/80 backdrop-blur-md rounded-xl text-gold border border-white/10 flex items-center gap-2 text-xs font-bold hover:bg-gold hover:text-navy-950"
+                  >
+                    <ExternalLink size={14} /> View Original
+                  </a>
+                </div>
+              </div>
+
+              <div className="p-4 bg-navy-800/40 rounded-2xl border border-white/5">
+                <div className="flex justify-between items-start mb-2">
+                  <p className="font-bold text-white text-sm truncate pr-4">
+                    {importedItem.fileName}
+                  </p>
+                  <span className="bg-gold/10 text-gold text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter border border-gold/20">
+                    {importedItem.mediaType}
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-500 truncate font-mono">
+                  {importedItem.url}
+                </p>
+              </div>
             </div>
           </div>
-          <button
-            type="submit"
-            disabled={isImporting}
-            className="w-full bg-primary text-white py-2 px-4 rounded-md flex items-center justify-center hover:bg-blue-800 transition disabled:bg-gray-400"
-          >
-            {isImporting ? (
-              <>
-                <LoaderCircle size={20} className="mr-2 animate-spin" />
-                Importing...
-              </>
-            ) : (
-              'Import Media'
-            )}
-          </button>
-        </form>
-        {importedItem && (
-          <div className="mt-8 border-t pt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Last Imported Item</h3>
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-md">
-              <div className="flex-shrink-0 w-20 h-20 bg-gray-200 rounded-md relative">
-                {importedItem.mediaType === 'video' ? (
-                  <>
-                    <video src={importedItem.url} className="w-full h-full object-cover rounded-md" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                      <PlayCircle size={24} className="text-white/80" />
-                    </div>
-                  </>
-                ) : (
-                  <img src={importedItem.url} alt={importedItem.fileName} className="w-full h-full object-cover rounded-md" />
-                )}
+        ) : (
+          <div className="hidden lg:flex h-full items-center justify-center border-2 border-dashed border-white/5 rounded-3xl p-12 text-center">
+            <div>
+              <div className="w-20 h-20 bg-navy-900 rounded-3xl flex items-center justify-center mx-auto mb-6 text-navy-700">
+                <Link2 size={40} />
               </div>
-              <div className="truncate">
-                <p className="font-medium text-gray-900 truncate" title={importedItem.fileName}>
-                  {importedItem.fileName}
-                </p>
-                <p className="text-sm text-gray-500 capitalize">{importedItem.mediaType}</p>
-                <a href={importedItem.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate block">
-                  {importedItem.url}
-                </a>
-              </div>
+              <p className="text-gray-500 font-serif italic">
+                Preview will appear here after a successful bridge.
+              </p>
             </div>
           </div>
         )}
