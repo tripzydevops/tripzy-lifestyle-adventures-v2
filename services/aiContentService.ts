@@ -120,6 +120,7 @@ ${isTurkish ? `
 `}
 
 **${isTurkish ? 'YANITINI JSON OLARAK FORMATLA' : 'FORMAT YOUR RESPONSE AS JSON'}:**
+IMPORTANT: Ensure all newlines in JSON strings are properly escaped as \\n. Do not use literal newlines inside string values.
 {
   "title": "${isTurkish ? 'Çekici Türkçe başlığınız' : 'Your compelling headline here'}",
   "excerpt": "${isTurkish ? 'Okuyucuları tıklamaya teşvik eden 150-160 karakterlik özet' : 'A 150-160 character summary that entices readers to click'}",
@@ -132,273 +133,7 @@ ${isTurkish ? `
 }`;
 };
 
-const EXCERPT_GENERATION_PROMPT = (content: string, language: 'en' | 'tr' = 'en') => {
-  const isTurkish = language === 'tr';
-  return `${getSystemPrompt(language)}
-
-**${isTurkish ? 'GÖREV' : 'TASK'}:** ${isTurkish ? 'Aşağıdaki seyahat makalesi için çekici bir özet oluştur.' : 'Generate a compelling excerpt for the following travel article.'}
-
-**${isTurkish ? 'GEREKSINIMLER' : 'REQUIREMENTS'}:**
-- ${isTurkish ? 'Tam olarak 150-160 karakter' : 'Exactly 150-160 characters'}
-- ${isTurkish ? 'Makalenin özünü ve benzersiz değerini yakala' : 'Capture the essence and unique value of the article'}
-- ${isTurkish ? 'Merak uyandıran bir kancı ekle' : 'Include a hook that creates curiosity'}
-- ${isTurkish ? 'Genel ifadelerden kaçın - bu içeriğe özgü ol' : 'Avoid generic phrases - be specific to this content'}
-
-**${isTurkish ? 'MAKALE İÇERİĞİ' : 'ARTICLE CONTENT'}:**
-${content.substring(0, 3000)}
-
-**${isTurkish ? 'SADECE ÖZETİ YANITLA, tırnak işareti veya açıklama yok.' : 'RESPOND WITH ONLY THE EXCERPT, no quotes or explanation.'}**`;
-};
-
-const SEO_GENERATION_PROMPT = (title: string, content: string) => `
-You are an SEO expert specializing in travel content. Analyze this article and generate optimized metadata.
-
-**ARTICLE TITLE:** ${title}
-
-**ARTICLE CONTENT (excerpt):**
-${content.substring(0, 2000)}
-
-**GENERATE:**
-{
-  "metaTitle": "SEO title, max 60 chars, include primary keyword",
-  "metaDescription": "Compelling description, 150-160 chars, include CTA",
-  "metaKeywords": "primary keyword, secondary keywords, long-tail variations (8-12 keywords)",
-  "suggestedSlug": "url-friendly-slug-with-keywords"
-}`;
-
-const CONTENT_IMPROVEMENT_PROMPT = (content: string, instruction: string, language: 'en' | 'tr' = 'en') => {
-  const isTurkish = language === 'tr';
-  return `${getSystemPrompt(language)}
-
-**${isTurkish ? 'GÖREV' : 'TASK'}:** ${isTurkish ? `Aşağıdaki seyahat içeriğini bu talimata göre geliştir: "${instruction}"` : `Improve the following travel content according to this instruction: "${instruction}"`}
-
-**${isTurkish ? 'ORİJİNAL İÇERİK' : 'ORIGINAL CONTENT'}:**
-${content}
-
-**${isTurkish ? 'GELİŞTİRME KILAVUZU' : 'IMPROVEMENT GUIDELINES'}:**
-- ${isTurkish ? 'Orijinal anlamı ve temel bilgileri koru' : 'Maintain the original meaning and key information'}
-- ${isTurkish ? 'Düzyazı kalitesini ve okuyucu katılımını artır' : 'Enhance the prose quality and reader engagement'}
-- ${isTurkish ? 'Uygun yerlerde duyusal detaylar ekle' : 'Add sensory details where appropriate'}
-- ${isTurkish ? 'Geliştirilmiş versiyonun yayına hazır olduğundan emin ol' : 'Ensure the improved version is publication-ready'}
-
-**${isTurkish ? 'SADECE GELİŞTİRİLMİŞ İÇERİĞİ YANITLA, açıklama veya meta veri yok.' : 'RESPOND WITH ONLY THE IMPROVED CONTENT, no explanation or metadata.'}**`;
-};
-
-const TITLE_SUGGESTIONS_PROMPT = (content: string, destination: string) => `
-You are a headline expert for premium travel publications.
-
-**CONTENT ABOUT:** ${destination}
-
-**CONTENT EXCERPT:**
-${content.substring(0, 1500)}
-
-**GENERATE 5 HEADLINE OPTIONS:**
-Each headline should:
-- Be under 70 characters
-- Create curiosity or promise value
-- Include the destination name naturally
-- Avoid clickbait while still compelling clicks
-
-**RESPOND AS JSON ARRAY:**
-["Headline 1", "Headline 2", "Headline 3", "Headline 4", "Headline 5"]`;
-
-const SOCIAL_MEDIA_PROMPT = (title: string, content: string, platform: 'instagram' | 'twitter' | 'facebook') => `
-You are a social media expert for luxury travel brands.
-
-**ARTICLE:** ${title}
-
-**CONTENT:**
-${content.substring(0, 1500)}
-
-**PLATFORM:** ${platform.toUpperCase()}
-
-**REQUIREMENTS:**
-${platform === 'instagram' ? `
-- Write a captivating caption (max 2200 chars but aim for 150-200 for best engagement)
-- Include 20-25 relevant hashtags organized by: location, travel style, general travel
-- Add a call-to-action
-- Include 1-2 relevant emojis at the start
-` : platform === 'twitter' ? `
-- Write a tweet under 280 characters
-- Include 2-3 relevant hashtags
-- Be witty, intriguing, or thought-provoking
-- Include the article's key value proposition
-` : `
-- Write an engaging Facebook post
-- 100-200 words for optimal engagement
-- Include a question to encourage comments
-- Add relevant emojis sparingly
-`}
-
-**FORMAT RESPONSE AS JSON:**
-{
-  "caption": "Your ${platform} post here",
-  ${platform === 'instagram' ? '"hashtags": ["hashtag1", "hashtag2", ...],' : ''}
-  "suggestedPostTime": "Best day/time to post"
-}`;
-
-// ============================================================
-// TYPE DEFINITIONS
-// ============================================================
-
-export interface GeneratePostParams {
-  destination: string;
-  language?: 'en' | 'tr';
-  travelStyle?: 'Adventure' | 'Luxury' | 'Budget' | 'Cultural' | 'Food & Drink' | 'Family' | 'Solo' | 'Romantic' | 'Wellness';
-  targetAudience?: string;
-  keyPoints?: string[];
-  wordCount?: 500 | 1000 | 1500 | 2000;
-  tone?: 'Inspiring' | 'Practical' | 'Humorous' | 'Poetic' | 'Conversational';
-}
-
-export interface GeneratedPost {
-  title: string;
-  excerpt: string;
-  content: string;
-  metaTitle: string;
-  metaDescription: string;
-  metaKeywords: string;
-  suggestedCategory: string;
-  suggestedTags: string[];
-}
-
-export interface GeneratedSEO {
-  metaTitle: string;
-  metaDescription: string;
-  metaKeywords: string;
-  suggestedSlug: string;
-}
-
-export interface GeneratedSocial {
-  caption: string;
-  hashtags?: string[];
-  suggestedPostTime: string;
-}
-
-// ============================================================
-// GEMINI API INTEGRATION
-// ============================================================
-
-async function callGemini(prompt: string): Promise<string> {
-  const apiKey = getGeminiApiKey();
-  
-  if (!apiKey) {
-    throw new Error('Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your .env.local file.');
-  }
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.8,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192,
-        },
-        safetySettings: [
-          {
-            category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_HATE_SPEECH",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          }
-        ]
-      }),
-    }
-  );
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-  }
-
-  const data = await response.json();
-  
-  if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-    throw new Error('Invalid response from Gemini API');
-  }
-
-  return data.candidates[0].content.parts[0].text;
-}
-
-/**
- * Call Gemini with image data (Vision)
- */
-async function callGeminiVision(prompt: string, base64Data: string, mimeType: string): Promise<string> {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) throw new Error("VITE_GEMINI_API_KEY is not configured");
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inline_data: {
-                  mime_type: mimeType,
-                  data: base64Data,
-                },
-              },
-            ],
-          },
-        ],
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Vision API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.candidates[0].content.parts[0].text;
-}
-
-/**
- * Helper to fetch a remote image and convert to base64 for Gemini
- */
-async function imageUrlToBase64(url: string): Promise<{ base64: string; mimeType: string }> {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      resolve({ base64, mimeType: blob.type });
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
+// ... existing code ...
 
 function parseJSON<T>(text: string): T {
   // Try to extract JSON from the response (Gemini sometimes wraps in markdown)
@@ -408,6 +143,22 @@ function parseJSON<T>(text: string): T {
   try {
     return JSON.parse(jsonStr);
   } catch (e) {
+    // Attempt to fix common LLM JSON errors: unescaped newlines in strings
+    try {
+      const sanitizedStr = jsonStr.replace(/"((?:[^"\\]|\\.)*)"/g, (match, content) => {
+        // Escape newlines, tabs, etc. inside string values
+        const escaped = content
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t');
+        return `"${escaped}"`;
+      });
+      return JSON.parse(sanitizedStr);
+    } catch (sanitizationError) {
+      // If sanitization fails, fall back to regex extraction for partial recovery
+      console.warn("JSON sanitization failed, trying regex extraction", sanitizationError);
+    }
+
     // Try to find JSON-like content
     const objectMatch = jsonStr.match(/\{[\s\S]*\}/);
     const arrayMatch = jsonStr.match(/\[[\s\S]*\]/);
@@ -419,7 +170,7 @@ function parseJSON<T>(text: string): T {
       return JSON.parse(arrayMatch[0]);
     }
     
-    throw new Error('Failed to parse AI response as JSON');
+    throw new Error('Failed to parse AI response as JSON: ' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
@@ -436,10 +187,15 @@ export const aiContentService = {
     
     const prompt = POST_GENERATION_PROMPT(params);
     const response = await callGemini(prompt);
-    const parsed = parseJSON<GeneratedPost>(response);
     
-    console.log('✅ Post generated successfully');
-    return parsed;
+    try {
+      const parsed = parseJSON<GeneratedPost>(response);
+      console.log('✅ Post generated successfully');
+      return parsed;
+    } catch (error) {
+       console.error("Failed to parse generated post:", response); // Log raw response for debugging
+       throw error;
+    }
   },
 
   /**

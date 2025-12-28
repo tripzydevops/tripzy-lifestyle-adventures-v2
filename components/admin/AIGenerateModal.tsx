@@ -137,10 +137,12 @@ const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
         onClose();
       }, 1000);
     } catch (err) {
-      console.error("AI Generation Error:", err);
+      console.error("AI Generation Error Full Object:", err);
       setGenerationStep("error");
       setError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred during API call. Please check your network or API key."
       );
       addToast(
         language === "tr"
