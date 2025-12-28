@@ -16,7 +16,7 @@ const getMediaTypeFromMime = (mime: string | null, url: string): 'image' | 'vide
 const mapMediaFromSupabase = (data: any): MediaItem => ({
   id: data.id,
   url: data.url,
-  fileName: data.file_name || 'unnamed',
+  fileName: data.filename || 'unnamed',
   uploadedAt: data.created_at,
   mediaType: getMediaTypeFromMime(data.mime_type, data.url),
   altText: data.alt_text,
@@ -44,7 +44,7 @@ export const mediaService = {
   async addMedia(mediaData: Omit<MediaItem, 'id' | 'uploadedAt'>): Promise<MediaItem> {
     const supabaseData = {
       url: mediaData.url,
-      file_name: mediaData.fileName,
+      filename: mediaData.fileName,
       mime_type: mediaData.mediaType === 'video' ? 'video/mp4' : 'image/jpeg',
     };
 
@@ -82,7 +82,7 @@ export const mediaService = {
 
   async updateMedia(id: string, updates: Partial<MediaItem>): Promise<MediaItem> {
     const supabaseUpdates: any = {};
-    if (updates.fileName !== undefined) supabaseUpdates.file_name = updates.fileName;
+    if (updates.fileName !== undefined) supabaseUpdates.filename = updates.fileName;
     if (updates.altText !== undefined) supabaseUpdates.alt_text = updates.altText;
     if (updates.caption !== undefined) supabaseUpdates.caption = updates.caption;
     if (updates.mimeType !== undefined) supabaseUpdates.mime_type = updates.mimeType;
