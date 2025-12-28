@@ -1,4 +1,4 @@
-
+// services/mediaService.ts - v2.1.1
 import { MediaItem } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -44,7 +44,7 @@ export const mediaService = {
   async addMedia(mediaData: Omit<MediaItem, 'id' | 'uploadedAt'>): Promise<MediaItem> {
     const supabaseData = {
       url: mediaData.url,
-      filename: mediaData.fileName,
+      filename: mediaData.fileName, // Correct column name is 'filename' without underscore
       mime_type: mediaData.mediaType === 'video' ? 'video/mp4' : 'image/jpeg',
     };
 
