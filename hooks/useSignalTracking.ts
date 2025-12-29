@@ -1,6 +1,6 @@
 // hooks/useSignalTracking.ts
 import { useEffect, useRef, useCallback } from "react";
-import { signalService } from "../services/signalService";
+import signalService from "../services/signalService";
 
 /**
  * Hook to track user signals on a specific page/component

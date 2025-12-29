@@ -7,7 +7,9 @@ export type SignalType =
   | "hover"
   | "scroll"
   | "search"
-  | "engagement";
+  | "engagement"
+  | "language_change"
+  | "page_view";
 
 export interface UserSignal {
   userId?: string;
@@ -17,8 +19,9 @@ export interface UserSignal {
   metadata?: Record<string, any>;
 }
 
-// Session ID persistence (temporary for anonymous tracking)
+// Session ID persistence
 const getSessionId = () => {
+  if (typeof window === "undefined") return "server";
   let sessionId = sessionStorage.getItem("tripzy_session_id");
   if (!sessionId) {
     sessionId = Math.random().toString(36).substring(2, 15);
@@ -27,9 +30,13 @@ const getSessionId = () => {
   return sessionId;
 };
 
-export const signalService = {
+/**
+ * Layer 1: Signal Collection Service
+ * This service manages user signals for the Autonomous Reasoning Engine.
+ */
+export class SignalService {
   /**
-   * Tracks a user signal to Supabase for the Autonomous Reasoning Engine (Layer 1)
+   * Primary method to track any user signal
    */
   async trackSignal(signal: Omit<UserSignal, "sessionId">): Promise<void> {
     try {
@@ -50,16 +57,15 @@ export const signalService = {
         ]);
 
       if (error) {
-        // Silently fail to not disrupt user experience
-        console.warn("Signal error:", error.message);
+        console.warn("Signal tracking error:", error.message);
       }
     } catch (err) {
-      console.warn("Failed to track signal:", err);
+      console.warn("Signal tracking exception:", err);
     }
-  },
+  }
 
   /**
-   * Universal track method for compatibility with useSignalTracker hook
+   * Compatibility method for legacy/hook-based tracking
    */
   async track(params: {
     event_type: string;
@@ -77,19 +83,23 @@ export const signalService = {
         target_type: params.target_type,
       },
     });
-  },
+  }
 
   /**
-   * Specifically tracks post engagement (scroll depth, time spent)
+   * Tracks high-resolution engagement metrics
    */
   async trackPostEngagement(
     postId: string,
     metrics: { scrollDepth: number; timeSpentSeconds: number }
-  ) {
+  ): Promise<void> {
     return this.trackSignal({
       signalType: "engagement",
       targetId: postId,
       metadata: metrics,
     });
-  },
-};
+  }
+}
+
+// Export both a named instance and a default instance for maximum compatibility
+export const signalService = new SignalService();
+export default signalService;

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
-import { signalService } from "../../services/signalService";
+import signalService from "../../services/signalService";
 
 const SearchBar = () => {
   const [query, setQuery] = useState("");
