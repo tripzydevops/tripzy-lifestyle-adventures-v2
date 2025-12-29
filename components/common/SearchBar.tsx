@@ -11,12 +11,10 @@ const SearchBar = () => {
     e.preventDefault();
     if (query.trim()) {
       // Track Search Signal (Layer 1)
-      if (typeof trackSignal === "function") {
-        trackSignal({
-          signalType: "search",
-          metadata: { query: query.trim() },
-        });
-      }
+      trackSignal({
+        signalType: "search",
+        metadata: { query: query.trim() },
+      });
 
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
       setQuery("");

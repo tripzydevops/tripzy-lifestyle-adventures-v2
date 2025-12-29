@@ -16,7 +16,7 @@ export const useSignalTracking = (
 
   // 1. Log view signal immediately
   useEffect(() => {
-    if (targetId && typeof trackSignal === "function") {
+    if (targetId) {
       trackSignal({
         signalType: "view",
         targetId,
@@ -27,11 +27,7 @@ export const useSignalTracking = (
     // Capture exit engagement
     return () => {
       const timeSpent = Math.floor((Date.now() - startTime.current) / 1000);
-      if (
-        targetId &&
-        timeSpent > 2 &&
-        typeof trackPostEngagement === "function"
-      ) {
+      if (targetId && timeSpent > 2) {
         // Only track if they stayed > 2 seconds
         trackPostEngagement(targetId, {
           scrollDepth: maxScroll.current,
@@ -69,7 +65,7 @@ export const useSignalTracking = (
   // 3. Hover tracking helper
   const trackHover = useCallback(
     (elementId: string) => {
-      if (targetId && typeof trackSignal === "function") {
+      if (targetId) {
         trackSignal({
           signalType: "hover",
           targetId: targetId,
