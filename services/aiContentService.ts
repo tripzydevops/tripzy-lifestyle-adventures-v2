@@ -33,35 +33,23 @@ const getGeminiApiKey = () => {
 // LANGUAGE-SPECIFIC SYSTEM PROMPTS
 // ============================================================
 
-const TRAVEL_BLOG_SYSTEM_PROMPT_EN = `You are a world-class travel writer for Tripzy, a premium travel lifestyle platform. Your writing style combines:
+const TRAVEL_BLOG_SYSTEM_PROMPT_EN = `You are a world-class Editor-in-Chief for Tripzy, a luxury travel lifestyle magazine. Your writing is cinematic, evocative, and deeply professional.
 
-**VOICE & TONE:**
-- The insider knowledge of Anthony Bourdain
-- The storytelling mastery of Paul Theroux  
-- The practical wisdom of Rick Steves
-- The wanderlust inspiration of Lonely Planet
+**EDITORIAL GUIDELINES:**
+1. **Dynamic Pacing**: Mix short, punchy sentences with fluid, descriptive ones. NEVER use "walls of text".
+2. **Structural Variety**: Use "Pro-Tips", "Insider Secrets", and "Pull Quotes" to break up the flow.
+3. **Sensory Storytelling**: Don't just list sights; describe the smell of rain on ancient stones, the vibration of a city, or the specific hue of a sunset.
+4. **Professionalism**: Avoid clichés. Use sophisticated vocabulary. 
+5. **Practicality**: Integrate cost-levels, specific local names, and 'know before you go' details.`;
 
-**WRITING PRINCIPLES:**
-1. **Sensory Immersion**: Paint vivid pictures with specific sensory details.
-2. **Local Authenticity**: Include genuine local phrases and hidden gems.
-3. **Practical Value**: Include actionable tips, price ranges, and insider strategies.
-4. **Emotional Resonance**: Connect travel experiences to universal human emotions.
-5. **SEO Excellence**: Naturally incorporate searchable terms.`;
+const TRAVEL_BLOG_SYSTEM_PROMPT_TR = `Sen Tripzy için yazan, lüks bir seyahat ve yaşam tarzı dergisinin genel yayın yönetmenisin. Yazım tarzın sinematik, etkileyici ve son derece profesyonel.
 
-const TRAVEL_BLOG_SYSTEM_PROMPT_TR = `Sen Tripzy için yazan dünya standartlarında bir seyahat yazarısın. Tripzy, premium bir seyahat ve yaşam tarzı platformudur. Yazım stilin şunları birleştiriyor:
-
-**SES & TON:**
-- Anthony Bourdain'in içeriden bilgisi
-- Paul Theroux'nun hikaye anlatıcılığı ustalığı
-- Rick Steves'in pratik bilgeliği
-- Lonely Planet'in gezginlik ilhamı
-
-**YAZIM İLKELERİ:**
-1. **Duyusal Sürükleyicilik**: Belirli duyusal detaylarla canlı tablolar çiz.
-2. **Yerel Özgünlük**: Gerçek yerel deyimler ve gizli köşeler ekle.
-3. **Pratik Değer**: Eyleme geçirilebilir ipuçları, tam adresler ve fiyatlar ekle.
-4. **Duygusal Rezonans**: Seyahat deneyimlerini evrensel insan duygularına bağla.
-5. **SEO Mükemmelliği**: Aranabilir terimleri doğal şekilde dahil et.`;
+**EDİTORYAL İLKELER:**
+1. **Dinamik Tempo**: Kısa ve çarpıcı cümleleri akıcı tasvirlerle harmanla. ASLA büyük metin blokları kullanma.
+2. **Yapısal Çeşitlilik**: Akışı bölmek için "Pro-İpuçları", "Yerel Sırlar" ve "Alıntı Blokları" kullan.
+3. **Duyusal Hikaye Anlatımı**: Sadece görülecek yerleri listeleme; antik taşlardaki yağmur kokusunu, şehrin titreşimini veya gün batımının tam tonunu anlat.
+4. **Profesyonellik**: Klişelerden kaçın. Seçkin bir kelime dağarcığı kullan.
+5. **Pratiklik**: Maliyet seviyelerini, tam yerel isimleri ve gitmeden önce bilinmesi gereken detayları yazıya entegre et.`;
 
 const getSystemPrompt = (language: "en" | "tr") => {
   return language === "tr"
@@ -78,25 +66,29 @@ const POST_GENERATION_PROMPT = (params: GeneratePostParams) => {
   return `
     ${getSystemPrompt(params.language || "en")}
 
-    **GÖREV / TASK**: Write a premium travel blog post about "${
+    **GÖREV / TASK**: Write a premium magazine-style feature article about "${
       params.destination
     }" in **${languageName}**.
     
     **STRICT DATA MODEL (JSON ONLY)**:
-    Return a single JSON object. Do not include any text before or after the JSON.
+    Return a single JSON object with this exact structure:
     
     interface Response {
       title: string;
       excerpt: string;
       content: {
         sections: Array<{
-          id: string; // unique-slug-style
-          title: string; // H2 level
-          body: string; // VALID HTML. Just inner tags like <p>, <ul>, <strong>. 
+          id: string;
+          title: string;
+          layoutType: 'standard' | 'high-impact' | 'practical';
+          body: string; // HTML formatted
+          proTip?: string; // High-visual tip box
+          pullQuote?: string; // Large impact quote
+          highlights?: string[]; // Bulleted feature list
           subsections?: Array<{
             id: string;
-            title: string; // H3 level
-            body: string; // VALID HTML
+            title: string;
+            body: string;
           }>;
         }>;
       };
@@ -106,40 +98,49 @@ const POST_GENERATION_PROMPT = (params: GeneratePostParams) => {
       metaDescription: string;
     }
 
-    **CONTENT RULES**:
-    1. **Language**: The ENTIRE content (title, excerpt, section titles, bodies, tags, metadata) MUST be in **${languageName}**.
-    2. **Tone**: ${params.tone || "Inspiring, practical, and sophisticated"}.
-    3. **Structure**: 
-       - Hook the reader in the first paragraph.
-       - Use 3-5 main sections.
-       - Include local secrets and practical "Know Before You Go" tips.
-    4. **Formatting**:
-       - In 'body' fields, use structural HTML: <p>, <ul>/<li>, <strong>, <em>.
-       - NO "walls of text". Keep paragraphs to 2-4 sentences.
-       - Insert exactly this placeholder for images: [IMAGE: descriptive alt text].
+    **LAYOUT RULES**:
+    1. **Paragraphs**: MAX 3 sentences per paragraph. This is CRITICAL for readability.
+    2. **Rich Components**:
+       - Use 'proTip' for specialized advice.
+       - Use 'pullQuote' for highly evocative sentences.
+       - Use 'highlights' for lists of must-sees.
+    3. **Visuals**: Insert exactly ONE [IMAGE: descriptive prompt] placeholder in the 'body' of EVERY main section.
+    4. **HTML Use**: Bold key terms using <strong>. Use <ul> for lists inside the body.
     
     **Context**:
-    - Travel Style: ${params.travelStyle || "General"}
-    - Word Count: ${params.wordCount || 1000} words (be as detailed as possible)
-    ${
-      params.targetAudience ? `- Target Audience: ${params.targetAudience}` : ""
-    }
-    ${
-      params.keyPoints
-        ? `- Key Points to include: ${params.keyPoints.join(", ")}`
-        : ""
+    - Travel Style: ${params.travelStyle || "Luxury & Adventure"}
+    - Target: ${params.targetAudience || "Sophisticated Travelers"}
+    - Word Count: ~${params.wordCount || 1000} words.
+    - Key Points: ${
+      params.keyPoints?.join(", ") ||
+      "Must-visit spots, local food, hidden gems"
     }
 
-    Return ONLY valid JSON.
+    Return ONLY raw JSON. No markdown blocks.
   `;
 };
 
-const convertCanonicalToHtml = (sections: BlogSection[]): string => {
+const convertCanonicalToHtml = (sections: any[]): string => {
   return sections
     .map((section) => {
-      let sectionHtml = `<h2 id="${section.id}">${section.title}</h2>\n`;
-      let bodyText = section.body.trim();
+      let html = `<section class="magazine-section section-${
+        section.layoutType || "standard"
+      }">`;
 
+      // Section Title
+      html += `<h2 id="${section.id}" class="magazine-h2">${section.title}</h2>\n`;
+
+      // Pull Quote (Top position if high-impact)
+      if (section.pullQuote) {
+        html += `
+          <blockquote class="magazine-pullquote">
+            <p>${section.pullQuote}</p>
+          </blockquote>
+        `;
+      }
+
+      // Process Body
+      let bodyText = section.body.trim();
       if (!bodyText.startsWith("<") && !bodyText.includes("<p>")) {
         bodyText = bodyText
           .split("\n\n")
@@ -147,34 +148,60 @@ const convertCanonicalToHtml = (sections: BlogSection[]): string => {
           .join("\n");
       }
 
+      // Structural replacements
       bodyText = bodyText.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
       bodyText = bodyText.replace(
         /\[IMAGE: (.*?)\]/g,
-        '<div class="media-placeholder" data-alt="$1"><em>[IMAGE: $1]</em></div>'
+        '<div class="magazine-image-placeholder" data-alt="$1"><span>[IMAGE: $1]</span></div>'
       );
-      sectionHtml += bodyText;
 
-      if (section.subsections) {
-        sectionHtml +=
-          "\n" +
-          section.subsections
-            .map((sub) => {
-              let subBody = sub.body.trim();
-              if (!subBody.startsWith("<") && !subBody.includes("<p>")) {
-                subBody = subBody
-                  .split("\n\n")
-                  .map((p) => `<p>${p}</p>`)
-                  .join("\n");
-              }
-              subBody = subBody.replace(
-                /\*\*(.*?)\*\*/g,
-                "<strong>$1</strong>"
-              );
-              return `<h3 id="${sub.id}">${sub.title}</h3>\n${subBody}`;
-            })
-            .join("\n");
+      html += `<div class="magazine-body">${bodyText}</div>`;
+
+      // Highlights
+      if (section.highlights && section.highlights.length > 0) {
+        html += `
+          <div class="magazine-highlights">
+            <h4 class="highlights-title">Highlights</h4>
+            <ul>
+              ${section.highlights.map((h: string) => `<li>${h}</li>`).join("")}
+            </ul>
+          </div>
+        `;
       }
-      return sectionHtml;
+
+      // Pro Tip
+      if (section.proTip) {
+        html += `
+          <div class="magazine-pro-tip">
+            <div class="tip-icon">💡</div>
+            <div class="tip-content">
+              <strong>Insider Tip:</strong> ${section.proTip}
+            </div>
+          </div>
+        `;
+      }
+
+      // Subsections
+      if (section.subsections) {
+        html += section.subsections
+          .map((sub: any) => {
+            let subBody = sub.body.trim();
+            if (!subBody.startsWith("<") && !subBody.includes("<p>")) {
+              subBody = subBody
+                .split("\n\n")
+                .map((p: string) => `<p>${p}</p>`)
+                .join("\n");
+            }
+            return `<div class="magazine-subsection">
+              <h3 id="${sub.id}" class="magazine-h3">${sub.title}</h3>
+              <div class="subsection-body">${subBody}</div>
+            </div>`;
+          })
+          .join("\n");
+      }
+
+      html += `</section>`;
+      return html;
     })
     .join("\n\n");
 };

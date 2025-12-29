@@ -244,6 +244,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_posts_updated_at ON blog.posts;
 CREATE TRIGGER update_posts_updated_at
   BEFORE UPDATE ON blog.posts
   FOR EACH ROW
@@ -275,6 +276,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_category_post_count ON blog.posts;
 CREATE TRIGGER update_category_post_count
   AFTER INSERT OR UPDATE OR DELETE ON blog.posts
   FOR EACH ROW

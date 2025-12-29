@@ -59,6 +59,27 @@ export const signalService = {
   },
 
   /**
+   * Universal track method for compatibility with useSignalTracker hook
+   */
+  async track(params: {
+    event_type: string;
+    target_type: string;
+    target_id: string;
+    user_id?: string;
+    metadata?: Record<string, any>;
+  }): Promise<void> {
+    return this.trackSignal({
+      signalType: params.event_type as SignalType,
+      targetId: params.target_id,
+      userId: params.user_id,
+      metadata: {
+        ...params.metadata,
+        target_type: params.target_type,
+      },
+    });
+  },
+
+  /**
    * Specifically tracks post engagement (scroll depth, time spent)
    */
   async trackPostEngagement(
