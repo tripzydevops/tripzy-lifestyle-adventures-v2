@@ -1,6 +1,6 @@
 // hooks/useSignalTracking.ts
 import { useEffect, useRef, useCallback } from "react";
-import { signalService } from "../services/signalService";
+import { trackSignal, trackPostEngagement } from "../services/signalService";
 
 /**
  * Hook to track user signals on a specific page/component
@@ -17,7 +17,7 @@ export const useSignalTracking = (
   // 1. Log view signal immediately
   useEffect(() => {
     if (targetId) {
-      signalService.trackSignal({
+      trackSignal({
         signalType: "view",
         targetId,
         metadata: { contentType: type },
@@ -29,7 +29,7 @@ export const useSignalTracking = (
       const timeSpent = Math.floor((Date.now() - startTime.current) / 1000);
       if (targetId && timeSpent > 2) {
         // Only track if they stayed > 2 seconds
-        signalService.trackPostEngagement(targetId, {
+        trackPostEngagement(targetId, {
           scrollDepth: maxScroll.current,
           timeSpentSeconds: timeSpent,
         });
@@ -65,7 +65,7 @@ export const useSignalTracking = (
   // 3. Hover tracking helper
   const trackHover = useCallback(
     (elementId: string) => {
-      signalService.trackSignal({
+      trackSignal({
         signalType: "hover",
         targetId: targetId,
         metadata: { elementId, timestamp: new Date().toISOString() },

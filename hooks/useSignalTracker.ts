@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { signalService } from "../services/signalService";
+import { track } from "../services/signalService";
 import { useAuth } from "./useAuth";
 import { useLanguage } from "../localization/LanguageContext";
 
@@ -11,7 +11,7 @@ export const useSignalTracker = () => {
 
   // Track Page Views
   useEffect(() => {
-    signalService.track({
+    track({
       event_type: "view",
       target_type: "page",
       target_id: location.pathname,
@@ -26,7 +26,7 @@ export const useSignalTracker = () => {
 
   // Track Language Changes
   useEffect(() => {
-    signalService.track({
+    track({
       event_type: "language_change",
       target_type: "setting",
       target_id: language,
@@ -42,7 +42,7 @@ export const useSignalTracker = () => {
     targetId: string,
     metadata?: Record<string, any>
   ) => {
-    signalService.track({
+    track({
       event_type: "click",
       target_type: targetType,
       target_id: targetId,
@@ -52,7 +52,7 @@ export const useSignalTracker = () => {
   };
 
   const trackSearch = (query: string, resultsCount: number) => {
-    signalService.track({
+    track({
       event_type: "search",
       target_type: "search_query",
       target_id: query,

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
-import { signalService } from "../../services/signalService";
+import { trackSignal } from "../../services/signalService";
 
 const SearchBar = () => {
   const [query, setQuery] = useState("");
@@ -11,7 +11,7 @@ const SearchBar = () => {
     e.preventDefault();
     if (query.trim()) {
       // Track Search Signal (Layer 1)
-      signalService.trackSignal({
+      trackSignal({
         signalType: "search",
         metadata: { query: query.trim() },
       });
