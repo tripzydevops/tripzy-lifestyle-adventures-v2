@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import signalService from "../services/signalService";
+import { signalService } from "../services/signalService";
 import { useAuth } from "./useAuth";
 import { useLanguage } from "../localization/LanguageContext";
 
