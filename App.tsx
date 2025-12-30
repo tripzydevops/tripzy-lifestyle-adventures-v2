@@ -1,4 +1,4 @@
-// App v2.1.1
+// App v2.2.0
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";

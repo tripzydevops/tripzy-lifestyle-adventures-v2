@@ -38,6 +38,14 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap"
       rel="stylesheet"
     />
+    <!-- Global Signal Proxy (Layer 1 Collection) -->
+    <script>
+      window._tripzyQueue = [];
+      window.tripzyTrack = function (data) {
+        window._tripzyQueue.push({ ...data, ts: new Date().toISOString() });
+        if (window._tripzyFlush) window._tripzyFlush();
+      };
+    </script>
   </head>
   <body class="bg-navy-900 text-white antialiased">
     <div id="root"></div>
