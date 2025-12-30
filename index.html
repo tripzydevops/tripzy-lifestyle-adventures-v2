@@ -40,11 +40,16 @@
     />
     <!-- Global Signal Proxy (Layer 1 Collection) -->
     <script>
-      window._tripzyQueue = [];
-      window.tripzyTrack = function (data) {
-        window._tripzyQueue.push({ ...data, ts: new Date().toISOString() });
-        if (window._tripzyFlush) window._tripzyFlush();
-      };
+      (function () {
+        window._tripzyQueue = [];
+        var track = function (data) {
+          window._tripzyQueue.push({ ...data, ts: new Date().toISOString() });
+          if (window._tripzyFlush) window._tripzyFlush();
+        };
+        // Universal Shield: Define the object that minifiers look for
+        window.signalService = { track: track };
+        window.tripzyTrack = track;
+      })();
     </script>
   </head>
   <body class="bg-navy-900 text-white antialiased">

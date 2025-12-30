@@ -3,12 +3,13 @@ import { supabase } from "../lib/supabase";
 
 /**
  * PHASE 1: THE GLOBAL PROXY (Layer 1 Collection)
- * Using window['tripzyTrack'] to bypass ALL minification/mangling issues.
+ * This service bridges the React App with the Global Shield in index.html.
  */
 
 declare global {
   interface Window {
     tripzyTrack: (params: any) => void;
+    signalService: { track: (params: any) => void };
     _tripzyFlush: () => void;
     _tripzyQueue: any[];
   }
@@ -17,19 +18,18 @@ declare global {
 /**
  * Universal CRASH-PROOF track function.
  */
-export const track = (params: {
-  event_type: string;
-  target_type: string;
-  target_id: string;
-  user_id?: string;
-  metadata?: Record<string, any>;
-}) => {
-  if (typeof window !== "undefined" && window.tripzyTrack) {
-    window.tripzyTrack(params);
-  } else {
-    // Fallback if index.html script failed for some reason
-    console.debug("[Signal Library Not Ready]: Queueing internally.");
-    if (typeof window !== "undefined") {
+export const track = (params: any) => {
+  if (typeof window !== "undefined") {
+    // Try the global shield first (most reliable)
+    if (window.tripzyTrack) {
+      window.tripzyTrack(params);
+    } else if (
+      window.signalService &&
+      typeof window.signalService.track === "function"
+    ) {
+      window.signalService.track(params);
+    } else {
+      // Emergency internal queue
       window._tripzyQueue = window._tripzyQueue || [];
       window._tripzyQueue.push({ ...params, ts: new Date().toISOString() });
     }
@@ -52,13 +52,13 @@ const flushSignals = async () => {
       sessionStorage.getItem("tripzy_session_id") || "anonymous";
 
     const preparedSignals = batch.map((s) => ({
-      user_id: s.user_id || null,
+      user_id: s.user_id || s.userId || null,
       session_id: sessionId,
-      signal_type: s.event_type || "view",
-      target_id: s.target_id || null,
+      signal_type: s.event_type || s.signalType || "view",
+      target_id: s.target_id || s.targetId || null,
       metadata: {
         ...s.metadata,
-        target_type: s.target_type,
+        target_type: s.target_type || s.targetType,
         fallback_ts: s.ts,
       },
       created_at: s.ts || new Date().toISOString(),
@@ -71,12 +71,11 @@ const flushSignals = async () => {
 
     if (error) console.warn("[L1 Flush Error]:", error.message);
   } catch (err) {
-    // Retry: Put back in queue
     window._tripzyQueue = [...batch, ...window._tripzyQueue];
   }
 };
 
-// Initialize Processor
+// Start Processor
 if (typeof window !== "undefined") {
   window._tripzyFlush = flushSignals;
   setInterval(flushSignals, 5000);
@@ -102,9 +101,7 @@ export const signalService = {
     }),
 };
 
-/**
- * Direct function exports for hooks
- */
+// Direct exports
 export const trackSignal = (s: any) => signalService.trackSignal(s);
 export const trackPostEngagement = (id: string, m: any) =>
   signalService.trackPostEngagement(id, m);
