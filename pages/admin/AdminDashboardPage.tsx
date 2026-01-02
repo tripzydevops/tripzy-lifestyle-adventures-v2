@@ -231,6 +231,36 @@ const AdminDashboardPage = () => {
                       <ExternalLink size={16} />
                     </a>
                   </div>
+
+                  <div className="mt-6 pt-6 border-t border-white/5">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { trendingPostData } = await import(
+                            "../../data/trendingPost"
+                          );
+                          const newPost = {
+                            ...trendingPostData,
+                            authorId: user?.id,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                            views: 0,
+                          };
+                          await postService.createPost(newPost);
+                          alert("Trending post imported successfully!");
+                          window.location.reload();
+                        } catch (e) {
+                          console.error(e);
+                          alert("Failed to import post.");
+                        }
+                      }}
+                      className="w-full flex items-center justify-between p-4 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-2xl transition-all mb-2"
+                    >
+                      <span className="font-bold flex items-center gap-3">
+                        <Sparkles size={18} /> Import Viral Post
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="bg-gradient-to-br from-navy-900 to-navy-950 p-8 rounded-3xl border border-gold/10 relative overflow-hidden">
