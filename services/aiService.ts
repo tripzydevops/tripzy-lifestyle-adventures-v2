@@ -1,13 +1,13 @@
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Helper to get API key from Env or LocalStorage
 const getGeminiApiKey = () => {
   const envKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (envKey && envKey !== 'PLACEHOLDER_API_KEY' && envKey.length > 10) return envKey;
-  
+  if (envKey && envKey !== "PLACEHOLDER_API_KEY" && envKey.length > 10)
+    return envKey;
+
   try {
-    const localKey = localStorage.getItem('TRIPZY_AI_KEY');
+    const localKey = localStorage.getItem("TRIPZY_AI_KEY");
     if (localKey && localKey.length > 10) return localKey;
   } catch (e) {
     // Ignore storage errors
@@ -15,10 +15,12 @@ const getGeminiApiKey = () => {
   return "";
 };
 
-const getGenAIModel = () => {
+export const getGenAIModel = () => {
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
-    console.error("Gemini API Key is missing! Please set VITE_GEMINI_API_KEY or save it in settings.");
+    console.error(
+      "Gemini API Key is missing! Please set VITE_GEMINI_API_KEY or save it in settings."
+    );
     throw new Error("Gemini API Key is missing");
   }
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -42,7 +44,10 @@ export const aiService = {
   async generateExcerpt(content: string): Promise<string> {
     try {
       const model = getGenAIModel();
-      const prompt = `Summarize the following travel blog content into a catchy, SEO-friendly excerpt of maximum 160 characters. Provide only the text result without any quotes or preamble: \n\n ${content.replace(/<[^>]*>?/gm, '')}`;
+      const prompt = `Summarize the following travel blog content into a catchy, SEO-friendly excerpt of maximum 160 characters. Provide only the text result without any quotes or preamble: \n\n ${content.replace(
+        /<[^>]*>?/gm,
+        ""
+      )}`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text()?.trim() || "";
@@ -60,7 +65,10 @@ export const aiService = {
   async generateSEOKeywords(title: string, content: string): Promise<string> {
     try {
       const model = getGenAIModel();
-      const prompt = `Generate 5-8 relevant, high-traffic SEO keywords for a blog post with title "${title}" and content preview: "${content.substring(0, 500)}". Return ONLY the keywords separated by commas, no other text.`;
+      const prompt = `Generate 5-8 relevant, high-traffic SEO keywords for a blog post with title "${title}" and content preview: "${content.substring(
+        0,
+        500
+      )}". Return ONLY the keywords separated by commas, no other text.`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text()?.trim() || "";
@@ -102,10 +110,10 @@ export const aiService = {
       const prompt = `Provide a brief, helpful overview and latest updates about: "${query}".`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      
+
       return {
         text: response.text(),
-        sources: []
+        sources: [],
       };
     } catch (error) {
       console.error("Gemini Error (getSearchGrounding):", error);
@@ -113,7 +121,11 @@ export const aiService = {
     }
   },
 
-  async getNearbyAttractions(locationName: string, _lat?: number, _lng?: number) {
+  async getNearbyAttractions(
+    locationName: string,
+    _lat?: number,
+    _lng?: number
+  ) {
     try {
       const model = getGenAIModel();
       const prompt = `Recommend 3-5 must-visit places, restaurants, or attractions near "${locationName}". For each, provide a brief description of why it is special.`;
@@ -122,7 +134,7 @@ export const aiService = {
 
       return {
         text: response.text(),
-        sources: []
+        sources: [],
       };
     } catch (error) {
       console.error("Gemini Error (getNearbyAttractions):", error);
@@ -133,5 +145,5 @@ export const aiService = {
   async generateAudio(_text: string): Promise<string> {
     console.log("Audio generation not available in current SDK");
     return "";
-  }
+  },
 };
