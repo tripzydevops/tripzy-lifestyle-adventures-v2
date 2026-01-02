@@ -238,10 +238,11 @@ const WYSIWYGEditor_V7 = forwardRef<
   const parseContentToBlocks = useCallback((html: string): Block[] => {
     const blocks: Block[] = [];
 
-    // Split by image placeholders and actual images
-    const parts = html.split(
-      /(\[IMAGE:\s*([^\]]+)\]|<div data-placeholder-id="[^"]+">.*?<\/div>|<div data-image-id="[^"]+">.*?<\/div>)/gs
-    );
+    // Use a more comprehensive regex that also catches standalone <img> tags
+    const splitRegex =
+      /(\[IMAGE:\s*([^\]]+)\]|<div data-placeholder-id="[^"]+">.*?<\/div>|<div data-image-id="[^"]+">.*?<\/div>|<img[^>]+>|<figure[^>]*>.*?<\/figure>)/gs;
+
+    const parts = html.split(splitRegex);
 
     parts.forEach((part, index) => {
       if (!part || !part.trim()) return;
@@ -254,6 +255,37 @@ const WYSIWYGEditor_V7 = forwardRef<
           type: "placeholder",
           content: "",
           description: imageMatch[1].trim(),
+        });
+        return;
+      }
+
+      // Check for standalone <img> tags
+      const imgMatch = part.match(/<img[^>]+src="([^"]+)"[^>]*>/);
+      if (imgMatch) {
+        const widthMatch =
+          part.match(/width[:\s]*["']?(\d+%?)["']?/i) ||
+          part.match(/style="[^"]*width:\s*(\d+%?)/i);
+        blocks.push({
+          id: `image-${Date.now()}-${index}`,
+          type: "image",
+          content: "",
+          src: imgMatch[1],
+          width: widthMatch ? widthMatch[1] : "100%",
+        });
+        return;
+      }
+
+      // Check for <figure> with <img> inside
+      const figureMatch = part.match(
+        /<figure[^>]*>.*?<img[^>]+src="([^"]+)"[^>]*>.*?<\/figure>/s
+      );
+      if (figureMatch) {
+        blocks.push({
+          id: `image-${Date.now()}-${index}`,
+          type: "image",
+          content: "",
+          src: figureMatch[1],
+          width: "100%",
         });
         return;
       }
