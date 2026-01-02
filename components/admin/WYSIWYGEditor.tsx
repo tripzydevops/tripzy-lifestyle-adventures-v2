@@ -238,11 +238,11 @@ const WYSIWYGEditor_V7 = forwardRef<
   const parseContentToBlocks = useCallback((html: string): Block[] => {
     const blocks: Block[] = [];
 
-    // Use a more comprehensive regex that also catches standalone <img> tags
+    // Use a more comprehensive regex with NON-CAPTURING groups to avoid duplicates
     const splitRegex =
-      /(\[IMAGE:\s*([^\]]+)\]|<div data-placeholder-id="[^"]+">.*?<\/div>|<div data-image-id="[^"]+">.*?<\/div>|<img[^>]+>|<figure[^>]*>.*?<\/figure>)/gs;
+      /(\[IMAGE:\s*[^\]]+\]|<div data-placeholder-id="[^"]+">.*?<\/div>|<div data-image-id="[^"]+">.*?<\/div>|<img[^>]+>|<figure[^>]*>.*?<\/figure>)/gs;
 
-    const parts = html.split(splitRegex);
+    const parts = html.split(splitRegex).filter((part) => part && part.trim());
 
     parts.forEach((part, index) => {
       if (!part || !part.trim()) return;
