@@ -4,6 +4,7 @@ import React, {
   useImperativeHandle,
   forwardRef,
   useState,
+  useCallback,
 } from "react";
 import {
   Bold,
@@ -16,7 +17,11 @@ import {
   Redo2,
   Trash2,
   ImagePlus,
-  GripVertical,
+  ChevronUp,
+  ChevronDown,
+  Upload,
+  X,
+  Maximize2,
 } from "lucide-react";
 import { uploadService } from "../../services/uploadService";
 import { useToast } from "../../hooks/useToast";
@@ -27,224 +32,384 @@ interface WYSIWYGEditorProps {
   onMediaButtonClick: () => void;
 }
 
-// A unique ID for image placeholders
-const PLACEHOLDER_CLASS = "tripzy-image-placeholder";
+// ============================================================
+// IMAGE PLACEHOLDER BLOCK COMPONENT
+// ============================================================
+interface PlaceholderBlockProps {
+  id: string;
+  description?: string;
+  onUpload: (id: string, file: File) => void;
+  onMoveUp: (id: string) => void;
+  onMoveDown: (id: string) => void;
+  onDelete: (id: string) => void;
+  isUploading?: boolean;
+}
 
-const WYSIWYGEditor_V6 = forwardRef<
+const ImagePlaceholderBlock: React.FC<PlaceholderBlockProps> = ({
+  id,
+  description,
+  onUpload,
+  onMoveUp,
+  onMoveDown,
+  onDelete,
+  isUploading,
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onUpload(id, file);
+    }
+  };
+
+  return (
+    <div
+      data-placeholder-id={id}
+      className="image-placeholder-block my-6 p-6 border-2 border-dashed border-amber-400 rounded-2xl bg-amber-50/50 relative group"
+      contentEditable={false}
+    >
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
+      {/* Control Buttons - Top Right */}
+      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          type="button"
+          onClick={() => onMoveUp(id)}
+          className="p-1.5 bg-white rounded-lg shadow-md hover:bg-slate-100 text-slate-600"
+          title="Move Up"
+        >
+          <ChevronUp size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onMoveDown(id)}
+          className="p-1.5 bg-white rounded-lg shadow-md hover:bg-slate-100 text-slate-600"
+          title="Move Down"
+        >
+          <ChevronDown size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(id)}
+          className="p-1.5 bg-white rounded-lg shadow-md hover:bg-red-100 text-red-500"
+          title="Delete"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex flex-col items-center justify-center gap-3 py-4">
+        {isUploading ? (
+          <div className="flex items-center gap-2 text-amber-600">
+            <div className="w-5 h-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+            <span className="font-medium">Uploading...</span>
+          </div>
+        ) : (
+          <>
+            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
+              <ImagePlus size={24} />
+            </div>
+            {description && (
+              <p className="text-sm text-slate-600 text-center max-w-md">
+                <span className="font-medium text-amber-700">Suggested:</span>{" "}
+                {description}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl flex items-center gap-2 transition-colors shadow-lg"
+            >
+              <Upload size={18} />
+              Click to Upload Image
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// IMAGE BLOCK COMPONENT (After Upload)
+// ============================================================
+interface ImageBlockProps {
+  id: string;
+  src: string;
+  alt?: string;
+  width: string;
+  onResize: (id: string, width: string) => void;
+  onDelete: (id: string) => void;
+  onMoveUp: (id: string) => void;
+  onMoveDown: (id: string) => void;
+}
+
+const ImageBlock: React.FC<ImageBlockProps> = ({
+  id,
+  src,
+  alt,
+  width,
+  onResize,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+}) => {
+  return (
+    <div
+      data-image-id={id}
+      className="image-block my-6 relative group"
+      contentEditable={false}
+    >
+      {/* Control Bar */}
+      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        <button
+          type="button"
+          onClick={() => onMoveUp(id)}
+          className="p-1.5 bg-white/90 rounded-lg shadow-md hover:bg-slate-100 text-slate-600"
+          title="Move Up"
+        >
+          <ChevronUp size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onMoveDown(id)}
+          className="p-1.5 bg-white/90 rounded-lg shadow-md hover:bg-slate-100 text-slate-600"
+          title="Move Down"
+        >
+          <ChevronDown size={16} />
+        </button>
+        <div className="flex bg-white/90 rounded-lg shadow-md overflow-hidden">
+          {["25%", "50%", "100%"].map((w) => (
+            <button
+              key={w}
+              type="button"
+              onClick={() => onResize(id, w)}
+              className={`px-2 py-1.5 text-xs font-bold transition-colors ${
+                width === w
+                  ? "bg-amber-500 text-white"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              {w}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => onDelete(id)}
+          className="p-1.5 bg-white/90 rounded-lg shadow-md hover:bg-red-100 text-red-500"
+          title="Delete"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+
+      <img
+        src={src}
+        alt={alt || "Image"}
+        style={{ width }}
+        className="rounded-2xl shadow-xl mx-auto block"
+      />
+    </div>
+  );
+};
+
+// ============================================================
+// MAIN EDITOR COMPONENT
+// ============================================================
+interface Block {
+  id: string;
+  type: "text" | "placeholder" | "image";
+  content: string;
+  description?: string;
+  src?: string;
+  width?: string;
+}
+
+const WYSIWYGEditor_V7 = forwardRef<
   { insertHtml: (html: string) => void },
   WYSIWYGEditorProps
 >(({ value, onChange, onMediaButtonClick }, ref) => {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const isInternalUpdate = useRef(false);
   const { addToast } = useToast();
-  const [activePlaceholderId, setActivePlaceholderId] = useState<string | null>(
-    null
+
+  // Parse content into blocks
+  const parseContentToBlocks = useCallback((html: string): Block[] => {
+    const blocks: Block[] = [];
+
+    // Split by image placeholders and actual images
+    const parts = html.split(
+      /(\[IMAGE:\s*([^\]]+)\]|<div data-placeholder-id="[^"]+">.*?<\/div>|<div data-image-id="[^"]+">.*?<\/div>)/gs
+    );
+
+    parts.forEach((part, index) => {
+      if (!part || !part.trim()) return;
+
+      // Check for [IMAGE: description] pattern
+      const imageMatch = part.match(/\[IMAGE:\s*([^\]]+)\]/);
+      if (imageMatch) {
+        blocks.push({
+          id: `placeholder-${Date.now()}-${index}`,
+          type: "placeholder",
+          content: "",
+          description: imageMatch[1].trim(),
+        });
+        return;
+      }
+
+      // Otherwise it's text content
+      blocks.push({
+        id: `text-${Date.now()}-${index}`,
+        type: "text",
+        content: part,
+      });
+    });
+
+    return blocks.length > 0
+      ? blocks
+      : [{ id: "text-0", type: "text", content: "<p><br></p>" }];
+  }, []);
+
+  const [blocks, setBlocks] = useState<Block[]>(() =>
+    parseContentToBlocks(value)
+  );
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const textEditorRef = useRef<HTMLDivElement>(null);
+
+  // Sync blocks to parent
+  const syncToParent = useCallback(
+    (newBlocks: Block[]) => {
+      const html = newBlocks
+        .map((block) => {
+          if (block.type === "text") return block.content;
+          if (block.type === "placeholder")
+            return `[IMAGE: ${block.description || "Photo"}]`;
+          if (block.type === "image")
+            return `<div data-image-id="${block.id}"><img src="${
+              block.src
+            }" style="width: ${
+              block.width || "100%"
+            }; border-radius: 1rem; display: block; margin: 0 auto;" /></div>`;
+          return "";
+        })
+        .join("\n");
+      onChange(html);
+    },
+    [onChange]
   );
 
-  // --- History ---
-  const history = useRef<string[]>([]);
-  const historyIndex = useRef(-1);
+  // Update blocks when value changes externally
+  useEffect(() => {
+    const newBlocks = parseContentToBlocks(value);
+    setBlocks(newBlocks);
+  }, [value, parseContentToBlocks]);
 
-  const saveToHistory = (content: string) => {
-    if (
-      historyIndex.current >= 0 &&
-      history.current[historyIndex.current] === content
-    )
-      return;
-    const newHistory = history.current.slice(0, historyIndex.current + 1);
-    newHistory.push(content);
-    if (newHistory.length > 50) newHistory.shift();
-    history.current = newHistory;
-    historyIndex.current = newHistory.length - 1;
+  // --- Block Operations ---
+  const addPlaceholder = () => {
+    const newBlock: Block = {
+      id: `placeholder-${Date.now()}`,
+      type: "placeholder",
+      content: "",
+      description: "New Image",
+    };
+    const newBlocks = [...blocks, newBlock];
+    setBlocks(newBlocks);
+    syncToParent(newBlocks);
   };
 
-  const undo = () => {
-    if (historyIndex.current > 0) {
-      historyIndex.current--;
-      const content = history.current[historyIndex.current];
-      isInternalUpdate.current = true;
-      if (editorRef.current) editorRef.current.innerHTML = content;
-      onChange(content);
-      setTimeout(() => {
-        isInternalUpdate.current = false;
-      }, 10);
-    }
+  const moveBlockUp = (id: string) => {
+    const index = blocks.findIndex((b) => b.id === id);
+    if (index <= 0) return;
+    const newBlocks = [...blocks];
+    [newBlocks[index - 1], newBlocks[index]] = [
+      newBlocks[index],
+      newBlocks[index - 1],
+    ];
+    setBlocks(newBlocks);
+    syncToParent(newBlocks);
   };
 
-  const redo = () => {
-    if (historyIndex.current < history.current.length - 1) {
-      historyIndex.current++;
-      const content = history.current[historyIndex.current];
-      isInternalUpdate.current = true;
-      if (editorRef.current) editorRef.current.innerHTML = content;
-      onChange(content);
-      setTimeout(() => {
-        isInternalUpdate.current = false;
-      }, 10);
-    }
+  const moveBlockDown = (id: string) => {
+    const index = blocks.findIndex((b) => b.id === id);
+    if (index < 0 || index >= blocks.length - 1) return;
+    const newBlocks = [...blocks];
+    [newBlocks[index], newBlocks[index + 1]] = [
+      newBlocks[index + 1],
+      newBlocks[index],
+    ];
+    setBlocks(newBlocks);
+    syncToParent(newBlocks);
   };
 
-  // --- Placeholder System ---
-  const addImagePlaceholder = () => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    const id = `placeholder-${Date.now()}`;
-    const placeholderHtml = `
-      <div id="${id}" class="${PLACEHOLDER_CLASS}" contenteditable="false" draggable="true" style="margin: 2rem 0; padding: 3rem; border: 3px dashed #EAB308; border-radius: 2rem; background: rgba(234, 179, 8, 0.05); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; cursor: pointer; transition: all 0.3s;">
-        <div style="display: flex; align-items: center; gap: 0.5rem; color: #EAB308; font-weight: bold; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-          Click to Upload Image
-        </div>
-        <p style="color: #64748b; font-size: 0.7rem; margin: 0;">Or drag this block to reposition it</p>
-      </div>
-    `;
-
-    // Insert at the end of the editor
-    editor.insertAdjacentHTML("beforeend", placeholderHtml);
-
-    const newContent = editor.innerHTML;
-    onChange(newContent);
-    saveToHistory(newContent);
+  const deleteBlock = (id: string) => {
+    const newBlocks = blocks.filter((b) => b.id !== id);
+    setBlocks(newBlocks);
+    syncToParent(newBlocks);
   };
 
-  // Handle click on placeholder to trigger upload
-  const handlePlaceholderClick = (placeholderId: string) => {
-    setActivePlaceholderId(placeholderId);
-    fileInputRef.current?.click();
-  };
-
-  // Handle file selection - replaces the active placeholder
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activePlaceholderId) return;
-
-    const editor = editorRef.current;
-    const placeholder = editor?.querySelector(`#${activePlaceholderId}`);
-    if (!placeholder) {
-      addToast("Placeholder not found. Try again.", "error");
-      return;
-    }
-
-    // Show uploading state
-    placeholder.innerHTML = `<div style="color: #EAB308; font-weight: bold;">Uploading...</div>`;
-
+  const handleUpload = async (id: string, file: File) => {
+    setUploadingId(id);
     try {
       const url = await uploadService.uploadFile(file);
-      const imageHtml = `
-        <figure style="margin: 3rem 0; width: 100%;">
-          <img src="${url}" alt="Travel Photo" style="width: 100%; height: auto; border-radius: 2rem; display: block; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);"/>
-        </figure>
-      `;
-
-      // Replace placeholder with the actual image
-      const div = document.createElement("div");
-      div.innerHTML = imageHtml;
-      placeholder.parentNode?.replaceChild(div.firstElementChild!, placeholder);
-
-      const newContent = editor?.innerHTML || "";
-      onChange(newContent);
-      saveToHistory(newContent);
-      addToast("Image uploaded successfully!", "success");
+      const newBlocks = blocks.map((b) =>
+        b.id === id
+          ? { ...b, type: "image" as const, src: url, width: "100%" }
+          : b
+      );
+      setBlocks(newBlocks);
+      syncToParent(newBlocks);
+      addToast("Image uploaded!", "success");
     } catch (err) {
-      addToast("Upload failed. Please try again.", "error");
-      placeholder.innerHTML = `<div style="color: #ef4444;">Upload Failed. Click to retry.</div>`;
+      addToast("Upload failed", "error");
     } finally {
-      setActivePlaceholderId(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setUploadingId(null);
     }
   };
 
-  // Insert HTML from Media Library
-  const insertHtmlFromLibrary = (html: string) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    // Just append at the end - reliable and predictable
-    editor.insertAdjacentHTML("beforeend", html);
-    const newContent = editor.innerHTML;
-    onChange(newContent);
-    saveToHistory(newContent);
+  const handleResize = (id: string, width: string) => {
+    const newBlocks = blocks.map((b) => (b.id === id ? { ...b, width } : b));
+    setBlocks(newBlocks);
+    syncToParent(newBlocks);
   };
 
+  const handleTextChange = (blockId: string, newContent: string) => {
+    const newBlocks = blocks.map((b) =>
+      b.id === blockId ? { ...b, content: newContent } : b
+    );
+    setBlocks(newBlocks);
+    syncToParent(newBlocks);
+  };
+
+  // Expose insertHtml for media library
   useImperativeHandle(ref, () => ({
-    insertHtml: insertHtmlFromLibrary,
+    insertHtml: (html: string) => {
+      // Extract image src from HTML
+      const srcMatch = html.match(/src="([^"]+)"/);
+      if (srcMatch) {
+        const newBlock: Block = {
+          id: `image-${Date.now()}`,
+          type: "image",
+          content: "",
+          src: srcMatch[1],
+          width: "100%",
+        };
+        const newBlocks = [...blocks, newBlock];
+        setBlocks(newBlocks);
+        syncToParent(newBlocks);
+      }
+    },
   }));
 
-  // Event delegation for placeholder clicks
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const placeholder = target.closest(
-        `.${PLACEHOLDER_CLASS}`
-      ) as HTMLElement;
-      if (placeholder && placeholder.id) {
-        e.preventDefault();
-        e.stopPropagation();
-        handlePlaceholderClick(placeholder.id);
-      }
-    };
-
-    editor.addEventListener("click", handleClick);
-    return () => editor.removeEventListener("click", handleClick);
-  }, []);
-
-  // Sync value from props
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (editor && editor.innerHTML !== value && !isInternalUpdate.current) {
-      editor.innerHTML = value || "<p><br></p>";
-      if (history.current.length === 0) saveToHistory(value);
-    }
-  }, [value]);
-
-  const lastClickedImg = useRef<HTMLImageElement | null>(null);
-
-  // Image selection handler
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    const handleImgClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === "IMG") {
-        lastClickedImg.current = target as HTMLImageElement;
-        editor
-          .querySelectorAll("img")
-          .forEach((img) => ((img as HTMLElement).style.outline = "none"));
-        target.style.outline = "4px solid #EAB308";
-        target.style.outlineOffset = "4px";
-      } else if (!target.closest(`.${PLACEHOLDER_CLASS}`)) {
-        editor
-          .querySelectorAll("img")
-          .forEach((img) => ((img as HTMLElement).style.outline = "none"));
-        lastClickedImg.current = null;
-      }
-    };
-    editor.addEventListener("click", handleImgClick);
-    return () => editor.removeEventListener("click", handleImgClick);
-  }, []);
-
-  const deleteSelected = () => {
-    if (lastClickedImg.current) {
-      // Remove the figure wrapper if exists, otherwise just the image
-      const figure = lastClickedImg.current.closest("figure");
-      if (figure) figure.remove();
-      else lastClickedImg.current.remove();
-      lastClickedImg.current = null;
-      onChange(editorRef.current?.innerHTML || "");
-    } else {
-      document.execCommand("delete", false);
-    }
-  };
-
   const toolbarButtons = [
-    { icon: Undo2, action: undo, title: "Undo" },
-    { icon: Redo2, action: redo, title: "Redo" },
+    { icon: Undo2, action: () => document.execCommand("undo"), title: "Undo" },
+    { icon: Redo2, action: () => document.execCommand("redo"), title: "Redo" },
     { type: "divider" },
     { icon: Bold, action: () => document.execCommand("bold"), title: "Bold" },
     {
@@ -272,73 +437,24 @@ const WYSIWYGEditor_V6 = forwardRef<
     {
       icon: LinkIcon,
       action: () =>
-        document.execCommand("createLink", false, prompt("Enter URL:") || ""),
+        document.execCommand("createLink", false, prompt("URL:") || ""),
       title: "Link",
     },
     {
       icon: ImagePlus,
-      action: addImagePlaceholder,
+      action: addPlaceholder,
       title: "Add Image Block",
       highlight: true,
     },
-    { type: "divider" },
-    {
-      label: "25%",
-      action: () => {
-        if (lastClickedImg.current) {
-          lastClickedImg.current.style.width = "25%";
-          onChange(editorRef.current!.innerHTML);
-        }
-      },
-    },
-    {
-      label: "50%",
-      action: () => {
-        if (lastClickedImg.current) {
-          lastClickedImg.current.style.width = "50%";
-          onChange(editorRef.current!.innerHTML);
-        }
-      },
-    },
-    {
-      label: "100%",
-      action: () => {
-        if (lastClickedImg.current) {
-          lastClickedImg.current.style.width = "100%";
-          onChange(editorRef.current!.innerHTML);
-        }
-      },
-    },
-    { type: "divider" },
-    { icon: Trash2, action: deleteSelected, title: "Delete", danger: true },
   ];
 
   return (
-    <div className="bg-white rounded-[48px] border-8 border-slate-50 shadow-2xl min-h-[800px] relative">
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileChange}
-      />
-
+    <div className="bg-white rounded-3xl border-4 border-slate-100 shadow-xl min-h-[600px]">
       {/* Toolbar */}
-      <div className="sticky top-4 z-50 mx-6 mt-6 p-3 bg-white/95 backdrop-blur-xl rounded-[28px] border border-slate-100 shadow-xl flex flex-wrap items-center gap-1.5">
+      <div className="sticky top-0 z-50 p-3 bg-white border-b border-slate-100 rounded-t-3xl flex flex-wrap items-center gap-1">
         {toolbarButtons.map((btn, i) => {
           if (btn.type === "divider")
-            return <div key={i} className="w-px h-6 bg-slate-200 mx-1.5" />;
-          if (btn.label)
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={btn.action}
-                className="px-3 py-1.5 text-[10px] font-bold bg-slate-100 rounded-lg hover:bg-gold hover:text-navy-950 transition-all"
-              >
-                {btn.label}
-              </button>
-            );
+            return <div key={i} className="w-px h-6 bg-slate-200 mx-1" />;
           const Icon = btn.icon!;
           return (
             <button
@@ -349,35 +465,69 @@ const WYSIWYGEditor_V6 = forwardRef<
                 btn.action();
               }}
               title={btn.title}
-              className={`p-2.5 rounded-xl transition-all active:scale-90 ${
+              className={`p-2 rounded-lg transition-all ${
                 btn.highlight
-                  ? "bg-gold text-navy-950 shadow-md hover:shadow-lg"
-                  : btn.danger
-                  ? "text-red-500 hover:bg-red-50"
-                  : "text-slate-500 hover:bg-slate-100 hover:text-navy-950"
+                  ? "bg-amber-500 text-white hover:bg-amber-600"
+                  : "text-slate-500 hover:bg-slate-100"
               }`}
             >
-              <Icon size={18} strokeWidth={2.5} />
+              <Icon size={18} />
             </button>
           );
         })}
       </div>
 
-      {/* Editor Area */}
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={(e) => {
-          const content = e.currentTarget.innerHTML;
-          onChange(content);
-          saveToHistory(content);
-        }}
-        className="min-h-[700px] p-16 md:p-24 focus:outline-none prose prose-xl max-w-none font-serif text-slate-800 prose-headings:font-black prose-p:leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: value }}
-      />
+      {/* Block Editor */}
+      <div className="p-8 md:p-12 space-y-4">
+        {blocks.map((block) => {
+          if (block.type === "placeholder") {
+            return (
+              <ImagePlaceholderBlock
+                key={block.id}
+                id={block.id}
+                description={block.description}
+                onUpload={handleUpload}
+                onMoveUp={moveBlockUp}
+                onMoveDown={moveBlockDown}
+                onDelete={deleteBlock}
+                isUploading={uploadingId === block.id}
+              />
+            );
+          }
+
+          if (block.type === "image") {
+            return (
+              <ImageBlock
+                key={block.id}
+                id={block.id}
+                src={block.src!}
+                alt={block.description}
+                width={block.width || "100%"}
+                onResize={handleResize}
+                onDelete={deleteBlock}
+                onMoveUp={moveBlockUp}
+                onMoveDown={moveBlockDown}
+              />
+            );
+          }
+
+          // Text block - contenteditable div
+          return (
+            <div
+              key={block.id}
+              contentEditable
+              suppressContentEditableWarning
+              className="prose prose-lg max-w-none focus:outline-none min-h-[2rem]"
+              dangerouslySetInnerHTML={{ __html: block.content }}
+              onBlur={(e) =>
+                handleTextChange(block.id, e.currentTarget.innerHTML)
+              }
+            />
+          );
+        })}
+      </div>
     </div>
   );
 });
 
-export default WYSIWYGEditor_V6;
+export default WYSIWYGEditor_V7;

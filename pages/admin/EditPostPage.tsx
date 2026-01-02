@@ -10,7 +10,7 @@ import {
 import { postService } from "../../services/postService";
 import { aiContentService } from "../../services/aiContentService";
 import { useAuth } from "../../hooks/useAuth";
-import WYSIWYGEditor_V6 from "../../components/admin/WYSIWYGEditor";
+import WYSIWYGEditor_V7 from "../../components/admin/WYSIWYGEditor";
 import Spinner from "../../components/common/Spinner";
 import { useToast } from "../../hooks/useToast";
 import { useLanguage } from "../../localization/LanguageContext";
@@ -478,7 +478,7 @@ const EditPostPage = () => {
               isGenerating={isAiGenerating}
             />
             <div className="bg-navy-900/50 backdrop-blur-xl rounded-3xl border border-white/5 shadow-2xl min-h-[500px]">
-              <WYSIWYGEditor_V6
+              <WYSIWYGEditor_V7
                 ref={editorRef}
                 value={post.content || ""}
                 onChange={(content) => handlePostChange("content", content)}
