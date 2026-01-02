@@ -158,7 +158,7 @@ const WYSIWYGEditor_V5 = forwardRef<
 
     addToast("Writing photo to memory...", "info");
     try {
-      const { url } = await uploadService.uploadFile(file);
+      const url = await uploadService.uploadFile(file);
       const html = `<div class="media-row" style="margin: 4rem 0; width: 100%;"><img src="${url}" style="width: 100%; border-radius: 4rem; display: block; box-shadow: 0 50px 100px -20px rgba(0,0,0,0.25);" /><p style="margin-top: 2rem;"><br></p></div>`;
       insertHtmlAtNode(html, activeLineRef.current);
       addToast("Photo inserted!", "success");
