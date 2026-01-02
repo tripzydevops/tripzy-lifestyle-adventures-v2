@@ -30,7 +30,7 @@ interface WYSIWYGEditorProps {
   onMediaButtonClick: () => void;
 }
 
-const WYSIWYGEditor_V3 = forwardRef<
+const WYSIWYGEditor_V4 = forwardRef<
   { insertHtml: (html: string) => void },
   WYSIWYGEditorProps
 >(({ value, onChange, onMediaButtonClick }, ref) => {
@@ -89,7 +89,7 @@ const WYSIWYGEditor_V3 = forwardRef<
     }
   };
 
-  // --- Modern Insertion Logic ---
+  // --- Robust Insertion Logic ---
   const insertHtmlAtSelection = (html: string) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -97,8 +97,8 @@ const WYSIWYGEditor_V3 = forwardRef<
     editor.focus();
     const sel = window.getSelection();
 
-    // Restore selection if lost
-    if (lastSelection.current && sel && !editor.contains(sel.anchorNode)) {
+    // We force restoration of the LAST KNOWN good click spot
+    if (lastSelection.current && sel) {
       sel.removeAllRanges();
       sel.addRange(lastSelection.current);
     }
@@ -107,6 +107,7 @@ const WYSIWYGEditor_V3 = forwardRef<
       const range = sel.getRangeAt(0);
       if (editor.contains(range.commonAncestorContainer)) {
         range.deleteContents();
+
         const div = document.createElement("div");
         div.innerHTML = html;
         const fragment = document.createDocumentFragment();
@@ -114,18 +115,24 @@ const WYSIWYGEditor_V3 = forwardRef<
         while (div.firstChild) lastNode = fragment.appendChild(div.firstChild);
         range.insertNode(fragment);
 
-        // Select after the insert
-        if (lastNode) {
-          const newRange = document.createRange();
-          newRange.setStartAfter(lastNode);
-          newRange.setEndAfter(lastNode);
-          sel.removeAllRanges();
-          sel.addRange(newRange);
-          lastSelection.current = newRange.cloneRange();
+        // Auto-insert a paragraph AFTER the photo to ensure clickability
+        const p = document.createElement("p");
+        p.innerHTML = "<br>";
+        if (lastNode && lastNode.parentNode) {
+          lastNode.parentNode.insertBefore(p, lastNode.nextSibling);
         }
+
+        // Selection remains at the new line
+        const newRange = document.createRange();
+        newRange.setStart(p, 0);
+        newRange.setEnd(p, 0);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+        lastSelection.current = newRange.cloneRange();
       }
     } else {
-      document.execCommand("insertHTML", false, html);
+      // Ultimate Fallback: Just append if we have no clue where to go
+      editor.innerHTML += html;
     }
 
     const freshContent = editor.innerHTML;
@@ -163,12 +170,13 @@ const WYSIWYGEditor_V3 = forwardRef<
     const file = e.target.files?.[0];
     if (!file) return;
 
-    addToast("Uploading directly to post...", "info");
+    addToast("Uploading directly to your story...", "info");
     try {
       const { url } = await uploadService.uploadFile(file);
-      const html = `<img src="${url}" style="width: 100%; height: auto; border-radius: 2rem; display: block; margin: 3rem auto;" /><p><br></p>`;
+      // We wrap the image in a block to make it more 'clickable' on either side
+      const html = `<div class="media-block" style="margin: 4rem 0; width: 100%;"><img src="${url}" style="width: 100%; height: auto; border-radius: 4rem; display: block; box-shadow: 0 40px 100px rgba(0,0,0,0.2);" /></div>`;
       insertHtmlAtSelection(html);
-      addToast("Image uploaded!", "success");
+      addToast("Photo placed!", "success");
     } catch (err) {
       addToast("Upload failed.", "error");
     } finally {
@@ -182,6 +190,7 @@ const WYSIWYGEditor_V3 = forwardRef<
     const editor = editorRef.current;
     if (!editor) return;
 
+    // Fix: Clicking an image should definitively focus its spot
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === "IMG") {
@@ -189,13 +198,15 @@ const WYSIWYGEditor_V3 = forwardRef<
         editor
           .querySelectorAll("img")
           .forEach((i) => ((i as HTMLElement).style.outline = "none"));
-        target.style.outline = "6px solid #EAB308";
+        target.style.outline = "8px solid #EAB308";
         target.style.outlineOffset = "4px";
+        saveSelection(); // Locking this spot
       } else {
         editor
           .querySelectorAll("img")
           .forEach((i) => ((i as HTMLElement).style.outline = "none"));
         lastClickedImg.current = null;
+        saveSelection();
       }
     };
     editor.addEventListener("click", handleClick);
@@ -205,7 +216,8 @@ const WYSIWYGEditor_V3 = forwardRef<
   useEffect(() => {
     const editor = editorRef.current;
     if (editor && editor.innerHTML !== value && !isInternalUpdate.current) {
-      editor.innerHTML = value;
+      // Use hidden spans to ensure empty lines stay clickable
+      editor.innerHTML = value || "<p><br></p>";
       if (history.current.length === 0) saveToHistory(value);
     }
   }, [value]);
@@ -240,17 +252,6 @@ const WYSIWYGEditor_V3 = forwardRef<
       icon: Heading3,
       action: () => document.execCommand("formatBlock", false, "h3"),
       title: "Heading 3",
-    },
-    { type: "divider" },
-    {
-      icon: List,
-      action: () => document.execCommand("insertUnorderedList"),
-      title: "Unordered List",
-    },
-    {
-      icon: ListOrdered,
-      action: () => document.execCommand("insertOrderedList"),
-      title: "Ordered List",
     },
     { type: "divider" },
     {
@@ -292,7 +293,7 @@ const WYSIWYGEditor_V3 = forwardRef<
   ];
 
   return (
-    <div className="bg-white rounded-[48px] border-4 border-slate-100 shadow-2xl min-h-[1000px] relative">
+    <div className="bg-white rounded-[64px] border-[12px] border-slate-50 shadow-2xl min-h-[1200px] relative overflow-visible group/editor transition-shadow hover:shadow-gold/5">
       <input
         type="file"
         ref={fileInputRef}
@@ -300,17 +301,19 @@ const WYSIWYGEditor_V3 = forwardRef<
         accept="image/*"
         onChange={handleDirectUpload}
       />
-      <div className="p-4 border-b border-slate-50 bg-slate-50/50 backdrop-blur-3xl flex items-center flex-wrap gap-1.5 sticky top-8 z-50 mx-6 mt-6 rounded-[32px] shadow-2xl border border-white">
+
+      {/* Floating Toolbar */}
+      <div className="p-3 border border-slate-200/50 bg-white/95 backdrop-blur-3xl flex items-center flex-wrap gap-1.5 sticky top-8 z-50 mx-10 mt-10 rounded-[32px] shadow-[0_32px_100px_-20px_rgba(0,0,0,0.15)] animate-in slide-in-from-top-4 duration-700">
         {toolbarButtons.map((btn, index) => {
           if (btn.type === "divider")
-            return <div key={index} className="w-px h-8 bg-slate-200 mx-2" />;
+            return <div key={index} className="w-px h-8 bg-slate-100 mx-2" />;
           if (btn.label)
             return (
               <button
                 key={index}
                 type="button"
                 onClick={btn.action}
-                className="px-4 py-2 text-[10px] font-black bg-white text-slate-800 rounded-2xl hover:bg-gold hover:text-navy-950 transition-all shadow-sm active:scale-90 border border-slate-100 italic"
+                className="px-5 py-2 text-[11px] font-black bg-slate-50 text-slate-900 rounded-2xl hover:bg-gold hover:text-navy-950 transition-all active:scale-90 border border-slate-100/50 uppercase tracking-widest shadow-sm"
               >
                 {btn.label}
               </button>
@@ -325,9 +328,9 @@ const WYSIWYGEditor_V3 = forwardRef<
                 btn.action();
               }}
               title={btn.title}
-              className={`p-3 rounded-[18px] transition-all active:scale-50 ${
+              className={`p-3.5 rounded-[20px] transition-all active:scale-50 ${
                 btn.danger
-                  ? "text-red-500 hover:bg-red-50 shadow-sm"
+                  ? "text-red-500 hover:bg-red-50 hover:shadow-inner"
                   : "text-slate-400 hover:bg-white hover:text-navy-950 hover:shadow-xl hover:border-slate-100 border border-transparent"
               }`}
               onMouseDown={(e) => {
@@ -335,11 +338,12 @@ const WYSIWYGEditor_V3 = forwardRef<
                 saveSelection();
               }}
             >
-              <Icon size={22} strokeWidth={2.5} />
+              <Icon size={22} strokeWidth={3} />
             </button>
           );
         })}
       </div>
+
       <div
         ref={editorRef}
         onInput={(e) => {
@@ -351,7 +355,7 @@ const WYSIWYGEditor_V3 = forwardRef<
         onKeyUp={saveSelection}
         onBlur={saveSelection}
         contentEditable
-        className="w-full min-h-[1000px] p-24 focus:outline-none prose prose-2xl max-w-none font-serif text-slate-900 prose-img:rounded-[3.5rem] prose-img:cursor-pointer prose-img:transition-all prose-img:duration-700 hover:prose-img:scale-[1.01] prose-p:leading-loose prose-headings:font-black"
+        className="w-full min-h-[1000px] p-32 focus:outline-none prose prose-2xl max-w-none font-serif text-slate-800 prose-img:rounded-[4rem] prose-img:cursor-pointer prose-img:transition-all prose-img:duration-1000 hover:prose-img:scale-[1.01] prose-p:leading-relaxed prose-p:mb-8 prose-headings:font-black prose-headings:tracking-tighter prose-headings:text-slate-900 cursor-text"
         suppressContentEditableWarning={true}
         dangerouslySetInnerHTML={{ __html: value }}
       />
@@ -359,4 +363,4 @@ const WYSIWYGEditor_V3 = forwardRef<
   );
 });
 
-export default WYSIWYGEditor_V3;
+export default WYSIWYGEditor_V4;
