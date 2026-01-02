@@ -16,8 +16,10 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
+    // If authenticated, always go to dashboard
     if (isAuthenticated) {
-      navigate("/admin/dashboard");
+      console.log("Authenticated, redirecting to dashboard...");
+      navigate("/admin/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
