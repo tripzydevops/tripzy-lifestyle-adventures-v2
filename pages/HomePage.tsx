@@ -8,6 +8,7 @@ import { postService } from "../services/postService";
 import SEO from "../components/common/SEO";
 import Pagination from "../components/common/Pagination";
 import { Play, ArrowRight, Sparkles, MapPin, ExternalLink } from "lucide-react";
+import { useLanguage } from "../localization/LanguageContext";
 
 const TRIPZY_APP_URL =
   import.meta.env.VITE_TRIPZY_APP_URL || "https://tripzy.travel";
@@ -35,6 +36,7 @@ const FEATURED_VIDEOS = [
 ];
 
 const HomePage = () => {
+  const { t } = useLanguage();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,14 +78,14 @@ const HomePage = () => {
             <div className="inline-flex items-center gap-2 bg-gold/10 border border-gold/30 rounded-full px-4 py-2 mb-6 animate-fade-in">
               <Sparkles className="w-4 h-4 text-gold" />
               <span className="text-gold text-sm font-medium">
-                Your Travel Adventure Starts Here
+                {t("homepage.heroBadge")}
               </span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold font-serif mb-6 animate-slide-up">
-              <span className="text-white">Live Your </span>
+              <span className="text-white">{t("homepage.heroTitle1")}</span>
               <span className="bg-gradient-to-r from-gold via-gold-light to-primary-light bg-clip-text text-transparent">
-                Adventure
+                {t("homepage.heroTitle2")}
               </span>
             </h1>
 
@@ -91,8 +93,7 @@ const HomePage = () => {
               className="text-xl md:text-2xl text-slate-300 font-light mb-8 max-w-2xl mx-auto animate-fade-in"
               style={{ animationDelay: "0.2s" }}
             >
-              Discover stories, tips, and guides from our travels across the
-              globe.
+              {t("homepage.heroSubtitle")}
             </p>
 
             <div
@@ -103,7 +104,7 @@ const HomePage = () => {
                 href="#latest-stories"
                 className="btn bg-gradient-to-r from-primary to-primary-dark text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all hover:-translate-y-1"
               >
-                Explore Stories
+                {t("homepage.exploreStories")}
               </a>
               <a
                 href={TRIPZY_APP_URL}
@@ -112,7 +113,7 @@ const HomePage = () => {
                 className="btn bg-gradient-to-r from-gold to-gold-dark text-navy-950 px-8 py-4 rounded-xl font-semibold hover:shadow-lg hover:shadow-gold/30 transition-all hover:-translate-y-1 flex items-center gap-2"
               >
                 <MapPin className="w-5 h-5" />
-                Find Deals on Tripzy
+                {t("homepage.findDeals")}
                 <ExternalLink className="w-4 h-4" />
               </a>
             </div>
