@@ -34,10 +34,64 @@ const WYSIWYGEditor = forwardRef<
   const editorRef = useRef<HTMLDivElement>(null);
   const lastSelection = useRef<Range | null>(null);
 
+  // --- Manual History Engine ---
+  const history = useRef<string[]>([]);
+  const historyIndex = useRef<number>(-1);
+  const isInternalUpdate = useRef<boolean>(false);
+
+  const saveToHistory = (content: string) => {
+    // Don't save if identical to current position
+    if (
+      historyIndex.current >= 0 &&
+      history.current[historyIndex.current] === content
+    )
+      return;
+
+    // Truncate future if we are in the middle of undoing
+    const newHistory = history.current.slice(0, historyIndex.current + 1);
+    newHistory.push(content);
+
+    // Limit history size to 50 steps
+    if (newHistory.length > 50) newHistory.shift();
+
+    history.current = newHistory;
+    historyIndex.current = newHistory.length - 1;
+  };
+
+  const undo = () => {
+    if (historyIndex.current > 0) {
+      historyIndex.current--;
+      const content = history.current[historyIndex.current];
+      isInternalUpdate.current = true;
+      if (editorRef.current) editorRef.current.innerHTML = content;
+      onChange(content);
+      setTimeout(() => {
+        isInternalUpdate.current = false;
+      }, 10);
+    }
+  };
+
+  const redo = () => {
+    if (historyIndex.current < history.current.length - 1) {
+      historyIndex.current++;
+      const content = history.current[historyIndex.current];
+      isInternalUpdate.current = true;
+      if (editorRef.current) editorRef.current.innerHTML = content;
+      onChange(content);
+      setTimeout(() => {
+        isInternalUpdate.current = false;
+      }, 10);
+    }
+  };
+
   useEffect(() => {
     const editor = editorRef.current;
-    if (editor && editor.innerHTML !== value) {
+    if (editor && editor.innerHTML !== value && !isInternalUpdate.current) {
       editor.innerHTML = value;
+      // Initialize history if empty
+      if (history.current.length === 0) {
+        saveToHistory(value);
+      }
     }
   }, [value]);
 
@@ -49,33 +103,69 @@ const WYSIWYGEditor = forwardRef<
       editor.focus();
       const selection = window.getSelection();
 
+      // If we have a saved selection, restore it with extra care
       if (lastSelection.current && selection) {
         try {
           selection.removeAllRanges();
           selection.addRange(lastSelection.current);
         } catch (e) {
-          console.warn("Failed to restore selection:", e);
+          console.warn("Selection restoration failed, falling back...");
         }
       }
 
-      document.execCommand("insertHTML", false, html);
-      onChange(editor.innerHTML);
+      // Modern insertion approach using Range API
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        // Ensure range is inside editor
+        if (editor.contains(range.commonAncestorContainer)) {
+          range.deleteContents();
 
-      const newSelection = window.getSelection();
-      if (newSelection && newSelection.rangeCount > 0) {
-        lastSelection.current = newSelection.getRangeAt(0);
+          const div = document.createElement("div");
+          div.innerHTML = html;
+          const fragment = document.createDocumentFragment();
+          let lastNode;
+          while (div.firstChild) {
+            lastNode = fragment.appendChild(div.firstChild);
+          }
+          range.insertNode(fragment);
+
+          // Move cursor to after the inserted content
+          if (lastNode) {
+            const newRange = document.createRange();
+            newRange.setStartAfter(lastNode);
+            newRange.setEndAfter(lastNode);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+            lastSelection.current = newRange.cloneRange();
+          }
+        }
+      } else {
+        // Fallback to execCommand if range logic fails
+        document.execCommand("insertHTML", false, html);
       }
+
+      const newContent = editor.innerHTML;
+      onChange(newContent);
+      saveToHistory(newContent);
     },
   }));
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
-    onChange(e.currentTarget.innerHTML);
+    if (isInternalUpdate.current) return;
+    const content = e.currentTarget.innerHTML;
+    onChange(content);
+    saveToHistory(content);
   };
 
   const saveSelection = () => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
-      lastSelection.current = selection.getRangeAt(0);
+      const range = selection.getRangeAt(0);
+      // Ensure the range is actually inside the editor
+      if (editorRef.current?.contains(range.commonAncestorContainer)) {
+        lastSelection.current = range.cloneRange();
+      }
     }
   };
 
@@ -84,94 +174,35 @@ const WYSIWYGEditor = forwardRef<
   };
 
   const execCmd = (command: string, valueArg?: string) => {
+    if (command === "undo") {
+      undo();
+      return;
+    }
+    if (command === "redo") {
+      redo();
+      return;
+    }
+
     document.execCommand(command, false, valueArg);
     editorRef.current?.focus();
-    if (editorRef.current) onChange(editorRef.current.innerHTML);
+    if (editorRef.current) {
+      const newContent = editorRef.current.innerHTML;
+      onChange(newContent);
+      saveToHistory(newContent);
+    }
   };
 
   const insertImageUrl = () => {
+    saveSelection();
     const url = prompt(
       "Paste the image URL (e.g., https://example.com/photo.jpg):"
     );
     if (url) {
-      const html = `<img src="${url}" alt="External Image" style="width: 100%; height: auto; border-radius: 0.5rem;" /><p><br></p>`;
-      // Use the internal handle to ensure cursor position
-      const editor = editorRef.current;
+      const html = `<img src="${url}" alt="External Image" style="width: 100%; height: auto; border-radius: 1.5rem; display: block; margin: 2.5rem auto;" /><p><br></p>`;
+      const editor = (ref as any).current;
       if (editor) {
-        editor.focus();
-        document.execCommand("insertHTML", false, html);
-        onChange(editor.innerHTML);
+        editor.insertHtml(html);
       }
-    }
-  };
-
-  const resizeImage = (width: string) => {
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      let node = selection.anchorNode;
-      // If we clicked the image itself, anchorNode might be the parent, or the node itself
-      if (node && node.nodeType === 3) node = node.parentNode;
-
-      const img =
-        (node as HTMLElement)?.closest("img") ||
-        editorRef.current?.querySelector("img:focus");
-
-      if (img) {
-        (img as HTMLElement).style.width = width;
-        (img as HTMLElement).style.height = "auto";
-        onChange(editorRef.current!.innerHTML);
-      } else {
-        // Fallback: try to find the image in the current selection range
-        const range = selection.getRangeAt(0);
-        const container = document.createElement("div");
-        container.appendChild(range.cloneContents());
-        if (container.querySelector("img")) {
-          // If we found an image in the selection, we wrap the command
-          document.execCommand("formatBlock", false, "div"); // Dummy to ensure we have a handle
-          const images = editorRef.current?.querySelectorAll("img");
-          // This is a bit complex for a basic execCommand editor, so we use a simpler strategy:
-          // Just look for the MOST RECENTLY clicked image.
-        }
-      }
-    }
-    // Simplest reliable way: User clicks image, then clicks size.
-    // We add a global listener for the "last clicked image"
-  };
-
-  const lastClickedImg = useRef<HTMLImageElement | null>(null);
-
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    const handleClick = (e: MouseEvent) => {
-      if ((e.target as HTMLElement).tagName === "IMG") {
-        lastClickedImg.current = e.target as HTMLImageElement;
-        // Visual feedback
-        editor
-          .querySelectorAll("img")
-          .forEach((i) => (i.style.outline = "none"));
-        (e.target as HTMLElement).style.outline = "2px solid #EAB308";
-      } else {
-        editor
-          .querySelectorAll("img")
-          .forEach((i) => (i.style.outline = "none"));
-      }
-    };
-
-    editor.addEventListener("click", handleClick);
-    return () => editor.removeEventListener("click", handleClick);
-  }, []);
-
-  const setSize = (width: string) => {
-    if (lastClickedImg.current) {
-      lastClickedImg.current.style.width = width;
-      lastClickedImg.current.style.height = "auto";
-      onChange(editorRef.current!.innerHTML);
-    } else {
-      // Assuming addToast is defined elsewhere or needs to be added
-      // addToast("Click an image first to resize it", "info");
-      console.warn("Click an image first to resize it");
     }
   };
 
@@ -190,6 +221,49 @@ const WYSIWYGEditor = forwardRef<
 
   const formatBlock = (tag: string) => {
     execCmd("formatBlock", tag);
+  };
+
+  const lastClickedImg = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "IMG") {
+        lastClickedImg.current = target as HTMLImageElement;
+        editor.querySelectorAll("img").forEach((i) => {
+          (i as HTMLElement).style.outline = "none";
+          (i as HTMLElement).style.boxShadow = "none";
+        });
+        target.style.outline = "4px solid #EAB308";
+        target.style.outlineOffset = "4px";
+        target.style.boxShadow = "0 0 40px rgba(234, 179, 8, 0.3)";
+      } else {
+        editor.querySelectorAll("img").forEach((i) => {
+          (i as HTMLElement).style.outline = "none";
+          (i as HTMLElement).style.boxShadow = "none";
+        });
+        lastClickedImg.current = null;
+      }
+    };
+
+    editor.addEventListener("click", handleClick);
+    return () => editor.removeEventListener("click", handleClick);
+  }, []);
+
+  const setSize = (width: string) => {
+    if (lastClickedImg.current) {
+      lastClickedImg.current.style.width = width;
+      lastClickedImg.current.style.height = "auto";
+      if (editorRef.current) {
+        onChange(editorRef.current.innerHTML);
+        saveToHistory(editorRef.current.innerHTML);
+      }
+    } else {
+      console.warn("Click an image first to resize it");
+    }
   };
 
   const toolbarButtons = [
@@ -219,9 +293,10 @@ const WYSIWYGEditor = forwardRef<
     { icon: ImagePlus, action: insertImageUrl, title: "Insert URL Image" },
     { icon: Film, action: onMediaButtonClick, title: "Media Library" },
     { type: "divider" },
-    { label: "25%", action: () => setSize("25%"), title: "Small" },
-    { label: "50%", action: () => setSize("50%"), title: "Medium" },
-    { label: "100%", action: () => setSize("100%"), title: "Full" },
+    { label: "S", action: () => setSize("25%"), title: "Small (25%)" },
+    { label: "M", action: () => setSize("50%"), title: "Medium (50%)" },
+    { label: "L", action: () => setSize("75%"), title: "Large (75%)" },
+    { label: "Full", action: () => setSize("100%"), title: "Full Width" },
     { type: "divider" },
     {
       icon: Trash2,
@@ -232,14 +307,14 @@ const WYSIWYGEditor = forwardRef<
   ];
 
   return (
-    <div className="bg-white rounded-md border border-gray-300 shadow-inner">
-      <div className="p-2 border-b border-gray-300 bg-gray-50 rounded-t-md flex items-center flex-wrap gap-1 sticky top-0 z-10">
+    <div className="bg-white rounded-[40px] border border-gray-200 shadow-2xl group/editor transition-all duration-500 hover:border-gold/30 min-h-[900px] relative">
+      <div className="p-4 border-b border-gray-100 bg-gray-50/95 backdrop-blur-xl flex items-center flex-wrap gap-1.5 sticky top-4 z-30 mx-4 mt-4 rounded-2xl shadow-lg border border-gray-200/50">
         {toolbarButtons.map((btn, index) => {
           if (btn.type === "divider") {
             return (
               <div
                 key={`divider-${index}`}
-                className="w-px h-6 bg-gray-300 mx-1"
+                className="w-px h-6 bg-gray-200 mx-2"
               />
             );
           }
@@ -249,7 +324,8 @@ const WYSIWYGEditor = forwardRef<
                 key={index}
                 type="button"
                 onClick={btn.action}
-                className="px-2 py-1 text-[10px] font-bold bg-gray-200 text-gray-700 rounded hover:bg-gold hover:text-navy-950 transition-all"
+                title={btn.title}
+                className="px-3 py-1.5 text-[10px] font-bold bg-white border border-gray-200 text-slate-600 rounded-xl hover:bg-gold hover:border-gold hover:text-navy-950 transition-all shadow-sm active:scale-90"
               >
                 {btn.label}
               </button>
@@ -262,14 +338,17 @@ const WYSIWYGEditor = forwardRef<
               type="button"
               onClick={btn.action}
               title={btn.title}
-              className={`p-2 rounded-md transition-all ${
+              className={`p-2.5 rounded-2xl transition-all active:scale-75 ${
                 btn.danger
                   ? "text-red-500 hover:bg-red-50"
-                  : "text-gray-600 hover:bg-gray-200"
+                  : "text-slate-400 hover:bg-white hover:text-navy-950 hover:shadow-md hover:border-gray-100 border border-transparent"
               }`}
-              onMouseDown={(e) => e.preventDefault()}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
             >
-              <Icon size={16} />
+              <Icon size={18} strokeWidth={2.5} />
             </button>
           );
         })}
@@ -281,7 +360,7 @@ const WYSIWYGEditor = forwardRef<
         onMouseUp={saveSelection}
         onKeyUp={saveSelection}
         contentEditable
-        className="w-full min-h-[700px] p-10 focus:outline-none overflow-y-auto prose prose-lg max-w-none font-serif text-black prose-img:rounded-2xl prose-img:cursor-pointer prose-img:m-auto prose-img:my-8"
+        className="w-full min-h-[900px] p-16 focus:outline-none overflow-y-auto prose prose-2xl max-w-none font-serif text-slate-800 prose-img:rounded-[2.5rem] prose-img:cursor-pointer prose-img:transition-all prose-img:duration-500 prose-img:border-8 prose-img:border-transparent hover:prose-img:border-gold/10 prose-p:leading-relaxed prose-headings:font-bold"
         suppressContentEditableWarning={true}
         dangerouslySetInnerHTML={{ __html: value }}
       />

@@ -473,7 +473,7 @@ const EditPostPage = () => {
             />
 
             {/* Main Editor */}
-            <div className="bg-navy-900/50 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden shadow-2xl min-h-[500px]">
+            <div className="bg-navy-900/50 backdrop-blur-xl rounded-3xl border border-white/5 shadow-2xl min-h-[500px]">
               <WYSIWYGEditor
                 ref={editorRef}
                 value={post.content || ""}
