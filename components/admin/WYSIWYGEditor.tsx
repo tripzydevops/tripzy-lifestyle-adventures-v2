@@ -9,20 +9,14 @@ import {
   Bold,
   Italic,
   Underline,
-  List,
-  ListOrdered,
   Link as LinkIcon,
-  Pilcrow,
   Heading2,
   Heading3,
-  Film,
   Undo2,
   Redo2,
   Trash2,
   ImagePlus,
-  Upload,
-  Plus,
-  Image as ImageIcon,
+  GripVertical,
 } from "lucide-react";
 import { uploadService } from "../../services/uploadService";
 import { useToast } from "../../hooks/useToast";
@@ -33,27 +27,24 @@ interface WYSIWYGEditorProps {
   onMediaButtonClick: () => void;
 }
 
-const WYSIWYGEditor_V5 = forwardRef<
+// A unique ID for image placeholders
+const PLACEHOLDER_CLASS = "tripzy-image-placeholder";
+
+const WYSIWYGEditor_V6 = forwardRef<
   { insertHtml: (html: string) => void },
   WYSIWYGEditorProps
 >(({ value, onChange, onMediaButtonClick }, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
-  const lastSelection = useRef<Range | null>(null);
-  const isInternalUpdate = useRef<boolean>(false);
-  const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isInternalUpdate = useRef(false);
+  const { addToast } = useToast();
+  const [activePlaceholderId, setActivePlaceholderId] = useState<string | null>(
+    null
+  );
 
-  // Floating UI state
-  const [floatingMenuPos, setFloatingMenuPos] = useState<{
-    top: number;
-    visible: boolean;
-  }>({ top: 0, visible: false });
-  const [showPlusMenu, setShowPlusMenu] = useState(false);
-  const activeLineRef = useRef<HTMLElement | null>(null);
-
-  // --- Manual History ---
+  // --- History ---
   const history = useRef<string[]>([]);
-  const historyIndex = useRef<number>(-1);
+  const historyIndex = useRef(-1);
 
   const saveToHistory = (content: string) => {
     if (
@@ -73,10 +64,7 @@ const WYSIWYGEditor_V5 = forwardRef<
       historyIndex.current--;
       const content = history.current[historyIndex.current];
       isInternalUpdate.current = true;
-      if (editorRef.current) {
-        editorRef.current.innerHTML = content;
-        editorRef.current.focus();
-      }
+      if (editorRef.current) editorRef.current.innerHTML = content;
       onChange(content);
       setTimeout(() => {
         isInternalUpdate.current = false;
@@ -89,10 +77,7 @@ const WYSIWYGEditor_V5 = forwardRef<
       historyIndex.current++;
       const content = history.current[historyIndex.current];
       isInternalUpdate.current = true;
-      if (editorRef.current) {
-        editorRef.current.innerHTML = content;
-        editorRef.current.focus();
-      }
+      if (editorRef.current) editorRef.current.innerHTML = content;
       onChange(content);
       setTimeout(() => {
         isInternalUpdate.current = false;
@@ -100,109 +85,115 @@ const WYSIWYGEditor_V5 = forwardRef<
     }
   };
 
-  // --- Reliable Insertion ---
-  const insertHtmlAtNode = (html: string, targetNode: HTMLElement | null) => {
+  // --- Placeholder System ---
+  const addImagePlaceholder = () => {
     const editor = editorRef.current;
     if (!editor) return;
 
-    if (targetNode && editor.contains(targetNode)) {
-      // Replaces the placeholder line or active line
-      const div = document.createElement("div");
-      div.innerHTML = html;
-      const fragment = document.createDocumentFragment();
-      while (div.firstChild) fragment.appendChild(div.firstChild);
+    const id = `placeholder-${Date.now()}`;
+    const placeholderHtml = `
+      <div id="${id}" class="${PLACEHOLDER_CLASS}" contenteditable="false" draggable="true" style="margin: 2rem 0; padding: 3rem; border: 3px dashed #EAB308; border-radius: 2rem; background: rgba(234, 179, 8, 0.05); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; cursor: pointer; transition: all 0.3s;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: #EAB308; font-weight: bold; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          Click to Upload Image
+        </div>
+        <p style="color: #64748b; font-size: 0.7rem; margin: 0;">Or drag this block to reposition it</p>
+      </div>
+    `;
 
-      targetNode.parentNode?.replaceChild(fragment, targetNode);
-    } else {
-      // Fallback: standard selection
-      editor.focus();
-      document.execCommand("insertHTML", false, html);
-    }
+    // Insert at the end of the editor
+    editor.insertAdjacentHTML("beforeend", placeholderHtml);
 
-    const freshContent = editor.innerHTML;
-    onChange(freshContent);
-    saveToHistory(freshContent);
-    setShowPlusMenu(false);
-    setFloatingMenuPos((prev) => ({ ...prev, visible: false }));
+    const newContent = editor.innerHTML;
+    onChange(newContent);
+    saveToHistory(newContent);
   };
 
-  useImperativeHandle(ref, () => ({
-    insertHtml: (html) => insertHtmlAtNode(html, activeLineRef.current),
-  }));
-
-  const saveSelection = () => {
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      if (editorRef.current?.contains(range.commonAncestorContainer)) {
-        lastSelection.current = range.cloneRange();
-
-        // Find the block-level element the user is on
-        let node = range.startContainer as Node;
-        while (node && node.parentNode !== editorRef.current) {
-          node = node.parentNode!;
-        }
-        if (node && node instanceof HTMLElement) {
-          activeLineRef.current = node;
-          const rect = node.getBoundingClientRect();
-          const editorRect = editorRef.current.getBoundingClientRect();
-          setFloatingMenuPos({ top: rect.top - editorRect.top, visible: true });
-        }
-      }
-    }
+  // Handle click on placeholder to trigger upload
+  const handlePlaceholderClick = (placeholderId: string) => {
+    setActivePlaceholderId(placeholderId);
+    fileInputRef.current?.click();
   };
 
-  const handleDirectUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle file selection - replaces the active placeholder
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !activePlaceholderId) return;
 
-    addToast("Writing photo to memory...", "info");
+    const editor = editorRef.current;
+    const placeholder = editor?.querySelector(`#${activePlaceholderId}`);
+    if (!placeholder) {
+      addToast("Placeholder not found. Try again.", "error");
+      return;
+    }
+
+    // Show uploading state
+    placeholder.innerHTML = `<div style="color: #EAB308; font-weight: bold;">Uploading...</div>`;
+
     try {
       const url = await uploadService.uploadFile(file);
-      const html = `<div class="media-row" style="margin: 4rem 0; width: 100%;"><img src="${url}" style="width: 100%; border-radius: 4rem; display: block; box-shadow: 0 50px 100px -20px rgba(0,0,0,0.25);" /><p style="margin-top: 2rem;"><br></p></div>`;
-      insertHtmlAtNode(html, activeLineRef.current);
-      addToast("Photo inserted!", "success");
+      const imageHtml = `
+        <figure style="margin: 3rem 0; width: 100%;">
+          <img src="${url}" alt="Travel Photo" style="width: 100%; height: auto; border-radius: 2rem; display: block; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);"/>
+        </figure>
+      `;
+
+      // Replace placeholder with the actual image
+      const div = document.createElement("div");
+      div.innerHTML = imageHtml;
+      placeholder.parentNode?.replaceChild(div.firstElementChild!, placeholder);
+
+      const newContent = editor?.innerHTML || "";
+      onChange(newContent);
+      saveToHistory(newContent);
+      addToast("Image uploaded successfully!", "success");
     } catch (err) {
-      addToast("Upload failed.", "error");
+      addToast("Upload failed. Please try again.", "error");
+      placeholder.innerHTML = `<div style="color: #ef4444;">Upload Failed. Click to retry.</div>`;
     } finally {
+      setActivePlaceholderId(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const lastClickedImg = useRef<HTMLImageElement | null>(null);
+  // Insert HTML from Media Library
+  const insertHtmlFromLibrary = (html: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
 
+    // Just append at the end - reliable and predictable
+    editor.insertAdjacentHTML("beforeend", html);
+    const newContent = editor.innerHTML;
+    onChange(newContent);
+    saveToHistory(newContent);
+  };
+
+  useImperativeHandle(ref, () => ({
+    insertHtml: insertHtmlFromLibrary,
+  }));
+
+  // Event delegation for placeholder clicks
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
 
-    const handleInteraction = (e: MouseEvent | KeyboardEvent) => {
-      saveSelection();
-
-      // Manage Image Selection UI
+    const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === "IMG") {
-        lastClickedImg.current = target as HTMLImageElement;
-        editor
-          .querySelectorAll("img")
-          .forEach((i) => ((i as HTMLElement).style.outline = "none"));
-        target.style.outline = "8px solid #EAB308";
-        target.style.outlineOffset = "4px";
-      } else if (e.type === "click") {
-        editor
-          .querySelectorAll("img")
-          .forEach((i) => ((i as HTMLElement).style.outline = "none"));
-        lastClickedImg.current = null;
+      const placeholder = target.closest(
+        `.${PLACEHOLDER_CLASS}`
+      ) as HTMLElement;
+      if (placeholder && placeholder.id) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlePlaceholderClick(placeholder.id);
       }
     };
 
-    editor.addEventListener("click", handleInteraction);
-    editor.addEventListener("keyup", handleInteraction);
-    return () => {
-      editor.removeEventListener("click", handleInteraction);
-      editor.removeEventListener("keyup", handleInteraction);
-    };
+    editor.addEventListener("click", handleClick);
+    return () => editor.removeEventListener("click", handleClick);
   }, []);
 
+  // Sync value from props
   useEffect(() => {
     const editor = editorRef.current;
     if (editor && editor.innerHTML !== value && !isInternalUpdate.current) {
@@ -210,6 +201,46 @@ const WYSIWYGEditor_V5 = forwardRef<
       if (history.current.length === 0) saveToHistory(value);
     }
   }, [value]);
+
+  const lastClickedImg = useRef<HTMLImageElement | null>(null);
+
+  // Image selection handler
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const handleImgClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "IMG") {
+        lastClickedImg.current = target as HTMLImageElement;
+        editor
+          .querySelectorAll("img")
+          .forEach((img) => ((img as HTMLElement).style.outline = "none"));
+        target.style.outline = "4px solid #EAB308";
+        target.style.outlineOffset = "4px";
+      } else if (!target.closest(`.${PLACEHOLDER_CLASS}`)) {
+        editor
+          .querySelectorAll("img")
+          .forEach((img) => ((img as HTMLElement).style.outline = "none"));
+        lastClickedImg.current = null;
+      }
+    };
+    editor.addEventListener("click", handleImgClick);
+    return () => editor.removeEventListener("click", handleImgClick);
+  }, []);
+
+  const deleteSelected = () => {
+    if (lastClickedImg.current) {
+      // Remove the figure wrapper if exists, otherwise just the image
+      const figure = lastClickedImg.current.closest("figure");
+      if (figure) figure.remove();
+      else lastClickedImg.current.remove();
+      lastClickedImg.current = null;
+      onChange(editorRef.current?.innerHTML || "");
+    } else {
+      document.execCommand("delete", false);
+    }
+  };
 
   const toolbarButtons = [
     { icon: Undo2, action: undo, title: "Undo" },
@@ -239,137 +270,114 @@ const WYSIWYGEditor_V5 = forwardRef<
     },
     { type: "divider" },
     {
-      icon: List,
-      action: () => document.execCommand("insertUnorderedList"),
-      title: "List",
-    },
-    {
       icon: LinkIcon,
       action: () =>
-        document.execCommand("createLink", false, prompt("URL:") || ""),
+        document.execCommand("createLink", false, prompt("Enter URL:") || ""),
       title: "Link",
     },
     {
-      icon: Trash2,
-      action: () => {
-        if (lastClickedImg.current) lastClickedImg.current.remove();
-        else document.execCommand("delete");
-        onChange(editorRef.current!.innerHTML);
-      },
-      title: "Delete",
-      danger: true,
+      icon: ImagePlus,
+      action: addImagePlaceholder,
+      title: "Add Image Block",
+      highlight: true,
     },
+    { type: "divider" },
+    {
+      label: "25%",
+      action: () => {
+        if (lastClickedImg.current) {
+          lastClickedImg.current.style.width = "25%";
+          onChange(editorRef.current!.innerHTML);
+        }
+      },
+    },
+    {
+      label: "50%",
+      action: () => {
+        if (lastClickedImg.current) {
+          lastClickedImg.current.style.width = "50%";
+          onChange(editorRef.current!.innerHTML);
+        }
+      },
+    },
+    {
+      label: "100%",
+      action: () => {
+        if (lastClickedImg.current) {
+          lastClickedImg.current.style.width = "100%";
+          onChange(editorRef.current!.innerHTML);
+        }
+      },
+    },
+    { type: "divider" },
+    { icon: Trash2, action: deleteSelected, title: "Delete", danger: true },
   ];
 
   return (
-    <div className="bg-white rounded-[64px] border-[16px] border-slate-50 shadow-2xl min-h-[1200px] relative transition-all duration-700 hover:shadow-gold/5 group/editor">
+    <div className="bg-white rounded-[48px] border-8 border-slate-50 shadow-2xl min-h-[800px] relative">
       <input
         type="file"
         ref={fileInputRef}
-        className="hidden"
         accept="image/*"
-        onChange={handleDirectUpload}
+        className="hidden"
+        onChange={handleFileChange}
       />
 
-      {/* MEDIUM-STYLE FLOATING PLUS BUTTON */}
-      {floatingMenuPos.visible && (
-        <div
-          className="absolute -left-16 transition-all duration-300 z-50 flex items-center gap-2"
-          style={{ top: floatingMenuPos.top + 8 }}
-        >
-          <button
-            type="button"
-            onClick={() => setShowPlusMenu(!showPlusMenu)}
-            className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
-              showPlusMenu
-                ? "bg-gold border-gold text-white rotate-45"
-                : "bg-white border-slate-200 text-slate-400 hover:border-gold hover:text-gold"
-            }`}
-          >
-            <Plus size={20} />
-          </button>
-
-          {showPlusMenu && (
-            <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-10 h-10 rounded-full bg-navy-900 text-white flex items-center justify-center hover:bg-gold transition-colors shadow-lg"
-                title="Quick Upload"
-              >
-                <Upload size={18} />
-              </button>
-              <button
-                type="button"
-                onClick={onMediaButtonClick}
-                className="w-10 h-10 rounded-full bg-navy-900 text-white flex items-center justify-center hover:bg-gold transition-colors shadow-lg"
-                title="Media Library"
-              >
-                <Film size={18} />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Main Toolbar */}
-      <div className="p-3 border border-slate-200/50 bg-white/95 backdrop-blur-3xl flex items-center flex-wrap gap-1 sticky top-6 z-40 mx-12 mt-12 rounded-[32px] shadow-2xl border border-white">
-        {toolbarButtons.map((btn, index) => {
+      {/* Toolbar */}
+      <div className="sticky top-4 z-50 mx-6 mt-6 p-3 bg-white/95 backdrop-blur-xl rounded-[28px] border border-slate-100 shadow-xl flex flex-wrap items-center gap-1.5">
+        {toolbarButtons.map((btn, i) => {
           if (btn.type === "divider")
-            return <div key={index} className="w-px h-6 bg-slate-100 mx-2" />;
+            return <div key={i} className="w-px h-6 bg-slate-200 mx-1.5" />;
+          if (btn.label)
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={btn.action}
+                className="px-3 py-1.5 text-[10px] font-bold bg-slate-100 rounded-lg hover:bg-gold hover:text-navy-950 transition-all"
+              >
+                {btn.label}
+              </button>
+            );
           const Icon = btn.icon!;
           return (
             <button
-              key={index}
+              key={i}
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 btn.action();
               }}
               title={btn.title}
-              className={`p-3 rounded-2xl transition-all active:scale-50 ${
-                btn.danger
+              className={`p-2.5 rounded-xl transition-all active:scale-90 ${
+                btn.highlight
+                  ? "bg-gold text-navy-950 shadow-md hover:shadow-lg"
+                  : btn.danger
                   ? "text-red-500 hover:bg-red-50"
-                  : "text-slate-400 hover:bg-white hover:text-navy-950 hover:shadow-xl border border-transparent hover:border-slate-50"
+                  : "text-slate-500 hover:bg-slate-100 hover:text-navy-950"
               }`}
             >
-              <Icon size={20} strokeWidth={2.5} />
+              <Icon size={18} strokeWidth={2.5} />
             </button>
           );
         })}
-        <div className="ml-auto flex gap-2 mr-2">
-          {["25%", "50%", "100%"].map((size) => (
-            <button
-              key={size}
-              type="button"
-              onClick={() => {
-                if (lastClickedImg.current) {
-                  lastClickedImg.current.style.width = size;
-                  onChange(editorRef.current!.innerHTML);
-                }
-              }}
-              className="px-3 py-1 text-[9px] font-black bg-slate-50 text-slate-500 rounded-lg hover:bg-gold hover:text-navy-950 transition-all border border-slate-100"
-            >
-              {size}
-            </button>
-          ))}
-        </div>
       </div>
 
+      {/* Editor Area */}
       <div
         ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
         onInput={(e) => {
           const content = e.currentTarget.innerHTML;
           onChange(content);
           saveToHistory(content);
         }}
-        contentEditable
-        className="w-full min-h-[1000px] p-32 focus:outline-none prose prose-2xl max-w-none font-serif text-slate-800 prose-img:rounded-[4rem] prose-img:cursor-pointer prose-p:leading-relaxed prose-headings:font-black"
-        suppressContentEditableWarning={true}
+        className="min-h-[700px] p-16 md:p-24 focus:outline-none prose prose-xl max-w-none font-serif text-slate-800 prose-headings:font-black prose-p:leading-relaxed"
         dangerouslySetInnerHTML={{ __html: value }}
       />
     </div>
   );
 });
 
-export default WYSIWYGEditor_V5;
+export default WYSIWYGEditor_V6;
