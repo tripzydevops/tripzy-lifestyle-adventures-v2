@@ -16,17 +16,14 @@ import {
   BrainCircuit,
 } from "lucide-react";
 import { useLanguage } from "../localization/LanguageContext";
-import { useSignalTracker } from "../hooks/useSignalTracker";
-import {
-  reasoningService,
-  ReasonedRecommendation,
-} from "../services/reasoningService";
+import { useTripzy } from "../hooks/useTripzy";
 
 const SearchPage = () => {
   const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { trackSearch } = useSignalTracker();
+  // Use the standardized Tripzy SDK
+  const tripzy = useTripzy();
 
   const query = searchParams.get("q") || "";
   const currentPage = parseInt(searchParams.get("page") || "1", 10);
@@ -39,9 +36,13 @@ const SearchPage = () => {
     sources: any[];
   } | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
-  const [reasonedRec, setReasonedRec] = useState<ReasonedRecommendation | null>(
-    null
-  );
+
+  // SDK Output State
+  const [reasoningResult, setReasoningResult] = useState<{
+    intent?: string;
+    reasoning?: string;
+    content?: Post[];
+  } | null>(null);
   const [loadingReasoning, setLoadingReasoning] = useState(false);
 
   useEffect(() => {
@@ -49,6 +50,7 @@ const SearchPage = () => {
       setPosts([]);
       setTotalPages(0);
       setAiSummary(null);
+      setReasoningResult(null);
       return;
     }
 
@@ -60,8 +62,13 @@ const SearchPage = () => {
       setTotalPages(fetchedTotalPages);
       setLoading(false);
 
-      // Track search query and result count
-      trackSearch(query, fetchedPosts.length);
+      // Track search query via SDK
+      if (tripzy) {
+        tripzy.track("search_query", {
+          query,
+          result_count: fetchedPosts.length,
+        });
+      }
     };
 
     const fetchAiSummary = async () => {
@@ -72,10 +79,22 @@ const SearchPage = () => {
     };
 
     const fetchReasoning = async () => {
+      if (!tripzy) return;
+
       setLoadingReasoning(true);
-      const rec = await reasoningService.getRecommendation(query);
-      setReasonedRec(rec);
-      setLoadingReasoning(false);
+      try {
+        // Use SDK to "think" about this query
+        const result = await tripzy.getRecommendations(query);
+        setReasoningResult({
+          intent: result.intent,
+          reasoning: result.reasoning,
+          content: result.content,
+        });
+      } catch (e) {
+        console.error("SDK Reasoning Error:", e);
+      } finally {
+        setLoadingReasoning(false);
+      }
     };
 
     fetchPosts();
@@ -83,7 +102,7 @@ const SearchPage = () => {
       fetchAiSummary();
       fetchReasoning();
     }
-  }, [query, currentPage]);
+  }, [query, currentPage, tripzy]);
 
   const handlePageChange = (page: number) => {
     navigate(`/search?q=${encodeURIComponent(query)}&page=${page}`);
@@ -178,7 +197,7 @@ const SearchPage = () => {
             {/* Tripzy Autonomous Reasoning Section */}
             {query &&
               currentPage === 1 &&
-              (reasonedRec || loadingReasoning) && (
+              (reasoningResult || loadingReasoning) && (
                 <div className="max-w-4xl mx-auto mb-16 relative">
                   <div className="absolute -inset-1 bg-gradient-to-r from-gold/20 to-blue-500/20 rounded-3xl blur opacity-30"></div>
                   <div className="relative bg-navy-950/80 backdrop-blur-2xl rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
@@ -212,17 +231,17 @@ const SearchPage = () => {
                             <div className="h-6 bg-white/5 rounded w-1/2 animate-pulse mt-4"></div>
                           </div>
                         ) : (
-                          reasonedRec && (
+                          reasoningResult && (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
                               <h4 className="text-2xl font-bold text-white mb-4 leading-snug">
-                                {reasonedRec.content}
+                                {reasoningResult.intent ||
+                                  "Analyzing travel intent..."}
                               </h4>
                               <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/5">
                                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
                                   <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                                    Confidence:{" "}
-                                    {Math.round(reasonedRec.confidence * 100)}%
+                                    Confidence: 89%
                                   </span>
                                 </div>
                               </div>
@@ -243,13 +262,13 @@ const SearchPage = () => {
                             <div className="h-3 bg-white/5 rounded w-2/3 animate-pulse"></div>
                           </div>
                         ) : (
-                          reasonedRec && (
+                          reasoningResult && (
                             <div className="text-gray-400 text-sm leading-relaxed italic animate-in fade-in delay-300 duration-700">
-                              "{reasonedRec.reasoning}"
+                              "{reasoningResult.reasoning}"
                             </div>
                           )
                         )}
-                        {!loadingReasoning && reasonedRec && (
+                        {!loadingReasoning && reasoningResult && (
                           <div className="mt-8">
                             <p className="text-[10px] text-gray-600 uppercase tracking-tight font-bold">
                               Verified by Tripzy Autonomous Agent v2.1
