@@ -23,6 +23,9 @@ export interface Translations {
     findDeals: string;
     latestStories: string;
     videoSeries: string;
+    watchOurAdventures: string;
+    videoSubtitle: string;
+    viewAllVideos: string;
   };
   // Footer
   footer: {
@@ -230,6 +233,9 @@ export const translations: Record<Language, Translations> = {
       findDeals: "Find Deals on Tripzy",
       latestStories: "Latest Stories",
       videoSeries: "Video Travel Series",
+      watchOurAdventures: "Watch Our Adventures",
+      videoSubtitle: "Travel vlogs, guides, and destination highlights",
+      viewAllVideos: "View All Videos",
     },
     footer: {
       tagline: "Where every journey becomes a lifestyle",
@@ -437,6 +443,9 @@ export const translations: Record<Language, Translations> = {
       findDeals: "Tripzy'da Fırsat Bul",
       latestStories: "Son Hikayeler",
       videoSeries: "Video Seyahat Serisi",
+      watchOurAdventures: "Maceralarımızı İzleyin",
+      videoSubtitle: "Seyahat vlogları, rehberler ve destinasyon özetleri",
+      viewAllVideos: "Tüm Videoları Görüntüle",
     },
     footer: {
       tagline: "Her yolculuk bir yaşam tarzı",

@@ -133,11 +133,10 @@ const HomePage = () => {
             <div className="flex items-center justify-between mb-12">
               <div>
                 <h2 className="text-3xl md:text-4xl font-bold font-serif text-white mb-2">
-                  <span className="text-gold">▶</span> Watch Our Adventures
+                  <span className="text-gold">▶</span>{" "}
+                  {t("homepage.watchOurAdventures")}
                 </h2>
-                <p className="text-slate-400">
-                  Travel vlogs, guides, and destination highlights
-                </p>
+                <p className="text-slate-400">{t("homepage.videoSubtitle")}</p>
               </div>
               <a
                 href="https://youtube.com/@tripzytravel"
@@ -145,7 +144,7 @@ const HomePage = () => {
                 rel="noopener noreferrer"
                 className="hidden md:flex items-center gap-2 text-gold hover:text-gold-light transition-colors"
               >
-                View All Videos <ArrowRight className="w-4 h-4" />
+                {t("homepage.viewAllVideos")} <ArrowRight className="w-4 h-4" />
               </a>
             </div>
 
@@ -188,7 +187,7 @@ const HomePage = () => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-gold hover:text-gold-light transition-colors"
               >
-                View All Videos <ArrowRight className="w-4 h-4" />
+                {t("homepage.viewAllVideos")} <ArrowRight className="w-4 h-4" />
               </a>
             </div>
           </div>
@@ -199,11 +198,10 @@ const HomePage = () => {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-serif text-white mb-4">
-                Latest <span className="text-gold">Stories</span>
+                {t("homepage.latestStories")}
               </h2>
               <p className="text-slate-400 max-w-2xl mx-auto">
-                Dive into our latest travel experiences, tips, and destination
-                guides
+                {t("homepage.heroSubtitle")}
               </p>
             </div>
 
