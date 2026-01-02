@@ -34,22 +34,33 @@ const WYSIWYGEditor = forwardRef<
   const editorRef = useRef<HTMLDivElement>(null);
   const lastSelection = useRef<Range | null>(null);
   const isInternalUpdate = useRef<boolean>(false);
+  const historyTimer = useRef<NodeJS.Timeout | null>(null);
 
   // --- Manual History ---
   const history = useRef<string[]>([]);
   const historyIndex = useRef<number>(-1);
 
-  const saveToHistory = (content: string) => {
-    if (
-      historyIndex.current >= 0 &&
-      history.current[historyIndex.current] === content
-    )
-      return;
-    const newHistory = history.current.slice(0, historyIndex.current + 1);
-    newHistory.push(content);
-    if (newHistory.length > 50) newHistory.shift();
-    history.current = newHistory;
-    historyIndex.current = newHistory.length - 1;
+  const saveToHistory = (content: string, immediate = false) => {
+    const performSave = () => {
+      if (
+        historyIndex.current >= 0 &&
+        history.current[historyIndex.current] === content
+      )
+        return;
+      const newHistory = history.current.slice(0, historyIndex.current + 1);
+      newHistory.push(content);
+      if (newHistory.length > 50) newHistory.shift();
+      history.current = newHistory;
+      historyIndex.current = newHistory.length - 1;
+    };
+
+    if (historyTimer.current) clearTimeout(historyTimer.current);
+
+    if (immediate) {
+      performSave();
+    } else {
+      historyTimer.current = setTimeout(performSave, 500);
+    }
   };
 
   const undo = () => {
@@ -57,7 +68,10 @@ const WYSIWYGEditor = forwardRef<
       historyIndex.current--;
       const content = history.current[historyIndex.current];
       isInternalUpdate.current = true;
-      if (editorRef.current) editorRef.current.innerHTML = content;
+      if (editorRef.current) {
+        editorRef.current.innerHTML = content;
+        editorRef.current.focus();
+      }
       onChange(content);
       setTimeout(() => {
         isInternalUpdate.current = false;
@@ -70,7 +84,10 @@ const WYSIWYGEditor = forwardRef<
       historyIndex.current++;
       const content = history.current[historyIndex.current];
       isInternalUpdate.current = true;
-      if (editorRef.current) editorRef.current.innerHTML = content;
+      if (editorRef.current) {
+        editorRef.current.innerHTML = content;
+        editorRef.current.focus();
+      }
       onChange(content);
       setTimeout(() => {
         isInternalUpdate.current = false;
@@ -79,18 +96,14 @@ const WYSIWYGEditor = forwardRef<
   };
 
   // --- Selection Marker Logic ---
-  // We insert a hidden span to mark exactly where the user was
   const MARKER_ID = "selection-marker-tripzy";
 
   const placeMarker = () => {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
-
-    // Only place marker if inside editor
     if (!editorRef.current?.contains(range.commonAncestorContainer)) return;
 
-    // Remove any existing markers first
     const existing = editorRef.current.querySelector(`#${MARKER_ID}`);
     if (existing) existing.remove();
 
@@ -98,8 +111,6 @@ const WYSIWYGEditor = forwardRef<
     marker.id = MARKER_ID;
     marker.style.display = "none";
     range.insertNode(marker);
-
-    // Save selection object too as fallback
     lastSelection.current = range.cloneRange();
   };
 
@@ -111,10 +122,8 @@ const WYSIWYGEditor = forwardRef<
   useEffect(() => {
     const editor = editorRef.current;
     if (editor && editor.innerHTML !== value && !isInternalUpdate.current) {
-      // Before overwriting, we check if we have a marker.
-      // Overwriting innerHTML wipes markers, so we should be careful.
       editor.innerHTML = value;
-      if (history.current.length === 0) saveToHistory(value);
+      if (history.current.length === 0) saveToHistory(value, true);
     }
   }, [value]);
 
@@ -127,15 +136,12 @@ const WYSIWYGEditor = forwardRef<
       const marker = editor.querySelector(`#${MARKER_ID}`);
 
       if (marker) {
-        // Perfect Target: Swap marker for content
         const div = document.createElement("div");
         div.innerHTML = html;
         const fragment = document.createDocumentFragment();
         while (div.firstChild) fragment.appendChild(div.firstChild);
-
         marker.parentNode?.replaceChild(fragment, marker);
       } else {
-        // Fallback: Use saved selection
         const sel = window.getSelection();
         if (lastSelection.current && sel) {
           try {
@@ -146,8 +152,9 @@ const WYSIWYGEditor = forwardRef<
         document.execCommand("insertHTML", false, html);
       }
 
-      onChange(editor.innerHTML);
-      saveToHistory(editor.innerHTML);
+      const freshContent = editor.innerHTML;
+      onChange(freshContent);
+      saveToHistory(freshContent, true);
       removeMarker();
     },
   }));
@@ -162,6 +169,27 @@ const WYSIWYGEditor = forwardRef<
     }
   };
 
+  const lastClickedImg = useRef<HTMLImageElement | null>(null);
+
+  const deleteAction = () => {
+    if (lastClickedImg.current) {
+      // Explicitly remove the selected image
+      lastClickedImg.current.remove();
+      lastClickedImg.current = null;
+      if (editorRef.current) {
+        onChange(editorRef.current.innerHTML);
+        saveToHistory(editorRef.current.innerHTML, true);
+      }
+    } else {
+      // Fallback to browser delete for text
+      document.execCommand("delete", false);
+      if (editorRef.current) {
+        onChange(editorRef.current.innerHTML);
+        saveToHistory(editorRef.current.innerHTML, true);
+      }
+    }
+  };
+
   const execCmd = (command: string, valueArg?: string) => {
     if (command === "undo") {
       undo();
@@ -171,17 +199,22 @@ const WYSIWYGEditor = forwardRef<
       redo();
       return;
     }
+    if (command === "delete") {
+      deleteAction();
+      return;
+    }
 
     document.execCommand(command, false, valueArg);
     editorRef.current?.focus();
     if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
-      saveToHistory(editorRef.current.innerHTML);
+      const content = editorRef.current.innerHTML;
+      onChange(content);
+      saveToHistory(content, true);
     }
   };
 
   const handleMediaClick = () => {
-    placeMarker(); // LOCK POSITION
+    placeMarker();
     onMediaButtonClick();
   };
 
@@ -197,8 +230,6 @@ const WYSIWYGEditor = forwardRef<
     const url = prompt("Enter the URL:");
     if (url) execCmd("createLink", url);
   };
-
-  const lastClickedImg = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -234,7 +265,7 @@ const WYSIWYGEditor = forwardRef<
       lastClickedImg.current.style.height = "auto";
       if (editorRef.current) {
         onChange(editorRef.current.innerHTML);
-        saveToHistory(editorRef.current.innerHTML);
+        saveToHistory(editorRef.current.innerHTML, true);
       }
     }
   };
@@ -335,7 +366,7 @@ const WYSIWYGEditor = forwardRef<
         onInput={(e) => {
           const content = e.currentTarget.innerHTML;
           onChange(content);
-          saveToHistory(content);
+          saveToHistory(content); // Debounced save
         }}
         onMouseUp={saveSelection}
         onKeyUp={saveSelection}
