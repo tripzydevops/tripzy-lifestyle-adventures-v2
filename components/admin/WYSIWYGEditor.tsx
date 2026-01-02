@@ -162,8 +162,8 @@ const ImageBlock: React.FC<ImageBlockProps> = ({
       className="image-block my-6 relative group"
       contentEditable={false}
     >
-      {/* Control Bar */}
-      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+      {/* Control Bar - Always visible */}
+      <div className="absolute top-2 right-2 flex gap-1 z-10">
         <button
           type="button"
           onClick={() => onMoveUp(id)}
