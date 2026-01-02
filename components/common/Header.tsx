@@ -109,12 +109,12 @@ const Header = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-8">
-              <NavLink to="/">Home</NavLink>
+              <NavLink to="/">{t("header.home")}</NavLink>
               <NavLink to="/plan" badge={<AIBadge />}>
-                Trip Planner
+                {t("header.tripPlanner")}
               </NavLink>
-              <NavLink to="/about">About</NavLink>
-              <NavLink to="/contact">Contact</NavLink>
+              <NavLink to="/about">{t("header.about")}</NavLink>
+              <NavLink to="/contact">{t("header.contact")}</NavLink>
               <div className="pl-4 border-l border-white/10">
                 <SearchBar />
               </div>
@@ -129,7 +129,7 @@ const Header = () => {
                 className="flex items-center gap-2 bg-gradient-to-r from-gold to-gold-dark text-navy-950 px-4 py-2.5 rounded-xl font-semibold hover:shadow-lg hover:shadow-gold/30 transition-all hover:-translate-y-0.5"
               >
                 <MapPin size={16} />
-                Tripzy Deals
+                {t("header.tripzyDeals")}
                 <ExternalLink size={14} />
               </a>
 
@@ -147,7 +147,7 @@ const Header = () => {
                   className="flex items-center gap-2 bg-navy-700 hover:bg-navy-600 text-white px-4 py-2.5 rounded-xl font-medium transition-all border border-white/10"
                 >
                   <LogIn size={16} />
-                  Login
+                  {t("header.login")}
                 </Link>
               )}
 
@@ -198,12 +198,12 @@ const Header = () => {
 
             {/* Mobile Navigation */}
             <nav className="flex flex-col items-center justify-center flex-grow p-8 space-y-4">
-              <MobileNavLink to="/">Home</MobileNavLink>
+              <MobileNavLink to="/">{t("header.home")}</MobileNavLink>
               <MobileNavLink to="/plan" badge={<AIBadge />}>
-                Trip Planner
+                {t("header.tripPlanner")}
               </MobileNavLink>
-              <MobileNavLink to="/about">About</MobileNavLink>
-              <MobileNavLink to="/contact">Contact</MobileNavLink>
+              <MobileNavLink to="/about">{t("header.about")}</MobileNavLink>
+              <MobileNavLink to="/contact">{t("header.contact")}</MobileNavLink>
 
               <div className="w-full max-w-xs py-4" onClick={closeMenu}>
                 <SearchBar />

@@ -435,12 +435,12 @@ export const translations: Record<Language, Translations> = {
     },
     homepage: {
       heroBadge: "Seyahat Maceranız Burada Başlıyor",
-      heroTitle1: "Macereni ",
+      heroTitle1: "Maceranı ",
       heroTitle2: "Yaşa",
       heroSubtitle:
         "Dünya genelindeki seyahatlerimizden hikayeler, ipuçları ve rehberler keşfedin.",
       exploreStories: "Hikayeleri Keşfet",
-      findDeals: "Tripzy'da Fırsat Bul",
+      findDeals: "Tripzy'de Fırsat Bul",
       latestStories: "Son Hikayeler",
       videoSeries: "Video Seyahat Serisi",
       watchOurAdventures: "Maceralarımızı İzleyin",
