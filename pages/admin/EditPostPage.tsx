@@ -4,7 +4,7 @@ import { Post, PostStatus, MediaItem } from "../../types";
 import { postService } from "../../services/postService";
 import { aiContentService } from "../../services/aiContentService";
 import { useAuth } from "../../hooks/useAuth";
-import WYSIWYGEditor_V4 from "../../components/admin/WYSIWYGEditor";
+import WYSIWYGEditor_V5 from "../../components/admin/WYSIWYGEditor";
 import Spinner from "../../components/common/Spinner";
 import { useToast } from "../../hooks/useToast";
 import { useLanguage } from "../../localization/LanguageContext";
@@ -446,7 +446,6 @@ const EditPostPage = () => {
                 </button>
               </div>
             </div>
-
             {/* AI Assistant Toolbar */}
             {aiSuggestions && (
               <div className="bg-navy-800/80 backdrop-blur-md p-6 rounded-2xl border border-gold/20 mb-6 font-serif relative shadow-lg">
@@ -471,16 +470,14 @@ const EditPostPage = () => {
               onOutline={handleAiGenerateOutline}
               isGenerating={isAiGenerating}
             />
-
             <div className="bg-navy-900/50 backdrop-blur-xl rounded-3xl border border-white/5 shadow-2xl min-h-[500px]">
-              <WYSIWYGEditor_V4
+              <WYSIWYGEditor_V5
                 ref={editorRef}
                 value={post.content || ""}
                 onChange={(content) => handlePostChange("content", content)}
                 onMediaButtonClick={() => openMediaModal("insert")}
               />
             </div>
-
             {/* SEO & metadata */}
             <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-3xl border border-white/5">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
