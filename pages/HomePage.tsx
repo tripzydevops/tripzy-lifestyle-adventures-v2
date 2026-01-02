@@ -10,50 +10,70 @@ import Pagination from "../components/common/Pagination";
 import { Play, ArrowRight, Sparkles, MapPin, ExternalLink } from "lucide-react";
 import { useLanguage } from "../localization/LanguageContext";
 
+import { useTripzy } from "../hooks/useTripzy";
+
 const TRIPZY_APP_URL =
   import.meta.env.VITE_TRIPZY_APP_URL || "https://tripzy.travel";
 
-// Featured YouTube videos (would come from Supabase later)
-const FEATURED_VIDEOS = [
-  {
-    id: "1",
-    youtubeId: "dQw4w9WgXcQ", // Replace with real video IDs
-    title: "Hidden Gems of Cappadocia",
-    thumbnail: "https://picsum.photos/seed/cappadocia/640/360",
-  },
-  {
-    id: "2",
-    youtubeId: "dQw4w9WgXcQ",
-    title: "Street Food Tour: Istanbul",
-    thumbnail: "https://picsum.photos/seed/istanbul/640/360",
-  },
-  {
-    id: "3",
-    youtubeId: "dQw4w9WgXcQ",
-    title: "Budget Travel: Turkish Riviera",
-    thumbnail: "https://picsum.photos/seed/riviera/640/360",
-  },
-];
+import { youtubeService, YoutubeVideo } from "../services/youtubeService";
 
 const HomePage = () => {
   const { t } = useLanguage();
+  const tripzy = useTripzy();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [aiIntent, setAiIntent] = useState<string | null>(null);
+  const [videos, setVideos] = useState<YoutubeVideo[]>([]);
 
   useEffect(() => {
-    const fetchPosts = async () => {
+    const loadVideos = async () => {
+      const vids = await youtubeService.getFeaturedVideos();
+      setVideos(vids);
+    };
+    loadVideos();
+  }, []);
+
+  useEffect(() => {
+    const fetchContent = async () => {
       setLoading(true);
+
+      // 1. Try to get Personalized Recommendations from Tripzy SDK
+      if (tripzy) {
+        try {
+          // If first page, ask the Brain
+          if (currentPage === 1) {
+            const recommendation = await tripzy.getRecommendations(""); // Empty query = "Surprise me based on history"
+
+            if (recommendation.content && recommendation.content.length > 0) {
+              setPosts(recommendation.content);
+              setAiIntent(recommendation.intent || null);
+              setTotalPages(1); // SDK returns a single tailored list for now
+              setLoading(false);
+              return; // Exit early if personalization succeeded
+            }
+          }
+        } catch (err) {
+          console.warn(
+            "Tripzy Intelligence API failed, falling back to standard feed",
+            err
+          );
+        }
+      }
+
+      // 2. Fallback: Standard Chronological Feed
       const { posts: fetchedPosts, totalPages: fetchedTotalPages } =
         await postService.getPublishedPosts(currentPage);
       setPosts(fetchedPosts);
       setTotalPages(fetchedTotalPages);
+      setAiIntent(null);
       setLoading(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     };
-    fetchPosts();
-  }, [currentPage]);
+
+    fetchContent();
+  }, [currentPage, tripzy]);
 
   return (
     <div className="flex flex-col min-h-screen bg-navy-900">
@@ -83,9 +103,11 @@ const HomePage = () => {
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold font-serif mb-6 animate-slide-up">
-              <span className="text-white">{t("homepage.heroTitle1")}</span>
-              <span className="bg-gradient-to-r from-gold via-gold-light to-primary-light bg-clip-text text-transparent">
-                {t("homepage.heroTitle2")}
+              <span className="text-white">
+                {aiIntent ? "Selected Just For You:" : t("homepage.heroTitle1")}
+              </span>
+              <span className="block mt-2 bg-gradient-to-r from-gold via-gold-light to-primary-light bg-clip-text text-transparent">
+                {aiIntent ? aiIntent : t("homepage.heroTitle2")}
               </span>
             </h1>
 
@@ -93,7 +115,9 @@ const HomePage = () => {
               className="text-xl md:text-2xl text-slate-300 font-light mb-8 max-w-2xl mx-auto animate-fade-in"
               style={{ animationDelay: "0.2s" }}
             >
-              {t("homepage.heroSubtitle")}
+              {aiIntent
+                ? "Based on your recent interests, we've curated these adventures."
+                : t("homepage.heroSubtitle")}
             </p>
 
             <div
@@ -149,7 +173,7 @@ const HomePage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {FEATURED_VIDEOS.map((video, index) => (
+              {videos.map((video, index) => (
                 <div
                   key={video.id}
                   className="group relative rounded-2xl overflow-hidden bg-navy-800 border border-white/5 hover:border-gold/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-gold/10"

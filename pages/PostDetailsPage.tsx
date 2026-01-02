@@ -4,7 +4,7 @@ import { Post, User as UserType } from "../types";
 import { postService } from "../services/postService";
 import { userService } from "../services/userService";
 import { aiService, decodeBase64 } from "../services/aiService";
-import { useSignalTracking } from "../hooks/useSignalTracking";
+import { useTripzy } from "../hooks/useTripzy";
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
 import Spinner from "../components/common/Spinner";
@@ -50,8 +50,8 @@ const PostDetailsPage = () => {
   const [author, setAuthor] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize Signal Tracking (Layer 1)
-  const { trackHover } = useSignalTracking(post?.id, "post");
+  // Initialize Tripzy SDK (Essentials Layer)
+  const tripzy = useTripzy();
 
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [contentWithIds, setContentWithIds] = useState("");
@@ -83,6 +83,16 @@ const PostDetailsPage = () => {
           );
           setAuthor(fetchedAuthor || null);
 
+          // Track View using Tripzy SDK
+          if (tripzy && fetchedPost) {
+            tripzy.track("view_post", {
+              title: fetchedPost.title,
+              category: fetchedPost.category,
+              tags: fetchedPost.tags,
+              slug: fetchedPost.slug,
+            });
+          }
+
           fetchAttractions(fetchedPost.title);
         } else {
           setPost(null);
@@ -102,11 +112,8 @@ const PostDetailsPage = () => {
   }, [postSlug]);
 
   const stopAudio = () => {
-    if (audioSourceRef.current) {
-      try {
-        audioSourceRef.current.stop();
-      } catch (e) {}
-      audioSourceRef.current = null;
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
     }
     setIsPlaying(false);
   };
@@ -197,33 +204,26 @@ const PostDetailsPage = () => {
     if (!post) return;
     setIsGeneratingAudio(true);
     try {
-      const rawText = post.content.replace(/<[^>]*>?/gm, "");
-      const base64Audio = await aiService.generateAudio(rawText);
+      // Clean text for better speech
+      const rawText = post.content
+        .replace(/<[^>]*>?/gm, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "and");
 
-      if (!base64Audio) throw new Error("No audio data received");
+      // The service now handles the actual speaking via Web Speech API
+      const result = await aiService.generateAudio(rawText);
 
-      const audioBytes = decodeBase64(base64Audio);
+      if (result === "WEB_SPEECH_API_ACTIVE") {
+        setIsPlaying(true);
 
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext ||
-          (window as any).webkitAudioContext)({ sampleRate: 24000 });
+        // Poll for end of speech since we can't easily pass the 'onend' callback through the Promise
+        const checkInterval = setInterval(() => {
+          if (!window.speechSynthesis.speaking) {
+            setIsPlaying(false);
+            clearInterval(checkInterval);
+          }
+        }, 1000);
       }
-
-      const ctx = audioContextRef.current;
-      const audioBuffer = await decodeAudioData(audioBytes, ctx, 24000, 1);
-
-      const source = ctx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(ctx.destination);
-      source.start();
-
-      audioSourceRef.current = source;
-      setIsPlaying(true);
-
-      source.onended = () => {
-        setIsPlaying(false);
-        audioSourceRef.current = null;
-      };
     } catch (e) {
       console.error("Audio generation failed:", e);
     } finally {
@@ -398,7 +398,11 @@ const PostDetailsPage = () => {
 
                   {(loadingAttractions || attractions) && (
                     <div
-                      onMouseEnter={() => trackHover("local-discoveries")}
+                      onMouseEnter={() => {
+                        if (tripzy && post) {
+                          tripzy.track("interest_local", { title: post.title });
+                        }
+                      }}
                       className="mt-12 bg-navy-800 p-4 rounded-xl border border-white/10 shadow-lg"
                     >
                       <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-3">

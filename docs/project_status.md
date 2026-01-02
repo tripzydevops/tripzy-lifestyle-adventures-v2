@@ -258,13 +258,16 @@
 
 ## 📁 Documentation Index
 
-| Document                                                         | Description                  |
-| ---------------------------------------------------------------- | ---------------------------- |
-| [README.md](../README.md)                                        | Project overview             |
-| [project_artifact.md](./project_artifact.md)                     | Full technical documentation |
-| [implementation_plan.md](./implementation_plan.md)               | Task checklist               |
-| [3_layer_architecture.md](./3_layer_architecture.md)             | Intelligence architecture    |
-| [tripzy_intelligence_plugin.md](./tripzy_intelligence_plugin.md) | Modular plugin design        |
+| Document                                                                         | Description                    |
+| -------------------------------------------------------------------------------- | ------------------------------ |
+| [README.md](../README.md)                                                        | Project overview               |
+| [project_artifact.md](./project_artifact.md)                                     | Full technical documentation   |
+| [implementation_plan.md](./implementation_plan.md)                               | Task checklist                 |
+| [3_layer_architecture.md](./3_layer_architecture.md)                             | Intelligence architecture      |
+| [tripzy_intelligence_plugin.md](./tripzy_intelligence_plugin.md)                 | Modular plugin design          |
+| [advanced_intelligence_roadmap.md](./advanced_intelligence_roadmap.md)           | Future "Incredible" Vision     |
+| [intelligence_architecture_diagrams.md](./intelligence_architecture_diagrams.md) | Visual Architecture (Mermaid)  |
+| [product_tier_strategy.md](./product_tier_strategy.md)                           | Essentials vs. Neural Strategy |
 
 ---
 

@@ -65,16 +65,26 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
       {/* Content */}
       <div className="p-6 flex flex-col flex-grow">
-        {/* Date */}
-        <div className="flex items-center text-sm text-slate-400 mb-3">
-          <Calendar size={14} className="mr-2" />
-          <span>
-            {new Date(post.publishedAt!).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </span>
+        {/* Date & Match Score */}
+        <div className="flex items-center justify-between text-sm text-slate-400 mb-3">
+          <div className="flex items-center">
+            <Calendar size={14} className="mr-2" />
+            <span>
+              {new Date(post.publishedAt!).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+
+          {/* AI Match Score Badge - Only shows if post came from Intelligence SDK */}
+          {(post as any).match_score && (post as any).match_score > 0 && (
+            <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/30 text-green-400 px-2 py-0.5 rounded-full text-xs font-medium animate-pulse-glow">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+              Match: {Math.round((post as any).match_score * 100)}%
+            </div>
+          )}
         </div>
 
         {/* Title */}

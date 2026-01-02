@@ -28,6 +28,7 @@ import AIStudioPage from "./pages/admin/AIStudioPage";
 import AuthorPage from "./pages/AuthorPage";
 import PlanTripPage from "./pages/PlanTripPage";
 import SignalTracker from "./components/common/SignalTracker";
+import SDKTestPage from "./pages/SDKTestPage";
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
                 <Route path="/sitemap.xml" element={<Sitemap />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/plan" element={<PlanTripPage />} />
+                <Route path="/test-sdk" element={<SDKTestPage />} />
                 <Route
                   path="/category/:categoryName"
                   element={<ArchivePage type="category" />}

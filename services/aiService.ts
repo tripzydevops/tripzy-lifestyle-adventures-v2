@@ -128,13 +128,45 @@ export const aiService = {
   ) {
     try {
       const model = getGenAIModel();
-      const prompt = `Recommend 3-5 must-visit places, restaurants, or attractions near "${locationName}". For each, provide a brief description of why it is special.`;
+      const prompt = `
+        Recommend 3-4 specific places, restaurants, or hidden gems near "${locationName}". 
+        Return strictly a JSON object with this structure:
+        {
+          "summary": "A brief overview text...",
+          "places": [
+            { "name": "Place Name", "description": "Why it's cool" }
+          ]
+        }
+        Do not include markdown formatting like \`\`\`json.
+      `;
       const result = await model.generateContent(prompt);
-      const response = await result.response;
+      const text = result.response
+        .text()
+        .trim()
+        .replace(/```json/g, "")
+        .replace(/```/g, "");
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        // Fallback if JSON parsing fails
+        return {
+          text: text,
+          sources: [],
+        };
+      }
 
       return {
-        text: response.text(),
-        sources: [],
+        text: data.summary || "Here are some recommendations.",
+        sources: data.places.map((place: any) => ({
+          maps: {
+            title: place.name,
+            uri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+              place.name + " near " + locationName
+            )}`,
+          },
+        })),
       };
     } catch (error) {
       console.error("Gemini Error (getNearbyAttractions):", error);
@@ -142,8 +174,43 @@ export const aiService = {
     }
   },
 
-  async generateAudio(_text: string): Promise<string> {
-    console.log("Audio generation not available in current SDK");
-    return "";
+  async generateAudio(text: string): Promise<string> {
+    // Using Web Speech API for unlimited, free, client-side TTS
+    // This mocks the backend behavior by handling it on the client
+    return new Promise((resolve) => {
+      if (!window.speechSynthesis) {
+        console.warn("Web Speech API not supported");
+        resolve("");
+        return;
+      }
+
+      // Cancel any pending speech
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text.substring(0, 500)); // Limit length for demo
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      // Try to find a good English voice
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(
+        (v) =>
+          v.name.includes("Google US English") || v.name.includes("Samantha")
+      );
+      if (preferredVoice) utterance.voice = preferredVoice;
+
+      utterance.onstart = () => {
+        // We resolve immediately with a dummy string to signal "success" to the UI
+        // The actual audio playback happens in the browser
+        resolve("WEB_SPEECH_API_ACTIVE");
+      };
+
+      utterance.onerror = (e) => {
+        console.error("Speech error:", e);
+        resolve("");
+      };
+
+      window.speechSynthesis.speak(utterance);
+    });
   },
 };
