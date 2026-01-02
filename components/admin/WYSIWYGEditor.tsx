@@ -33,27 +33,21 @@ const WYSIWYGEditor = forwardRef<
 >(({ value, onChange, onMediaButtonClick }, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const lastSelection = useRef<Range | null>(null);
-
-  // --- Manual History Engine ---
-  const history = useRef<string[]>([]);
-  const historyIndex = useRef<number>(-1);
   const isInternalUpdate = useRef<boolean>(false);
 
+  // --- Manual History ---
+  const history = useRef<string[]>([]);
+  const historyIndex = useRef<number>(-1);
+
   const saveToHistory = (content: string) => {
-    // Don't save if identical to current position
     if (
       historyIndex.current >= 0 &&
       history.current[historyIndex.current] === content
     )
       return;
-
-    // Truncate future if we are in the middle of undoing
     const newHistory = history.current.slice(0, historyIndex.current + 1);
     newHistory.push(content);
-
-    // Limit history size to 50 steps
     if (newHistory.length > 50) newHistory.shift();
-
     history.current = newHistory;
     historyIndex.current = newHistory.length - 1;
   };
@@ -84,14 +78,43 @@ const WYSIWYGEditor = forwardRef<
     }
   };
 
+  // --- Selection Marker Logic ---
+  // We insert a hidden span to mark exactly where the user was
+  const MARKER_ID = "selection-marker-tripzy";
+
+  const placeMarker = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+
+    // Only place marker if inside editor
+    if (!editorRef.current?.contains(range.commonAncestorContainer)) return;
+
+    // Remove any existing markers first
+    const existing = editorRef.current.querySelector(`#${MARKER_ID}`);
+    if (existing) existing.remove();
+
+    const marker = document.createElement("span");
+    marker.id = MARKER_ID;
+    marker.style.display = "none";
+    range.insertNode(marker);
+
+    // Save selection object too as fallback
+    lastSelection.current = range.cloneRange();
+  };
+
+  const removeMarker = () => {
+    const marker = editorRef.current?.querySelector(`#${MARKER_ID}`);
+    if (marker) marker.remove();
+  };
+
   useEffect(() => {
     const editor = editorRef.current;
     if (editor && editor.innerHTML !== value && !isInternalUpdate.current) {
+      // Before overwriting, we check if we have a marker.
+      // Overwriting innerHTML wipes markers, so we should be careful.
       editor.innerHTML = value;
-      // Initialize history if empty
-      if (history.current.length === 0) {
-        saveToHistory(value);
-      }
+      if (history.current.length === 0) saveToHistory(value);
     }
   }, [value]);
 
@@ -101,76 +124,42 @@ const WYSIWYGEditor = forwardRef<
       if (!editor) return;
 
       editor.focus();
-      const selection = window.getSelection();
+      const marker = editor.querySelector(`#${MARKER_ID}`);
 
-      // If we have a saved selection, restore it with extra care
-      if (lastSelection.current && selection) {
-        try {
-          selection.removeAllRanges();
-          selection.addRange(lastSelection.current);
-        } catch (e) {
-          console.warn("Selection restoration failed, falling back...");
-        }
-      }
+      if (marker) {
+        // Perfect Target: Swap marker for content
+        const div = document.createElement("div");
+        div.innerHTML = html;
+        const fragment = document.createDocumentFragment();
+        while (div.firstChild) fragment.appendChild(div.firstChild);
 
-      // Modern insertion approach using Range API
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
-        // Ensure range is inside editor
-        if (editor.contains(range.commonAncestorContainer)) {
-          range.deleteContents();
-
-          const div = document.createElement("div");
-          div.innerHTML = html;
-          const fragment = document.createDocumentFragment();
-          let lastNode;
-          while (div.firstChild) {
-            lastNode = fragment.appendChild(div.firstChild);
-          }
-          range.insertNode(fragment);
-
-          // Move cursor to after the inserted content
-          if (lastNode) {
-            const newRange = document.createRange();
-            newRange.setStartAfter(lastNode);
-            newRange.setEndAfter(lastNode);
-            sel.removeAllRanges();
-            sel.addRange(newRange);
-            lastSelection.current = newRange.cloneRange();
-          }
-        }
+        marker.parentNode?.replaceChild(fragment, marker);
       } else {
-        // Fallback to execCommand if range logic fails
+        // Fallback: Use saved selection
+        const sel = window.getSelection();
+        if (lastSelection.current && sel) {
+          try {
+            sel.removeAllRanges();
+            sel.addRange(lastSelection.current);
+          } catch (e) {}
+        }
         document.execCommand("insertHTML", false, html);
       }
 
-      const newContent = editor.innerHTML;
-      onChange(newContent);
-      saveToHistory(newContent);
+      onChange(editor.innerHTML);
+      saveToHistory(editor.innerHTML);
+      removeMarker();
     },
   }));
-
-  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
-    if (isInternalUpdate.current) return;
-    const content = e.currentTarget.innerHTML;
-    onChange(content);
-    saveToHistory(content);
-  };
 
   const saveSelection = () => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      // Ensure the range is actually inside the editor
       if (editorRef.current?.contains(range.commonAncestorContainer)) {
         lastSelection.current = range.cloneRange();
       }
     }
-  };
-
-  const handleBlur = () => {
-    saveSelection();
   };
 
   const execCmd = (command: string, valueArg?: string) => {
@@ -186,41 +175,27 @@ const WYSIWYGEditor = forwardRef<
     document.execCommand(command, false, valueArg);
     editorRef.current?.focus();
     if (editorRef.current) {
-      const newContent = editorRef.current.innerHTML;
-      onChange(newContent);
-      saveToHistory(newContent);
+      onChange(editorRef.current.innerHTML);
+      saveToHistory(editorRef.current.innerHTML);
     }
   };
 
+  const handleMediaClick = () => {
+    placeMarker(); // LOCK POSITION
+    onMediaButtonClick();
+  };
+
   const insertImageUrl = () => {
-    saveSelection();
-    const url = prompt(
-      "Paste the image URL (e.g., https://example.com/photo.jpg):"
-    );
+    const url = prompt("Paste the image URL:");
     if (url) {
-      const html = `<img src="${url}" alt="External Image" style="width: 100%; height: auto; border-radius: 1.5rem; display: block; margin: 2.5rem auto;" /><p><br></p>`;
-      const editor = (ref as any).current;
-      if (editor) {
-        editor.insertHtml(html);
-      }
+      const html = `<img src="${url}" style="width: 100%; height: auto; border-radius: 2rem; display: block; margin: 3rem auto;" /><p><br></p>`;
+      (ref as any).current.insertHtml(html);
     }
   };
 
   const createLink = () => {
-    saveSelection();
     const url = prompt("Enter the URL:");
-    if (url) {
-      const selection = window.getSelection();
-      if (lastSelection.current && selection) {
-        selection.removeAllRanges();
-        selection.addRange(lastSelection.current);
-      }
-      execCmd("createLink", url);
-    }
-  };
-
-  const formatBlock = (tag: string) => {
-    execCmd("formatBlock", tag);
+    if (url) execCmd("createLink", url);
   };
 
   const lastClickedImg = useRef<HTMLImageElement | null>(null);
@@ -239,7 +214,7 @@ const WYSIWYGEditor = forwardRef<
         });
         target.style.outline = "4px solid #EAB308";
         target.style.outlineOffset = "4px";
-        target.style.boxShadow = "0 0 40px rgba(234, 179, 8, 0.3)";
+        target.style.boxShadow = "0 0 50px rgba(234, 179, 8, 0.4)";
       } else {
         editor.querySelectorAll("img").forEach((i) => {
           (i as HTMLElement).style.outline = "none";
@@ -261,22 +236,32 @@ const WYSIWYGEditor = forwardRef<
         onChange(editorRef.current.innerHTML);
         saveToHistory(editorRef.current.innerHTML);
       }
-    } else {
-      console.warn("Click an image first to resize it");
     }
   };
 
   const toolbarButtons = [
-    { icon: Undo2, action: () => execCmd("undo"), title: "Undo" },
-    { icon: Redo2, action: () => execCmd("redo"), title: "Redo" },
+    { icon: Undo2, action: undo, title: "Undo" },
+    { icon: Redo2, action: redo, title: "Redo" },
     { type: "divider" },
     { icon: Bold, action: () => execCmd("bold"), title: "Bold" },
     { icon: Italic, action: () => execCmd("italic"), title: "Italic" },
     { icon: Underline, action: () => execCmd("underline"), title: "Underline" },
     { type: "divider" },
-    { icon: Pilcrow, action: () => formatBlock("p"), title: "Paragraph" },
-    { icon: Heading2, action: () => formatBlock("h2"), title: "Heading 2" },
-    { icon: Heading3, action: () => formatBlock("h3"), title: "Heading 3" },
+    {
+      icon: Pilcrow,
+      action: () => execCmd("formatBlock", "p"),
+      title: "Paragraph",
+    },
+    {
+      icon: Heading2,
+      action: () => execCmd("formatBlock", "h2"),
+      title: "Heading 2",
+    },
+    {
+      icon: Heading3,
+      action: () => execCmd("formatBlock", "h3"),
+      title: "Heading 3",
+    },
     { type: "divider" },
     {
       icon: List,
@@ -291,46 +276,38 @@ const WYSIWYGEditor = forwardRef<
     { type: "divider" },
     { icon: LinkIcon, action: createLink, title: "Link" },
     { icon: ImagePlus, action: insertImageUrl, title: "Insert URL Image" },
-    { icon: Film, action: onMediaButtonClick, title: "Media Library" },
+    { icon: Film, action: handleMediaClick, title: "Media Library" },
     { type: "divider" },
-    { label: "S", action: () => setSize("25%"), title: "Small (25%)" },
-    { label: "M", action: () => setSize("50%"), title: "Medium (50%)" },
-    { label: "L", action: () => setSize("75%"), title: "Large (75%)" },
-    { label: "Full", action: () => setSize("100%"), title: "Full Width" },
+    { label: "S", action: () => setSize("25%"), title: "Small" },
+    { label: "M", action: () => setSize("50%"), title: "Medium" },
+    { label: "L", action: () => setSize("75%"), title: "Large" },
+    { label: "Full", action: () => setSize("100%"), title: "Full" },
     { type: "divider" },
     {
       icon: Trash2,
       action: () => execCmd("delete"),
-      title: "Delete Selection",
+      title: "Delete",
       danger: true,
     },
   ];
 
   return (
-    <div className="bg-white rounded-[40px] border border-gray-200 shadow-2xl group/editor transition-all duration-500 hover:border-gold/30 min-h-[900px] relative">
-      <div className="p-4 border-b border-gray-100 bg-gray-50/95 backdrop-blur-xl flex items-center flex-wrap gap-1.5 sticky top-4 z-30 mx-4 mt-4 rounded-2xl shadow-lg border border-gray-200/50">
+    <div className="bg-white rounded-[40px] border border-gray-100 shadow-2xl min-h-[900px] relative transition-all duration-700 hover:shadow-gold/10">
+      <div className="p-4 border-b border-gray-50 bg-white/95 backdrop-blur-2xl flex items-center flex-wrap gap-1 sticky top-6 z-40 mx-6 mt-6 rounded-[24px] shadow-xl border border-gray-100">
         {toolbarButtons.map((btn, index) => {
-          if (btn.type === "divider") {
-            return (
-              <div
-                key={`divider-${index}`}
-                className="w-px h-6 bg-gray-200 mx-2"
-              />
-            );
-          }
-          if (btn.label) {
+          if (btn.type === "divider")
+            return <div key={index} className="w-px h-6 bg-gray-100 mx-2" />;
+          if (btn.label)
             return (
               <button
                 key={index}
                 type="button"
                 onClick={btn.action}
-                title={btn.title}
-                className="px-3 py-1.5 text-[10px] font-bold bg-white border border-gray-200 text-slate-600 rounded-xl hover:bg-gold hover:border-gold hover:text-navy-950 transition-all shadow-sm active:scale-90"
+                className="px-4 py-1.5 text-[10px] font-black bg-slate-50 text-slate-600 rounded-xl hover:bg-gold hover:text-navy-950 transition-all shadow-sm active:scale-90 border border-slate-100"
               >
                 {btn.label}
               </button>
             );
-          }
           const Icon = btn.icon!;
           return (
             <button
@@ -341,7 +318,7 @@ const WYSIWYGEditor = forwardRef<
               className={`p-2.5 rounded-2xl transition-all active:scale-75 ${
                 btn.danger
                   ? "text-red-500 hover:bg-red-50"
-                  : "text-slate-400 hover:bg-white hover:text-navy-950 hover:shadow-md hover:border-gray-100 border border-transparent"
+                  : "text-slate-400 hover:bg-slate-50 hover:text-navy-950 hover:shadow-inner"
               }`}
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -355,12 +332,16 @@ const WYSIWYGEditor = forwardRef<
       </div>
       <div
         ref={editorRef}
-        onInput={handleInput}
-        onBlur={handleBlur}
+        onInput={(e) => {
+          const content = e.currentTarget.innerHTML;
+          onChange(content);
+          saveToHistory(content);
+        }}
         onMouseUp={saveSelection}
         onKeyUp={saveSelection}
+        onBlur={saveSelection}
         contentEditable
-        className="w-full min-h-[900px] p-16 focus:outline-none overflow-y-auto prose prose-2xl max-w-none font-serif text-slate-800 prose-img:rounded-[2.5rem] prose-img:cursor-pointer prose-img:transition-all prose-img:duration-500 prose-img:border-8 prose-img:border-transparent hover:prose-img:border-gold/10 prose-p:leading-relaxed prose-headings:font-bold"
+        className="w-full min-h-[900px] p-20 focus:outline-none prose prose-2xl max-w-none font-serif text-slate-800 prose-img:rounded-[3rem] prose-img:cursor-pointer prose-img:transition-all prose-img:duration-700 prose-img:shadow-2xl hover:prose-img:scale-[1.02] prose-p:leading-relaxed prose-headings:font-black"
         suppressContentEditableWarning={true}
         dangerouslySetInnerHTML={{ __html: value }}
       />
