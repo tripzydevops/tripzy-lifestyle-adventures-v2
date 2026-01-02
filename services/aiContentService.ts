@@ -309,6 +309,16 @@ export const aiContentService = {
     };
   },
 
+  async generatePostOutline(
+    destination: string,
+    language: "en" | "tr" = "en"
+  ): Promise<any> {
+    const prompt = `Generate a detailed post outline for a travel article about ${destination} in ${language}. 
+    Return a JSON object with a 'sections' array, where each section has 'id', 'title', and 'summary'.`;
+    const response = await callGemini(prompt);
+    return parseJSON<any>(response);
+  },
+
   async generateExcerpt(
     content: string,
     language: "en" | "tr" = "en"
@@ -320,13 +330,13 @@ export const aiContentService = {
     return response.replace(/^["']|["']$/g, "").trim();
   },
 
-  async generateSEO(title: string, content: string): Promise<GeneratedSEO> {
+  async generateSEO(title: string, content: string): Promise<SEOResult> {
     const prompt = `Generate SEO metaTitle, metaDescription, metaKeywords, and suggestedSlug as JSON for: ${title}\n\nContent: ${content.substring(
       0,
       1000
     )}`;
     const response = await callGemini(prompt);
-    return parseJSON<GeneratedSEO>(response);
+    return parseJSON<SEOResult>(response);
   },
 
   async improveContent(content: string, instruction: string): Promise<string> {

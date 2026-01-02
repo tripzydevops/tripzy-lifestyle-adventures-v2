@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Post, PostStatus, MediaItem } from "../../types";
+import {
+  Post,
+  PostStatus,
+  MediaItem,
+  GeneratedPost,
+  SEOResult,
+} from "../../types";
 import { postService } from "../../services/postService";
 import { aiContentService } from "../../services/aiContentService";
 import { useAuth } from "../../hooks/useAuth";
@@ -12,7 +18,8 @@ import PostEditorSidebar from "../../components/admin/PostEditorSidebar";
 import MediaLibraryModal from "../../components/admin/MediaLibraryModal";
 import AIGenerateModal from "../../components/admin/AIGenerateModal";
 import AIQuickActions from "../../components/admin/AIQuickActions";
-import { GeneratedPost } from "../../services/aiContentService";
+// Removed invalid import
+
 import {
   Sparkles,
   Wand,

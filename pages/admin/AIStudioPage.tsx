@@ -1,10 +1,8 @@
 // pages/admin/AIStudioPage.tsx
 import React, { useState } from "react";
 import { useLanguage } from "../../localization/LanguageContext";
-import {
-  aiContentService,
-  GeneratedSocial,
-} from "../../services/aiContentService";
+import { aiContentService } from "../../services/aiContentService";
+import { GeneratedSocial } from "../../types";
 import { useToast } from "../../hooks/useToast";
 import {
   Bot,

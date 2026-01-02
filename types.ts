@@ -1,7 +1,7 @@
 export enum UserRole {
-  Administrator = 'Administrator',
-  Editor = 'Editor',
-  Author = 'Author',
+  Administrator = "Administrator",
+  Editor = "Editor",
+  Author = "Author",
 }
 
 export interface User {
@@ -14,10 +14,10 @@ export interface User {
 }
 
 export enum PostStatus {
-  Published = 'Published',
-  Draft = 'Draft',
-  PendingReview = 'Pending Review',
-  Scheduled = 'Scheduled',
+  Published = "Published",
+  Draft = "Draft",
+  PendingReview = "Pending Review",
+  Scheduled = "Scheduled",
 }
 
 export interface Post {
@@ -27,7 +27,7 @@ export interface Post {
   content: string;
   excerpt: string;
   featuredMediaUrl: string;
-  featuredMediaType: 'image' | 'video';
+  featuredMediaType: "image" | "video";
   featuredMediaAlt?: string;
   category: string;
   tags: string[];
@@ -58,21 +58,56 @@ export interface SiteSettings {
 }
 
 export interface Comment {
-    id: string;
-    postId: string;
-    authorName: string;
-    content: string;
-    createdAt: string;
+  id: string;
+  postId: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
 }
 
 export interface MediaItem {
-    id: string;
-    url: string;
-    fileName: string;
-    uploadedAt: string;
-    mediaType: 'image' | 'video';
-    altText?: string;
-    caption?: string;
-    mimeType?: string;
-    sizeBytes?: number;
+  id: string;
+  url: string;
+  fileName: string;
+  uploadedAt: string;
+  mediaType: "image" | "video";
+  altText?: string;
+  caption?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+}
+
+export interface GeneratePostParams {
+  destination: string;
+  language?: "en" | "tr";
+  travelStyle?: string;
+  targetAudience?: string;
+  keyPoints?: string[];
+  wordCount?: number;
+}
+
+export interface GeneratedPost {
+  title: string;
+  content: string;
+  excerpt: string;
+  tags: string[];
+  category: string;
+  metaTitle: string;
+  metaDescription: string;
+  metaKeywords?: string;
+  suggestedCategory?: string;
+  suggestedTags?: string[];
+}
+
+export interface SEOResult {
+  metaTitle: string;
+  metaDescription: string;
+  metaKeywords: string;
+  suggestedSlug: string;
+}
+
+export interface GeneratedSocial {
+  caption: string;
+  hashtags: string[];
+  suggestedPostTime: string;
 }

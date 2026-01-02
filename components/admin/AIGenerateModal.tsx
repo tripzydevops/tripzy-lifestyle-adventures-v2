@@ -2,11 +2,8 @@
 // AI-Powered Content Generation Modal for Tripzy Blog
 import React, { useState } from "react";
 import { useLanguage } from "../../localization/LanguageContext";
-import {
-  aiContentService,
-  GeneratePostParams,
-  GeneratedPost,
-} from "../../services/aiContentService";
+import { aiContentService } from "../../services/aiContentService";
+import { GeneratePostParams, GeneratedPost } from "../../types";
 import { useToast } from "../../hooks/useToast";
 import {
   X,
