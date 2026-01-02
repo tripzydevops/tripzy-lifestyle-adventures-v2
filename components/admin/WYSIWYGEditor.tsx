@@ -77,8 +77,8 @@ const ImagePlaceholderBlock: React.FC<PlaceholderBlockProps> = ({
         onChange={handleFileSelect}
       />
 
-      {/* Control Buttons - Top Right */}
-      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Control Buttons - Top Right - Always visible */}
+      <div className="absolute top-2 right-2 flex gap-1">
         <button
           type="button"
           onClick={() => onMoveUp(id)}
