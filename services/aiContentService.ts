@@ -150,10 +150,8 @@ const convertCanonicalToHtml = (sections: any[]): string => {
 
       // Structural replacements
       bodyText = bodyText.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-      bodyText = bodyText.replace(
-        /\[IMAGE: (.*?)\]/g,
-        '<div class="magazine-image-placeholder" data-alt="$1"><span>[IMAGE: $1]</span></div>'
-      );
+      // Keep [IMAGE: ...] markers as plain text - the editor will convert to upload blocks
+      // No replacement needed - just leave them as is
 
       html += `<div class="magazine-body">${bodyText}</div>`;
 

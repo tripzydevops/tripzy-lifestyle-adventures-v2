@@ -117,12 +117,6 @@ const ImagePlaceholderBlock: React.FC<PlaceholderBlockProps> = ({
             <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
               <ImagePlus size={24} />
             </div>
-            {description && (
-              <p className="text-sm text-slate-600 text-center max-w-md">
-                <span className="font-medium text-amber-700">Suggested:</span>{" "}
-                {description}
-              </p>
-            )}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}

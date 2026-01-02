@@ -522,37 +522,15 @@ input::placeholder, textarea::placeholder {
   color: var(--color-gold);
 }
 
+/* Hide old image placeholders on public pages */
 .magazine-image-placeholder {
-  margin: 3rem 0;
-  aspect-ratio: 16/9;
-  background: var(--color-navy-800);
-  border: 2px dashed rgba(251, 191, 36, 0.2);
-  border-radius: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
+  display: none !important;
 }
 
-.magazine-image-placeholder span {
-  font-family: var(--font-serif);
-  color: var(--color-gold);
-  opacity: 0.5;
-  font-size: 0.9rem;
-}
-
-.magazine-image-placeholder::after {
-  content: 'PHOTO OPPORTUNITY';
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  background: var(--color-gold);
-  color: var(--color-navy-950);
-  padding: 4px 12px;
-  font-size: 10px;
-  font-weight: 900;
-  border-radius: 12px 0 0 0;
+/* Also hide any plain [IMAGE: ...] text markers that might appear */
+.magazine-body p:has(> :only-child:empty),
+.prose p:empty {
+  display: none;
 }
 
 /* Animations */
