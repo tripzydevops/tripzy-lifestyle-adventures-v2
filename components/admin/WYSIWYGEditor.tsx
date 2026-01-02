@@ -19,7 +19,10 @@ import {
   Redo2,
   Trash2,
   ImagePlus,
+  Upload,
 } from "lucide-react";
+import { uploadService } from "../../services/uploadService";
+import { useToast } from "../../hooks/useToast";
 
 interface WYSIWYGEditorProps {
   value: string;
@@ -27,13 +30,15 @@ interface WYSIWYGEditorProps {
   onMediaButtonClick: () => void;
 }
 
-const WYSIWYGEditor = forwardRef<
+const WYSIWYGEditor_V3 = forwardRef<
   { insertHtml: (html: string) => void },
   WYSIWYGEditorProps
 >(({ value, onChange, onMediaButtonClick }, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const lastSelection = useRef<Range | null>(null);
   const isInternalUpdate = useRef<boolean>(false);
+  const { addToast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Manual History ---
   const history = useRef<string[]>([]);
@@ -84,70 +89,52 @@ const WYSIWYGEditor = forwardRef<
     }
   };
 
-  // --- Placeholder Logic ---
-  const PLACEHOLDER_ID = "tripzy-active-media-slot";
-
-  const insertPlaceholder = () => {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const range = sel.getRangeAt(0);
-    if (!editorRef.current?.contains(range.commonAncestorContainer)) return;
-
-    // Remove any accidental twins
-    editorRef.current
-      .querySelectorAll(`#${PLACEHOLDER_ID}`)
-      .forEach((e) => e.remove());
-
-    const slot = document.createElement("div");
-    slot.id = PLACEHOLDER_ID;
-    slot.contentEditable = "false";
-    slot.className =
-      "my-8 p-12 border-4 border-dashed border-gold/40 rounded-[3rem] bg-gold/5 flex flex-col items-center justify-center gap-4 animate-pulse";
-    slot.innerHTML = `
-      <div class="w-16 h-16 bg-gold/20 rounded-full flex items-center justify-center text-gold">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-      </div>
-      <p class="text-gold font-bold uppercase tracking-widest text-xs">Capturing travel assets...</p>
-    `;
-
-    range.deleteContents();
-    range.insertNode(slot);
-
-    // Sync with parent immediately so the placeholder survives re-renders
-    const newContent = editorRef.current.innerHTML;
-    onChange(newContent);
-    saveToHistory(newContent);
-  };
-
-  useEffect(() => {
+  // --- Modern Insertion Logic ---
+  const insertHtmlAtSelection = (html: string) => {
     const editor = editorRef.current;
-    if (editor && editor.innerHTML !== value && !isInternalUpdate.current) {
-      // We explicitly allow the innerHTML to update. If a placeholder is there, it's in the 'value' too.
-      editor.innerHTML = value;
-      if (history.current.length === 0) saveToHistory(value);
+    if (!editor) return;
+
+    editor.focus();
+    const sel = window.getSelection();
+
+    // Restore selection if lost
+    if (lastSelection.current && sel && !editor.contains(sel.anchorNode)) {
+      sel.removeAllRanges();
+      sel.addRange(lastSelection.current);
     }
-  }, [value]);
 
-  useImperativeHandle(ref, () => ({
-    insertHtml(html: string) {
-      const editor = editorRef.current;
-      if (!editor) return;
-
-      const slot = editor.querySelector(`#${PLACEHOLDER_ID}`);
-      if (slot) {
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (editor.contains(range.commonAncestorContainer)) {
+        range.deleteContents();
         const div = document.createElement("div");
         div.innerHTML = html;
-        slot.parentNode?.replaceChild(div.firstElementChild || div, slot);
-      } else {
-        // Fallback for direct URL inserts
-        editor.focus();
-        document.execCommand("insertHTML", false, html);
-      }
+        const fragment = document.createDocumentFragment();
+        let lastNode;
+        while (div.firstChild) lastNode = fragment.appendChild(div.firstChild);
+        range.insertNode(fragment);
 
-      const freshContent = editor.innerHTML;
-      onChange(freshContent);
-      saveToHistory(freshContent);
-    },
+        // Select after the insert
+        if (lastNode) {
+          const newRange = document.createRange();
+          newRange.setStartAfter(lastNode);
+          newRange.setEndAfter(lastNode);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+          lastSelection.current = newRange.cloneRange();
+        }
+      }
+    } else {
+      document.execCommand("insertHTML", false, html);
+    }
+
+    const freshContent = editor.innerHTML;
+    onChange(freshContent);
+    saveToHistory(freshContent);
+  };
+
+  useImperativeHandle(ref, () => ({
+    insertHtml: insertHtmlAtSelection,
   }));
 
   const saveSelection = () => {
@@ -159,8 +146,6 @@ const WYSIWYGEditor = forwardRef<
       }
     }
   };
-
-  const lastClickedImg = useRef<HTMLImageElement | null>(null);
 
   const deleteAction = () => {
     if (lastClickedImg.current) {
@@ -174,43 +159,24 @@ const WYSIWYGEditor = forwardRef<
     saveToHistory(content);
   };
 
-  const execCmd = (command: string, valueArg?: string) => {
-    if (command === "undo") {
-      undo();
-      return;
-    }
-    if (command === "redo") {
-      redo();
-      return;
-    }
-    if (command === "delete") {
-      deleteAction();
-      return;
-    }
+  const handleDirectUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    document.execCommand(command, false, valueArg);
-    if (editorRef.current) {
-      const content = editorRef.current.innerHTML;
-      onChange(content);
-      saveToHistory(content);
+    addToast("Uploading directly to post...", "info");
+    try {
+      const { url } = await uploadService.uploadFile(file);
+      const html = `<img src="${url}" style="width: 100%; height: auto; border-radius: 2rem; display: block; margin: 3rem auto;" /><p><br></p>`;
+      insertHtmlAtSelection(html);
+      addToast("Image uploaded!", "success");
+    } catch (err) {
+      addToast("Upload failed.", "error");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const handleMediaClick = () => {
-    insertPlaceholder();
-    onMediaButtonClick();
-  };
-
-  const setSize = (width: string) => {
-    if (lastClickedImg.current) {
-      lastClickedImg.current.style.width = width;
-      lastClickedImg.current.style.height = "auto";
-      if (editorRef.current) {
-        onChange(editorRef.current.innerHTML);
-        saveToHistory(editorRef.current.innerHTML);
-      }
-    }
-  };
+  const lastClickedImg = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -220,104 +186,131 @@ const WYSIWYGEditor = forwardRef<
       const target = e.target as HTMLElement;
       if (target.tagName === "IMG") {
         lastClickedImg.current = target as HTMLImageElement;
-        editor.querySelectorAll("img").forEach((i) => {
-          (i as HTMLElement).style.outline = "none";
-          (i as HTMLElement).style.boxShadow = "none";
-        });
+        editor
+          .querySelectorAll("img")
+          .forEach((i) => ((i as HTMLElement).style.outline = "none"));
         target.style.outline = "6px solid #EAB308";
         target.style.outlineOffset = "4px";
-        target.style.boxShadow = "0 0 60px rgba(234, 179, 8, 0.5)";
       } else {
-        editor.querySelectorAll("img").forEach((i) => {
-          (i as HTMLElement).style.outline = "none";
-          (i as HTMLElement).style.boxShadow = "none";
-        });
+        editor
+          .querySelectorAll("img")
+          .forEach((i) => ((i as HTMLElement).style.outline = "none"));
         lastClickedImg.current = null;
       }
     };
-
     editor.addEventListener("click", handleClick);
     return () => editor.removeEventListener("click", handleClick);
   }, []);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (editor && editor.innerHTML !== value && !isInternalUpdate.current) {
+      editor.innerHTML = value;
+      if (history.current.length === 0) saveToHistory(value);
+    }
+  }, [value]);
 
   const toolbarButtons = [
     { icon: Undo2, action: undo, title: "Undo" },
     { icon: Redo2, action: redo, title: "Redo" },
     { type: "divider" },
-    { icon: Bold, action: () => execCmd("bold"), title: "Bold" },
-    { icon: Italic, action: () => execCmd("italic"), title: "Italic" },
-    { icon: Underline, action: () => execCmd("underline"), title: "Underline" },
+    { icon: Bold, action: () => document.execCommand("bold"), title: "Bold" },
+    {
+      icon: Italic,
+      action: () => document.execCommand("italic"),
+      title: "Italic",
+    },
+    {
+      icon: Underline,
+      action: () => document.execCommand("underline"),
+      title: "Underline",
+    },
     { type: "divider" },
     {
       icon: Pilcrow,
-      action: () => execCmd("formatBlock", "p"),
+      action: () => document.execCommand("formatBlock", false, "p"),
       title: "Paragraph",
     },
     {
       icon: Heading2,
-      action: () => execCmd("formatBlock", "h2"),
+      action: () => document.execCommand("formatBlock", false, "h2"),
       title: "Heading 2",
     },
     {
       icon: Heading3,
-      action: () => execCmd("formatBlock", "h3"),
+      action: () => document.execCommand("formatBlock", false, "h3"),
       title: "Heading 3",
     },
     { type: "divider" },
     {
       icon: List,
-      action: () => execCmd("insertUnorderedList"),
+      action: () => document.execCommand("insertUnorderedList"),
       title: "Unordered List",
     },
     {
       icon: ListOrdered,
-      action: () => execCmd("insertOrderedList"),
+      action: () => document.execCommand("insertOrderedList"),
       title: "Ordered List",
     },
     { type: "divider" },
     {
       icon: LinkIcon,
-      action: () => execCmd("createLink", prompt("URL:") || ""),
+      action: () =>
+        document.execCommand("createLink", false, prompt("URL:") || ""),
       title: "Link",
     },
     {
-      icon: ImagePlus,
-      action: () =>
-        (ref as any).current.insertHtml(
-          `<img src="${prompt(
-            "URL:"
-          )}" style="width: 100%; border-radius: 2rem;"/>`
-        ),
-      title: "Insert URL Image",
+      icon: Upload,
+      action: () => fileInputRef.current?.click(),
+      title: "Direct Upload",
     },
-    { icon: Film, action: handleMediaClick, title: "Media Library" },
-    { type: "divider" },
-    { label: "S", action: () => setSize("25%"), title: "Small" },
-    { label: "M", action: () => setSize("50%"), title: "Medium" },
-    { label: "L", action: () => setSize("75%"), title: "Large" },
-    { label: "Full", action: () => setSize("100%"), title: "Full" },
+    { icon: Film, action: onMediaButtonClick, title: "Media Library" },
     { type: "divider" },
     {
-      icon: Trash2,
-      action: () => execCmd("delete"),
-      title: "Delete",
-      danger: true,
+      label: "S",
+      action: () => {
+        if (lastClickedImg.current) lastClickedImg.current.style.width = "25%";
+        onChange(editorRef.current!.innerHTML);
+      },
     },
+    {
+      label: "M",
+      action: () => {
+        if (lastClickedImg.current) lastClickedImg.current.style.width = "50%";
+        onChange(editorRef.current!.innerHTML);
+      },
+    },
+    {
+      label: "Full",
+      action: () => {
+        if (lastClickedImg.current) lastClickedImg.current.style.width = "100%";
+        onChange(editorRef.current!.innerHTML);
+      },
+    },
+    { type: "divider" },
+    { icon: Trash2, action: deleteAction, title: "Delete", danger: true },
   ];
 
   return (
-    <div className="bg-white rounded-[40px] border border-gray-100 shadow-2xl min-h-[1000px] relative">
-      <div className="p-4 border-b border-gray-50 bg-white/95 backdrop-blur-2xl flex items-center flex-wrap gap-1 sticky top-6 z-40 mx-4 mt-4 rounded-[28px] shadow-2xl border border-gray-200/50">
+    <div className="bg-white rounded-[48px] border-4 border-slate-100 shadow-2xl min-h-[1000px] relative">
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={handleDirectUpload}
+      />
+      <div className="p-4 border-b border-slate-50 bg-slate-50/50 backdrop-blur-3xl flex items-center flex-wrap gap-1.5 sticky top-8 z-50 mx-6 mt-6 rounded-[32px] shadow-2xl border border-white">
         {toolbarButtons.map((btn, index) => {
           if (btn.type === "divider")
-            return <div key={index} className="w-px h-8 bg-gray-200 mx-2" />;
+            return <div key={index} className="w-px h-8 bg-slate-200 mx-2" />;
           if (btn.label)
             return (
               <button
                 key={index}
                 type="button"
                 onClick={btn.action}
-                className="px-4 py-2 text-[10px] font-black bg-slate-50 text-slate-600 rounded-2xl hover:bg-gold hover:text-navy-950 transition-all shadow-sm active:scale-90 border border-slate-100 uppercase tracking-tighter"
+                className="px-4 py-2 text-[10px] font-black bg-white text-slate-800 rounded-2xl hover:bg-gold hover:text-navy-950 transition-all shadow-sm active:scale-90 border border-slate-100 italic"
               >
                 {btn.label}
               </button>
@@ -327,19 +320,22 @@ const WYSIWYGEditor = forwardRef<
             <button
               key={index}
               type="button"
-              onClick={btn.action}
+              onClick={(e) => {
+                e.preventDefault();
+                btn.action();
+              }}
               title={btn.title}
-              className={`p-3 rounded-2xl transition-all active:scale-75 ${
+              className={`p-3 rounded-[18px] transition-all active:scale-50 ${
                 btn.danger
-                  ? "text-red-500 hover:bg-red-50"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-navy-950 hover:shadow-inner"
+                  ? "text-red-500 hover:bg-red-50 shadow-sm"
+                  : "text-slate-400 hover:bg-white hover:text-navy-950 hover:shadow-xl hover:border-slate-100 border border-transparent"
               }`}
               onMouseDown={(e) => {
                 e.preventDefault();
                 saveSelection();
               }}
             >
-              <Icon size={20} strokeWidth={2.5} />
+              <Icon size={22} strokeWidth={2.5} />
             </button>
           );
         })}
@@ -355,7 +351,7 @@ const WYSIWYGEditor = forwardRef<
         onKeyUp={saveSelection}
         onBlur={saveSelection}
         contentEditable
-        className="w-full min-h-[1000px] p-24 focus:outline-none prose prose-2xl max-w-none font-serif text-slate-900 prose-img:rounded-[3rem] prose-img:cursor-pointer prose-img:transition-all prose-img:duration-700 hover:prose-img:scale-[1.01] prose-p:leading-loose prose-headings:font-black"
+        className="w-full min-h-[1000px] p-24 focus:outline-none prose prose-2xl max-w-none font-serif text-slate-900 prose-img:rounded-[3.5rem] prose-img:cursor-pointer prose-img:transition-all prose-img:duration-700 hover:prose-img:scale-[1.01] prose-p:leading-loose prose-headings:font-black"
         suppressContentEditableWarning={true}
         dangerouslySetInnerHTML={{ __html: value }}
       />
@@ -363,4 +359,4 @@ const WYSIWYGEditor = forwardRef<
   );
 });
 
-export default WYSIWYGEditor;
+export default WYSIWYGEditor_V3;
