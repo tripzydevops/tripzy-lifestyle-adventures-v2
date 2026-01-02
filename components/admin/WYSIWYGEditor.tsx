@@ -45,18 +45,23 @@ const WYSIWYGEditor = forwardRef<
       editor.focus();
       const selection = window.getSelection();
 
-      // Restore the last known selection if the editor lost focus
-      if (
-        lastSelection.current &&
-        selection &&
-        !editor.contains(selection.anchorNode)
-      ) {
-        selection.removeAllRanges();
-        selection.addRange(lastSelection.current);
+      if (lastSelection.current && selection) {
+        try {
+          selection.removeAllRanges();
+          selection.addRange(lastSelection.current);
+        } catch (e) {
+          console.warn("Failed to restore selection:", e);
+        }
       }
 
       document.execCommand("insertHTML", false, html);
       onChange(editor.innerHTML);
+
+      // Update last selection after insertion
+      const newSelection = window.getSelection();
+      if (newSelection && newSelection.rangeCount > 0) {
+        lastSelection.current = newSelection.getRangeAt(0);
+      }
     },
   }));
 
