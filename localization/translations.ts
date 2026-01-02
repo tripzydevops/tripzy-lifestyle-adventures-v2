@@ -184,6 +184,17 @@ export interface Translations {
       publishedAt: string;
       metaKeywords: string;
     };
+    placeholder: {
+      title: string;
+      excerpt: string;
+      metaKeywords: string;
+    };
+    ai: {
+      generating: string;
+      generatingImage: string;
+      imageUpgrade: string;
+      createSubtitle: string;
+    };
     settings: {
       title: string;
       subtitle: string;
@@ -422,6 +433,18 @@ export const translations: Record<Language, Translations> = {
         photoUrl: "Profile Photo (URL)",
         saveProfile: "Save Profile",
       },
+      placeholder: {
+        title: "Enter a captivating headline...",
+        excerpt: "A short, catchy summary for travel lists...",
+        metaKeywords: "adventure, city guide, hidden gem",
+      },
+      ai: {
+        generating: "Generate with AI",
+        generatingImage: "Gemini is envisioning your post...",
+        imageUpgrade: "Image generation is currently being upgraded.",
+        createSubtitle:
+          "Create immersive travel stories powered by Gemini Intelligence.",
+      },
     },
   },
   tr: {
@@ -632,6 +655,18 @@ export const translations: Record<Language, Translations> = {
         fullName: "Tam Ad",
         photoUrl: "Profil Fotoğrafı (URL)",
         saveProfile: "Profili Kaydet",
+      },
+      placeholder: {
+        title: "Büyüleyici bir başlık girin...",
+        excerpt: "Seyahat listeleri için kısa, akılda kalıcı bir özet...",
+        metaKeywords: "macera, şehir rehberi, gizli cennet",
+      },
+      ai: {
+        generating: "Yapay Zeka ile Oluştur",
+        generatingImage: "Gemini yazınızı hayal ediyor...",
+        imageUpgrade: "Görsel oluşturma şu anda güncelleniyor.",
+        createSubtitle:
+          "Gemini Intelligence destekli sürükleyici seyahat hikayeleri oluşturun.",
       },
     },
   },

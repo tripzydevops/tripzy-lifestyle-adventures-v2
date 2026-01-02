@@ -18,7 +18,7 @@ import PostEditorSidebar from "../../components/admin/PostEditorSidebar";
 import MediaLibraryModal from "../../components/admin/MediaLibraryModal";
 import AIGenerateModal from "../../components/admin/AIGenerateModal";
 import AIQuickActions from "../../components/admin/AIQuickActions";
-// Removed invalid import
+import APIKeyModal from "../../components/admin/APIKeyModal"; // Added import
 
 import {
   Sparkles,
@@ -63,6 +63,7 @@ const EditPostPage = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false); // Added state
   const [aiSuggestions, setAiSuggestions] = useState<string | null>(null);
   const [mediaModalPurpose, setMediaModalPurpose] = useState<
     "featured" | "insert"
@@ -122,6 +123,15 @@ const EditPostPage = () => {
     setIsDirty(true);
   }, []);
 
+  // Helper to check config before AI action
+  const checkAiConfig = useCallback(() => {
+    if (!aiContentService.isConfigured()) {
+      setIsApiKeyModalOpen(true);
+      return false;
+    }
+    return true;
+  }, []);
+
   // Handler for when AI generates a complete blog post
   const handleAiPostGenerated = useCallback((generatedPost: GeneratedPost) => {
     setPost((prev) => ({
@@ -140,6 +150,8 @@ const EditPostPage = () => {
   }, []);
 
   const handleAiGenerateExcerpt = async () => {
+    if (!checkAiConfig()) return;
+
     if (!post.content || post.content === "<p>Start here...</p>") {
       addToast(t("blog.leaveComment"), "info");
       return;
@@ -160,6 +172,8 @@ const EditPostPage = () => {
   };
 
   const handleAiGenerateSEO = async () => {
+    if (!checkAiConfig()) return;
+
     if (!post.title || !post.content) {
       addToast(t("blog.leaveComment"), "info");
       return;
@@ -182,18 +196,20 @@ const EditPostPage = () => {
   };
 
   const handleAiGenerateImage = async () => {
+    if (!checkAiConfig()) return;
+
     if (!post.title) {
       addToast(t("blog.leaveComment"), "info");
       return;
     }
     setIsAiGenerating(true);
-    addToast("Gemini is envisioning your post...", "info");
+    addToast(t("admin.ai.generatingImage"), "info");
     try {
       // Note: Gemini 2.0 Flash is text-only. This is a placeholder for future Image Gen integration
       // or using a search-based image fetcher.
       // For now, we return empty or use a placeholder service if available.
       handlePostChange("featuredMediaUrl", "");
-      addToast("Image generation is currently being upgraded.", "info");
+      addToast(t("admin.ai.imageUpgrade"), "info");
     } catch (e) {
       addToast(t("common.error"), "error");
     } finally {
@@ -202,6 +218,8 @@ const EditPostPage = () => {
   };
 
   const handleAiGenerateOutline = async () => {
+    if (!checkAiConfig()) return;
+
     if (!post.title) {
       addToast(t("blog.leaveComment"), "info");
       return;
@@ -219,6 +237,8 @@ const EditPostPage = () => {
   };
 
   const handleAiImprove = async () => {
+    if (!checkAiConfig()) return;
+
     if (!post.content || post.content.length < 50) {
       addToast(t("blog.leaveComment"), "info");
       return;
@@ -239,6 +259,8 @@ const EditPostPage = () => {
   };
 
   const handleAiTranslateToTurkish = async () => {
+    if (!checkAiConfig()) return;
+
     if (!post.content || post.content.length < 50) {
       addToast(t("blog.leaveComment"), "info");
       return;
@@ -373,7 +395,7 @@ const EditPostPage = () => {
               {isNewPost ? t("admin.newPost") : t("admin.editPost")}
             </h1>
             <p className="text-gray-400 text-sm">
-              Create immersive travel stories powered by Gemini Intelligence.
+              {t("admin.ai.createSubtitle")}
             </p>
           </div>
           <div className="flex gap-3 w-full md:w-auto">
@@ -387,7 +409,7 @@ const EditPostPage = () => {
                 className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-purple-500 to-gold text-white rounded-xl font-bold hover:shadow-xl hover:shadow-purple-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <Bot size={18} />
-                Generate with AI
+                {t("admin.ai.generating")}
               </button>
             )}
             <button
@@ -397,7 +419,7 @@ const EditPostPage = () => {
               className="flex-1 md:flex-none px-6 py-3 bg-navy-800 text-white rounded-xl font-bold border border-white/5 hover:bg-navy-700 transition-all flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : null}
-              Save Draft
+              {t("common.save")} Draft
             </button>
             <button
               type="submit"
@@ -433,7 +455,7 @@ const EditPostPage = () => {
                   onChange={(e) => handlePostChange("title", e.target.value)}
                   className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-2xl font-bold text-white focus:outline-none focus:border-gold/50 transition-all placeholder:text-navy-700"
                   required
-                  placeholder="Enter a captivating headline..."
+                  placeholder={t("admin.placeholder.title")}
                 />
                 <button
                   type="button"
@@ -533,7 +555,7 @@ const EditPostPage = () => {
                     }
                     rows={3}
                     className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-4 text-gray-300 focus:outline-none focus:border-gold/30 transition-all"
-                    placeholder="A short, catchy summary for travel lists..."
+                    placeholder={t("admin.placeholder.excerpt")}
                   />
                 </div>
 
@@ -571,7 +593,7 @@ const EditPostPage = () => {
                         handlePostChange("metaKeywords", e.target.value)
                       }
                       className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
-                      placeholder="adventure, city guide, hidden gem"
+                      placeholder={t("admin.placeholder.metaKeywords")}
                     />
                   </div>
                 </div>
@@ -589,6 +611,15 @@ const EditPostPage = () => {
           />
         </div>
       </form>
+
+      <APIKeyModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        onSuccess={() => {
+          // Retry the last action if available or just close
+          setIsApiKeyModalOpen(false);
+        }}
+      />
     </div>
   );
 };
