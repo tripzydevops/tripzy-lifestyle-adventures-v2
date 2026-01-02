@@ -475,12 +475,12 @@ const WYSIWYGEditor_V7 = forwardRef<
   ];
 
   return (
-    <div className="bg-white rounded-3xl border-4 border-slate-100 shadow-xl min-h-[600px]">
+    <div className="bg-navy-900 rounded-3xl border border-white/10 shadow-xl min-h-[600px]">
       {/* Toolbar */}
-      <div className="sticky top-0 z-50 p-3 bg-white border-b border-slate-100 rounded-t-3xl flex flex-wrap items-center gap-1">
+      <div className="sticky top-0 z-50 p-3 bg-navy-800 border-b border-white/10 rounded-t-3xl flex flex-wrap items-center gap-1">
         {toolbarButtons.map((btn, i) => {
           if (btn.type === "divider")
-            return <div key={i} className="w-px h-6 bg-slate-200 mx-1" />;
+            return <div key={i} className="w-px h-6 bg-white/20 mx-1" />;
           const Icon = btn.icon!;
           return (
             <button
@@ -494,7 +494,7 @@ const WYSIWYGEditor_V7 = forwardRef<
               className={`p-2 rounded-lg transition-all ${
                 btn.highlight
                   ? "bg-amber-500 text-white hover:bg-amber-600"
-                  : "text-slate-500 hover:bg-slate-100"
+                  : "text-gray-400 hover:bg-navy-700 hover:text-white"
               }`}
             >
               <Icon size={18} />
@@ -543,7 +543,7 @@ const WYSIWYGEditor_V7 = forwardRef<
               key={block.id}
               contentEditable
               suppressContentEditableWarning
-              className="prose prose-lg max-w-none focus:outline-none min-h-[2rem]"
+              className="prose prose-invert prose-lg max-w-none focus:outline-none min-h-[2rem] text-gray-200"
               dangerouslySetInnerHTML={{ __html: block.content }}
               onBlur={(e) =>
                 handleTextChange(block.id, e.currentTarget.innerHTML)
