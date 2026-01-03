@@ -18,7 +18,17 @@ import {
   Layout,
   MessageSquare,
   Sparkles,
+  X,
 } from "lucide-react";
+
+type HistoryItem = {
+  id: string;
+  type: "social" | "titles";
+  content: GeneratedSocial | string[];
+  timestamp: number;
+  topic: string;
+  platform?: string;
+};
 
 const AIStudioPage = () => {
   const { language: appLanguage } = useLanguage();
@@ -28,6 +38,16 @@ const AIStudioPage = () => {
   );
   const [language, setLanguage] = useState<"en" | "tr">("en");
 
+  // History State
+  const [history, setHistory] = useState<HistoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem("TRIPZY_AI_HISTORY");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Social Media State
   const [socialTarget, setSocialTarget] = useState("");
   const [socialContext, setSocialContext] = useState("");
@@ -35,6 +55,9 @@ const AIStudioPage = () => {
   const [generatedSocial, setGeneratedSocial] =
     useState<GeneratedSocial | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Track last used platform for history
+  const [lastPlatform, setLastPlatform] = useState("");
 
   // Title Suggestions State
   const [titleTopic, setTitleTopic] = useState("");
@@ -53,6 +76,25 @@ const AIStudioPage = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleSaveToHistory = () => {
+    const newItem: HistoryItem = {
+      id: Date.now().toString(),
+      type: generatedSocial ? "social" : "titles",
+      content: generatedSocial || generatedTitles,
+      timestamp: Date.now(),
+      topic: generatedSocial ? socialTarget : titleTopic,
+      platform: lastPlatform,
+    };
+
+    const updated = [newItem, ...history];
+    setHistory(updated);
+    localStorage.setItem("TRIPZY_AI_HISTORY", JSON.stringify(updated));
+    addToast(
+      language === "tr" ? "Geçmişe kaydedildi" : "Saved to history",
+      "success"
+    );
+  };
+
   const generateSocialContent = async (
     platform: "instagram" | "twitter" | "facebook"
   ) => {
@@ -64,6 +106,7 @@ const AIStudioPage = () => {
       return;
     }
     setGeneratingSocial(true);
+    setLastPlatform(platform);
     try {
       const result = await aiContentService.generateSocialContent(
         socialTarget,
@@ -190,7 +233,10 @@ const AIStudioPage = () => {
           {
             id: "history",
             icon: <History size={18} />,
-            label: { en: "History", tr: "Geçmiş" },
+            label: {
+              en: `History (${history.length})`,
+              tr: `Geçmiş (${history.length})`,
+            },
           },
         ].map((tab) => (
           <button
@@ -272,7 +318,19 @@ const AIStudioPage = () => {
                 />
               </div>
 
-              {activeTab === "social" ? (
+              {activeTab === "titles" || activeTab === "history" ? (
+                <button
+                  onClick={generateTitleSuggestions}
+                  disabled={generatingTitles}
+                  className="w-full py-5 bg-gradient-to-r from-purple-500 to-gold text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-purple-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                  style={{ display: activeTab === "history" ? "none" : "flex" }}
+                >
+                  <Wand2 size={22} />
+                  {language === "tr"
+                    ? "Sihirli Başlıklar Üret"
+                    : "Generate Magic Titles"}
+                </button>
+              ) : (
                 <div className="grid grid-cols-1 gap-3 pt-4">
                   <button
                     onClick={() => generateSocialContent("instagram")}
@@ -305,17 +363,6 @@ const AIStudioPage = () => {
                       : "Generate for Facebook"}
                   </button>
                 </div>
-              ) : (
-                <button
-                  onClick={generateTitleSuggestions}
-                  disabled={generatingTitles}
-                  className="w-full py-5 bg-gradient-to-r from-purple-500 to-gold text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-purple-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                >
-                  <Wand2 size={22} />
-                  {language === "tr"
-                    ? "Sihirli Başlıklar Üret"
-                    : "Generate Magic Titles"}
-                </button>
               )}
             </div>
           </div>
@@ -329,21 +376,37 @@ const AIStudioPage = () => {
             <div className="flex items-center justify-between mb-8 relative z-10">
               <h3 className="text-xl font-serif font-bold text-white flex items-center gap-3">
                 <Sparkles size={20} className="text-gold animate-pulse" />
-                {language === "tr"
+                {activeTab === "history"
+                  ? language === "tr"
+                    ? "Geçmiş Kayıtlar"
+                    : "Generation History"
+                  : language === "tr"
                   ? "Yapay Zeka Laboratuvarı Çıktısı"
                   : "AI Laboratory Output"}
               </h3>
-              {generatedSocial || generatedTitles.length > 0 ? (
-                <button
-                  onClick={() => {
-                    setGeneratedSocial(null);
-                    setGeneratedTitles([]);
-                  }}
-                  className="text-gray-500 hover:text-white transition-colors text-sm font-bold"
-                >
-                  {language === "tr" ? "Temizle" : "Clear Result"}
-                </button>
-              ) : null}
+              <div className="flex gap-2">
+                {(generatedSocial || generatedTitles.length > 0) &&
+                  activeTab !== "history" && (
+                    <button
+                      onClick={handleSaveToHistory}
+                      className="px-4 py-2 bg-navy-800 border border-gold/30 text-gold rounded-xl font-bold hover:bg-gold hover:text-navy-950 transition-all text-sm flex items-center gap-2"
+                    >
+                      <History size={16} />
+                      {language === "tr" ? "Geçmişe Kaydet" : "Save to History"}
+                    </button>
+                  )}
+                {generatedSocial || generatedTitles.length > 0 ? (
+                  <button
+                    onClick={() => {
+                      setGeneratedSocial(null);
+                      setGeneratedTitles([]);
+                    }}
+                    className="text-gray-500 hover:text-white transition-colors text-sm font-bold"
+                  >
+                    {language === "tr" ? "Temizle" : "Clear Result"}
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <div className="flex-1 relative z-10">
@@ -444,18 +507,92 @@ const AIStudioPage = () => {
                   ))}
                 </div>
               ) : activeTab === "history" ? (
-                <div className="h-full flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-16 h-16 bg-navy-800 rounded-2xl flex items-center justify-center text-gray-600 mb-4">
-                    <History size={32} />
+                history.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center py-20 text-center">
+                    <div className="w-16 h-16 bg-navy-800 rounded-2xl flex items-center justify-center text-gray-600 mb-4">
+                      <History size={32} />
+                    </div>
+                    <h4 className="text-lg font-bold text-white mb-2">
+                      No Generation History
+                    </h4>
+                    <p className="text-gray-500 max-w-xs">
+                      Your saved AI outcomes will appear here.
+                    </p>
                   </div>
-                  <h4 className="text-lg font-bold text-white mb-2">
-                    No Generation History
-                  </h4>
-                  <p className="text-gray-500 max-w-xs">
-                    Your recent AI laboratory activities will appear here for
-                    future reference.
-                  </p>
-                </div>
+                ) : (
+                  <div className="space-y-4 overflow-y-auto h-[600px] custom-scrollbar pr-2">
+                    {history.map((item) => (
+                      <div
+                        key={item.id}
+                        className="bg-navy-800/30 border border-white/5 p-6 rounded-3xl hover:bg-navy-800/50 transition-all"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <span
+                              className={`inline-block px-2 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold mb-2 ${
+                                item.type === "social"
+                                  ? "bg-pink-500/10 text-pink-400"
+                                  : "bg-purple-500/10 text-purple-400"
+                              }`}
+                            >
+                              {item.type === "social"
+                                ? item.platform || "Social Media"
+                                : "Title Ideas"}
+                            </span>
+                            <h4 className="font-bold text-white leading-tight">
+                              {item.topic}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(item.timestamp).toLocaleString()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const updated = history.filter(
+                                (h) => h.id !== item.id
+                              );
+                              setHistory(updated);
+                              localStorage.setItem(
+                                "TRIPZY_AI_HISTORY",
+                                JSON.stringify(updated)
+                              );
+                            }}
+                            className="text-gray-600 hover:text-red-400 transition-colors"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+
+                        {item.type === "social" ? (
+                          <div className="bg-navy-900/50 p-4 rounded-xl text-gray-300 text-sm whitespace-pre-wrap">
+                            {(item.content as GeneratedSocial).caption}
+                            <div className="mt-2 text-gold/80 flex flex-wrap gap-2 text-xs">
+                              {(item.content as GeneratedSocial).hashtags?.map(
+                                (h) => (
+                                  <span key={h}>{h}</span>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {(item.content as string[]).map((t, i) => (
+                              <div
+                                key={i}
+                                className="bg-navy-900/50 p-3 rounded-lg text-gray-300 text-sm flex gap-2"
+                              >
+                                <span className="text-gold font-bold">
+                                  {i + 1}.
+                                </span>{" "}
+                                {t}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
               ) : (
                 <div className="h-full flex flex-col items-center justify-center py-20 text-center opacity-50">
                   <div className="w-20 h-20 bg-navy-800 rounded-[32px] flex items-center justify-center mb-6">
