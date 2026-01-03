@@ -1,8 +1,8 @@
 // pages/admin/AIStudioPage.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "../../localization/LanguageContext";
 import { aiContentService } from "../../services/aiContentService";
-import { GeneratedSocial } from "../../types";
+import { GeneratedSocial, GeneratedVideoPrompt } from "../../types";
 import { useToast } from "../../hooks/useToast";
 import {
   Bot,
@@ -19,12 +19,14 @@ import {
   MessageSquare,
   Sparkles,
   X,
+  Video,
+  Clapperboard,
 } from "lucide-react";
 
 type HistoryItem = {
   id: string;
-  type: "social" | "titles";
-  content: GeneratedSocial | string[];
+  type: "social" | "titles" | "video";
+  content: GeneratedSocial | string[] | GeneratedVideoPrompt;
   timestamp: number;
   topic: string;
   platform?: string;
@@ -33,9 +35,9 @@ type HistoryItem = {
 const AIStudioPage = () => {
   const { language: appLanguage } = useLanguage();
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<"social" | "titles" | "history">(
-    "social"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "social" | "titles" | "video" | "history"
+  >("social");
   const [language, setLanguage] = useState<"en" | "tr">("en");
 
   // History State
@@ -59,6 +61,18 @@ const AIStudioPage = () => {
   // Track last used platform for history
   const [lastPlatform, setLastPlatform] = useState("");
 
+  // Video State
+  const [videoTopic, setVideoTopic] = useState("");
+  const [visualStyle, setVisualStyle] = useState(
+    "Cinematic, 4K, Travel Documentary"
+  );
+  const [videoModel, setVideoModel] = useState<"runway" | "luma" | "kling">(
+    "runway"
+  );
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [generatedVideo, setGeneratedVideo] =
+    useState<GeneratedVideoPrompt | null>(null);
+
   // Title Suggestions State
   const [titleTopic, setTitleTopic] = useState("");
   const [titleContext, setTitleContext] = useState("");
@@ -77,13 +91,32 @@ const AIStudioPage = () => {
   };
 
   const handleSaveToHistory = () => {
+    let type: HistoryItem["type"] = "social";
+    let content: any = generatedSocial;
+    let topic = socialTarget;
+
+    if (activeTab === "titles") {
+      type = "titles";
+      content = generatedTitles;
+      topic = titleTopic;
+    } else if (activeTab === "video") {
+      type = "video";
+      content = generatedVideo;
+      topic = videoTopic;
+    }
+
     const newItem: HistoryItem = {
       id: Date.now().toString(),
-      type: generatedSocial ? "social" : "titles",
-      content: generatedSocial || generatedTitles,
+      type: type,
+      content: content,
       timestamp: Date.now(),
-      topic: generatedSocial ? socialTarget : titleTopic,
-      platform: lastPlatform,
+      topic: topic,
+      platform:
+        activeTab === "social"
+          ? lastPlatform
+          : activeTab === "video"
+          ? videoModel
+          : undefined,
     };
 
     const updated = [newItem, ...history];
@@ -144,7 +177,7 @@ const AIStudioPage = () => {
       );
       setGeneratedTitles(result);
       addToast(
-        language === "tr" ? "Başlıklar hazır!" : "Titles ready!",
+        language === "tr" ? "Başlıklar hazır!" : "Titles generated!",
         "success"
       );
     } catch (error) {
@@ -154,6 +187,36 @@ const AIStudioPage = () => {
       );
     } finally {
       setGeneratingTitles(false);
+    }
+  };
+
+  const generateVideoPrompt = async () => {
+    if (!videoTopic) {
+      addToast(
+        language === "tr" ? "Lütfen bir konu girin" : "Please enter a topic",
+        "error"
+      );
+      return;
+    }
+    setGeneratingVideo(true);
+    try {
+      const result = await aiContentService.generateVideoPrompts(
+        videoTopic,
+        visualStyle,
+        videoModel
+      );
+      setGeneratedVideo(result);
+      addToast(
+        language === "tr" ? "Video komutları hazır!" : "Video prompts ready!",
+        "success"
+      );
+    } catch (error) {
+      addToast(
+        language === "tr" ? "Bir hata oluştu" : "An error occurred",
+        "error"
+      );
+    } finally {
+      setGeneratingVideo(false);
     }
   };
 
@@ -172,47 +235,44 @@ const AIStudioPage = () => {
 
   const isConfigured = aiContentService.isConfigured();
 
+  useEffect(() => {
+    // Sync language with app language if needed, but allow local override
+    if (appLanguage === "tr" && language === "en") setLanguage("tr");
+  }, [appLanguage]);
+
   return (
-    <div className="animate-in fade-in duration-500 pb-20">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+    <div className="space-y-10">
+      <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-gold rounded-xl flex items-center justify-center text-white shadow-lg shadow-purple-500/20">
-              <Bot size={22} />
-            </div>
-            <h1 className="text-4xl font-serif font-bold text-white tracking-tight">
-              AI Studio
-            </h1>
-          </div>
-          <p className="text-gray-400 text-lg ml-13">
+          <h1 className="text-4xl font-serif font-bold text-white mb-2 flex items-center gap-3">
+            <Sparkles className="text-gold animate-spin-slow" /> AI Studio
+          </h1>
+          <p className="text-gray-400">
             {language === "tr"
-              ? "Tripzy için yapay zeka destekli içerik üretim merkezi"
-              : "AI-powered content laboratory for Tripzy Travel"}
+              ? "Gelişmiş içerik üretim laboratuvarı"
+              : "Advanced content generation laboratory"}
           </p>
         </div>
-
-        {/* Language Switcher */}
-        <div className="flex bg-navy-900/50 p-1.5 rounded-2xl border border-white/5">
-          <button
-            onClick={() => setLanguage("tr")}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-              language === "tr"
-                ? "bg-gold text-navy-950 shadow-lg"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            🇹🇷 TR
-          </button>
+        <div className="flex gap-2 bg-navy-900/50 p-1 rounded-xl border border-white/5">
           <button
             onClick={() => setLanguage("en")}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
               language === "en"
-                ? "bg-gold text-navy-950 shadow-lg"
+                ? "bg-gold text-navy-950"
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            🇬🇧 EN
+            EN
+          </button>
+          <button
+            onClick={() => setLanguage("tr")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              language === "tr"
+                ? "bg-gold text-navy-950"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            TR
           </button>
         </div>
       </div>
@@ -229,6 +289,11 @@ const AIStudioPage = () => {
             id: "titles",
             icon: <Zap size={18} />,
             label: { en: "Title Wizard", tr: "Başlık Sihirbazı" },
+          },
+          {
+            id: "video",
+            icon: <Video size={18} />,
+            label: { en: "Video Director", tr: "Video Yönetmeni" },
           },
           {
             id: "history",
@@ -260,109 +325,181 @@ const AIStudioPage = () => {
           <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-[32px] border border-white/5 shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-purple-500/20 transition-all"></div>
 
-            <h3 className="text-xl font-serif font-bold text-white mb-6 flex items-center gap-3">
+            <h3 className="text-xl font-serif font-bold text-white mb-6 flex items-center gap-3 relative z-10">
               <Layout size={20} className="text-gold" />
               {activeTab === "social"
                 ? language === "tr"
                   ? "Sosyal Medya Girdileri"
                   : "Social Media Inputs"
+                : activeTab === "video"
+                ? language === "tr"
+                  ? "Video Parametreleri"
+                  : "Video Parameters"
                 : language === "tr"
                 ? "Başlık Parametreleri"
                 : "Title Parameters"}
             </h3>
 
             <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
-                  {language === "tr"
-                    ? "Konu / Destinasyon"
-                    : "Topic / Destination"}
-                </label>
-                <input
-                  type="text"
-                  value={activeTab === "social" ? socialTarget : titleTopic}
-                  onChange={(e) =>
-                    activeTab === "social"
-                      ? setSocialTarget(e.target.value)
-                      : setTitleTopic(e.target.value)
-                  }
-                  placeholder={
-                    language === "tr"
-                      ? "örn: Bali Seyahat Rehberi"
-                      : "e.g., Bali Travel Guide"
-                  }
-                  className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 font-medium"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
-                  {language === "tr"
-                    ? "Ek İçerik veya Notlar"
-                    : "Additional Context or Notes"}
-                </label>
-                <textarea
-                  rows={6}
-                  value={activeTab === "social" ? socialContext : titleContext}
-                  onChange={(e) =>
-                    activeTab === "social"
-                      ? setSocialContext(e.target.value)
-                      : setTitleContext(e.target.value)
-                  }
-                  placeholder={
-                    language === "tr"
-                      ? "Makale içeriği veya anahtar noktalar..."
-                      : "Article content or key points..."
-                  }
-                  className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 resize-none font-medium h-[200px]"
-                />
-              </div>
-
-              {activeTab === "titles" || activeTab === "history" ? (
-                <button
-                  onClick={generateTitleSuggestions}
-                  disabled={generatingTitles}
-                  className="w-full py-5 bg-gradient-to-r from-purple-500 to-gold text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-purple-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                  style={{ display: activeTab === "history" ? "none" : "flex" }}
-                >
-                  <Wand2 size={22} />
-                  {language === "tr"
-                    ? "Sihirli Başlıklar Üret"
-                    : "Generate Magic Titles"}
-                </button>
+              {activeTab === "video" ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                      {language === "tr"
+                        ? "Video Konusu / Sahne"
+                        : "Topic / Scene Description"}
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={videoTopic}
+                      onChange={(e) => setVideoTopic(e.target.value)}
+                      placeholder={
+                        language === "tr"
+                          ? "Örn: Bali pirinç tarlalarında gün batımında yürüyen bir gezgin..."
+                          : "Detailed scene description e.g., Traveler walking through rice terraces..."
+                      }
+                      className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 resize-none font-medium"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                      {language === "tr" ? "Görsel Stil" : "Visual Style"}
+                    </label>
+                    <input
+                      type="text"
+                      value={visualStyle}
+                      onChange={(e) => setVisualStyle(e.target.value)}
+                      className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 font-medium"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                      Target AI Model
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["runway", "luma", "kling"] as const).map((m) => (
+                        <button
+                          key={m}
+                          onClick={() => setVideoModel(m)}
+                          className={`py-3 px-2 rounded-xl text-sm font-bold capitalize border ${
+                            videoModel === m
+                              ? "bg-navy-800 border-gold text-white"
+                              : "bg-navy-900 border-white/5 text-gray-400"
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    onClick={generateVideoPrompt}
+                    disabled={generatingVideo}
+                    className="w-full py-5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-pink-500/20 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
+                  >
+                    <Clapperboard size={22} />
+                    {language === "tr" ? "Video Komutu Yaz" : "Generate Prompt"}
+                  </button>
+                </>
               ) : (
-                <div className="grid grid-cols-1 gap-3 pt-4">
-                  <button
-                    onClick={() => generateSocialContent("instagram")}
-                    disabled={generatingSocial}
-                    className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-purple-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                  >
-                    <Instagram size={20} />
-                    {language === "tr"
-                      ? "Instagram İçin Üret"
-                      : "Generate for Instagram"}
-                  </button>
-                  <button
-                    onClick={() => generateSocialContent("twitter")}
-                    disabled={generatingSocial}
-                    className="w-full py-4 bg-[#1DA1F2] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                  >
-                    <Twitter size={20} />
-                    {language === "tr"
-                      ? "Twitter İçin Üret"
-                      : "Generate for Twitter"}
-                  </button>
-                  <button
-                    onClick={() => generateSocialContent("facebook")}
-                    disabled={generatingSocial}
-                    className="w-full py-4 bg-[#4267B2] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-800/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                  >
-                    <Facebook size={20} />
-                    {language === "tr"
-                      ? "Facebook İçin Üret"
-                      : "Generate for Facebook"}
-                  </button>
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                      {language === "tr"
+                        ? "Konu / Destinasyon"
+                        : "Topic / Destination"}
+                    </label>
+                    <input
+                      type="text"
+                      value={activeTab === "social" ? socialTarget : titleTopic}
+                      onChange={(e) =>
+                        activeTab === "social"
+                          ? setSocialTarget(e.target.value)
+                          : setTitleTopic(e.target.value)
+                      }
+                      placeholder={
+                        language === "tr"
+                          ? "örn: Bali Seyahat Rehberi"
+                          : "e.g., Bali Travel Guide"
+                      }
+                      className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                      {language === "tr"
+                        ? "Ek İçerik veya Notlar"
+                        : "Additional Context or Notes"}
+                    </label>
+                    <textarea
+                      rows={6}
+                      value={
+                        activeTab === "social" ? socialContext : titleContext
+                      }
+                      onChange={(e) =>
+                        activeTab === "social"
+                          ? setSocialContext(e.target.value)
+                          : setTitleContext(e.target.value)
+                      }
+                      placeholder={
+                        language === "tr"
+                          ? "Makale içeriği veya anahtar noktalar..."
+                          : "Article content or key points..."
+                      }
+                      className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 resize-none font-medium h-[200px]"
+                    />
+                  </div>
+
+                  {activeTab === "titles" || activeTab === "history" ? (
+                    <button
+                      onClick={generateTitleSuggestions}
+                      disabled={generatingTitles}
+                      className="w-full py-5 bg-gradient-to-r from-purple-500 to-gold text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-purple-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                      style={{
+                        display: activeTab === "history" ? "none" : "flex",
+                      }}
+                    >
+                      <Wand2 size={22} />
+                      {language === "tr"
+                        ? "Sihirli Başlıklar Üret"
+                        : "Generate Magic Titles"}
+                    </button>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3 pt-4">
+                      <button
+                        onClick={() => generateSocialContent("instagram")}
+                        disabled={generatingSocial}
+                        className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-purple-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                      >
+                        <Instagram size={20} />
+                        {language === "tr"
+                          ? "Instagram İçin Üret"
+                          : "Generate for Instagram"}
+                      </button>
+                      <button
+                        onClick={() => generateSocialContent("twitter")}
+                        disabled={generatingSocial}
+                        className="w-full py-4 bg-[#1DA1F2] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                      >
+                        <Twitter size={20} />
+                        {language === "tr"
+                          ? "Twitter İçin Üret"
+                          : "Generate for Twitter"}
+                      </button>
+                      <button
+                        onClick={() => generateSocialContent("facebook")}
+                        disabled={generatingSocial}
+                        className="w-full py-4 bg-[#4267B2] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-800/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                      >
+                        <Facebook size={20} />
+                        {language === "tr"
+                          ? "Facebook İçin Üret"
+                          : "Generate for Facebook"}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -385,7 +522,9 @@ const AIStudioPage = () => {
                   : "AI Laboratory Output"}
               </h3>
               <div className="flex gap-2">
-                {(generatedSocial || generatedTitles.length > 0) &&
+                {(generatedSocial ||
+                  generatedTitles.length > 0 ||
+                  generatedVideo) &&
                   activeTab !== "history" && (
                     <button
                       onClick={handleSaveToHistory}
@@ -395,11 +534,14 @@ const AIStudioPage = () => {
                       {language === "tr" ? "Geçmişe Kaydet" : "Save to History"}
                     </button>
                   )}
-                {generatedSocial || generatedTitles.length > 0 ? (
+                {generatedSocial ||
+                generatedTitles.length > 0 ||
+                generatedVideo ? (
                   <button
                     onClick={() => {
                       setGeneratedSocial(null);
                       setGeneratedTitles([]);
+                      setGeneratedVideo(null);
                     }}
                     className="text-gray-500 hover:text-white transition-colors text-sm font-bold"
                   >
@@ -410,7 +552,7 @@ const AIStudioPage = () => {
             </div>
 
             <div className="flex-1 relative z-10">
-              {generatingSocial || generatingTitles ? (
+              {generatingSocial || generatingTitles || generatingVideo ? (
                 <div className="h-full flex flex-col items-center justify-center py-20">
                   <div className="w-20 h-20 bg-purple-500/20 rounded-3xl flex items-center justify-center mb-6 relative">
                     <Zap size={40} className="text-gold animate-bounce" />
@@ -506,6 +648,65 @@ const AIStudioPage = () => {
                     </div>
                   ))}
                 </div>
+              ) : activeTab === "video" && generatedVideo ? (
+                <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
+                  <div className="bg-gradient-to-br from-navy-800 to-navy-900 border border-white/5 rounded-3xl p-8 relative">
+                    <span className="absolute top-4 right-4 text-xs font-bold bg-gold/10 text-gold px-3 py-1 rounded-full border border-gold/20 uppercase">
+                      {videoModel} Optimized
+                    </span>
+
+                    <div className="mb-6">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">
+                        Main Prompt (Copy & Paste)
+                      </label>
+                      <div
+                        className="p-4 bg-black/40 rounded-xl border border-white/10 text-gray-200 font-mono text-sm relative group cursor-pointer"
+                        onClick={() => handleCopy(generatedVideo.prompt)}
+                      >
+                        {generatedVideo.prompt}
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all text-gold">
+                          <Copy size={16} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">
+                        Negative Prompt (To Avoid)
+                      </label>
+                      <div
+                        className="p-4 bg-red-900/10 rounded-xl border border-red-500/10 text-gray-300 font-mono text-sm relative group cursor-pointer"
+                        onClick={() =>
+                          handleCopy(generatedVideo.negativePrompt)
+                        }
+                      >
+                        {generatedVideo.negativePrompt}
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all text-gold">
+                          <Copy size={16} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-navy-800 rounded-xl border border-white/5">
+                        <div className="text-xs text-gray-500 uppercase font-bold mb-1">
+                          Camera Movement
+                        </div>
+                        <div className="text-white font-medium">
+                          {generatedVideo.cameraMovement}
+                        </div>
+                      </div>
+                      <div className="p-4 bg-navy-800 rounded-xl border border-white/5">
+                        <div className="text-xs text-gray-500 uppercase font-bold mb-1">
+                          Settings
+                        </div>
+                        <div className="text-white font-medium">
+                          {generatedVideo.modelSettings}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : activeTab === "history" ? (
                 history.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center py-20 text-center">
@@ -532,11 +733,15 @@ const AIStudioPage = () => {
                               className={`inline-block px-2 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold mb-2 ${
                                 item.type === "social"
                                   ? "bg-pink-500/10 text-pink-400"
+                                  : item.type === "video"
+                                  ? "bg-blue-500/10 text-blue-400"
                                   : "bg-purple-500/10 text-purple-400"
                               }`}
                             >
                               {item.type === "social"
                                 ? item.platform || "Social Media"
+                                : item.type === "video"
+                                ? `Video: ${item.platform}`
                                 : "Title Ideas"}
                             </span>
                             <h4 className="font-bold text-white leading-tight">
@@ -563,7 +768,7 @@ const AIStudioPage = () => {
                           </button>
                         </div>
 
-                        {item.type === "social" ? (
+                        {item.type === "social" && (
                           <div className="bg-navy-900/50 p-4 rounded-xl text-gray-300 text-sm whitespace-pre-wrap">
                             {(item.content as GeneratedSocial).caption}
                             <div className="mt-2 text-gold/80 flex flex-wrap gap-2 text-xs">
@@ -574,7 +779,9 @@ const AIStudioPage = () => {
                               )}
                             </div>
                           </div>
-                        ) : (
+                        )}
+
+                        {item.type === "titles" && (
                           <div className="space-y-2">
                             {(item.content as string[]).map((t, i) => (
                               <div
@@ -587,6 +794,15 @@ const AIStudioPage = () => {
                                 {t}
                               </div>
                             ))}
+                          </div>
+                        )}
+
+                        {item.type === "video" && (
+                          <div className="bg-navy-900/50 p-4 rounded-xl text-gray-300 text-sm font-mono">
+                            <strong className="text-gold block mb-1">
+                              PROMPT:
+                            </strong>
+                            {(item.content as GeneratedVideoPrompt).prompt}
                           </div>
                         )}
                       </div>
@@ -608,6 +824,8 @@ const AIStudioPage = () => {
                       ? language === "tr"
                         ? "Bir makale başlığı girin ve platform seçin"
                         : "Enter an article title and select a platform to begin."
+                      : activeTab === "video"
+                      ? "Describe your scene and get a pro-level prompt."
                       : language === "tr"
                       ? "Bir konu girin ve sihirli başlıklar üretin"
                       : "Enter a topic and watch as we generate high-converting headlines."}

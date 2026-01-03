@@ -9,6 +9,7 @@ import {
   GeneratedPost,
   SEOResult,
   GeneratedSocial,
+  GeneratedVideoPrompt,
 } from "../types";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -378,6 +379,33 @@ export const aiContentService = {
     `;
     const response = await callGemini(prompt);
     return parseJSON<GeneratedSocial>(response);
+  },
+
+  async generateVideoPrompts(
+    topic: string,
+    style: string,
+    model: "runway" | "luma" | "kling"
+  ): Promise<GeneratedVideoPrompt> {
+    const prompt = `
+      Act as a Hollywood Cinematographer and AI Video Expert.
+      Create a high-fidelity video generation prompt for **${model}** based on:
+      
+      **Topic/Scene**: "${topic}"
+      **Visual Style**: "${style}"
+
+      Return a strictly valid JSON object with these exact keys:
+      {
+        "prompt": "The detailed technical prompt (lighting, lens, action, environment)",
+        "negativePrompt": "Things to avoid (blur, distortion, text)",
+        "cameraMovement": "Specific camera instruction (e.g., 'Slow push in', 'Drone orbit')",
+        "modelSettings": "Recommended settings (e.g., 'Motion: 5', 'Resolution: 4K')"
+      }
+      
+      For Runway/Luma/Kling, focus on describing motion and lighting clearly.
+      Return ONLY valid JSON.
+    `;
+    const response = await callGemini(prompt);
+    return parseJSON<GeneratedVideoPrompt>(response);
   },
 
   async analyzeImageFromUrl(

@@ -111,3 +111,10 @@ export interface GeneratedSocial {
   hashtags: string[];
   suggestedPostTime: string;
 }
+
+export interface GeneratedVideoPrompt {
+  prompt: string;
+  negativePrompt: string;
+  cameraMovement: string;
+  modelSettings: string;
+}
