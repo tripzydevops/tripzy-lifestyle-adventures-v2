@@ -360,7 +360,22 @@ export const aiContentService = {
     content: string,
     platform: "instagram" | "twitter" | "facebook"
   ): Promise<GeneratedSocial> {
-    const prompt = `Generate ${platform} content (caption, hashtags, suggestedPostTime) as JSON for: ${title}`;
+    const prompt = `
+      Act as a professional social media manager.
+      Generate ${platform} content based on:
+      
+      Topic/Title: "${title}"
+      Context/Details: "${content}"
+
+      Return a strictly valid JSON object with the following keys:
+      {
+        "caption": "The post text (include emojis)",
+        "hashtags": ["#tag1", "#tag2"],
+        "suggestedPostTime": "e.g. Tuesday at 9:00 AM"
+      }
+
+      Return ONLY the JSON object. Do not include markdown formatting.
+    `;
     const response = await callGemini(prompt);
     return parseJSON<GeneratedSocial>(response);
   },
