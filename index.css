@@ -138,7 +138,7 @@ h4,
 h5,
 h6 {
   font-family: var(--font-serif);
-  color: var(--color-text-primary);
+  color: var(--color-text-primary) !important;
   line-height: 1.2;
   font-weight: 700;
   margin-top: 1.5em;
@@ -147,17 +147,17 @@ h6 {
 
 h1 {
   font-size: 2.5rem;
-  color: var(--color-text-primary);
+  color: var(--color-text-primary) !important;
 }
 
 h2 {
   font-size: 2rem;
-  color: var(--color-text-primary);
+  color: var(--color-text-primary) !important;
 }
 
 h3 {
   font-size: 1.75rem;
-  color: var(--color-gold);
+  color: var(--color-gold) !important;
 }
 
 blockquote {

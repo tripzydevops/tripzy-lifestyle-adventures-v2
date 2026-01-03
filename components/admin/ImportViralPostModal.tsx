@@ -42,6 +42,12 @@ const ImportViralPostModal: React.FC<ImportViralPostModalProps> = ({
         processedContent = `<article>${processedContent}</article>`;
       }
 
+      // Strip inline color and background styles to ensure theme compatibility
+      processedContent = processedContent
+        .replace(/color:\s*#[0-9a-f]{3,6};?/gi, "")
+        .replace(/background-color:\s*#[0-9a-f]{3,6};?/gi, "")
+        .replace(/background:\s*#[0-9a-f]{3,6};?/gi, "");
+
       const newPost: Partial<Post> = {
         title,
         content: processedContent,
