@@ -18,6 +18,7 @@ import { userService } from "../../services/userService";
 import { PostStatus, Post } from "../../types";
 import Spinner from "../../components/common/Spinner";
 import StatCard from "../../components/admin/StatCard";
+import ImportViralPostModal from "../../components/admin/ImportViralPostModal";
 
 interface DashboardStats {
   totalPosts: number;
@@ -32,6 +33,7 @@ const AdminDashboardPage = () => {
   const [topPosts, setTopPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -234,27 +236,8 @@ const AdminDashboardPage = () => {
 
                   <div className="mt-6 pt-6 border-t border-white/5">
                     <button
-                      onClick={async () => {
-                        try {
-                          const { trendingPostData } = await import(
-                            "../../data/trendingPost"
-                          );
-                          const newPost = {
-                            ...trendingPostData,
-                            authorId: user?.id,
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString(),
-                            views: 0,
-                          };
-                          await postService.createPost(newPost);
-                          alert("Trending post imported successfully!");
-                          window.location.reload();
-                        } catch (e) {
-                          console.error(e);
-                          alert("Failed to import post.");
-                        }
-                      }}
-                      className="w-full flex items-center justify-between p-4 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-2xl transition-all mb-2"
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="w-full flex items-center justify-between p-4 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-2xl transition-all mb-2 ring-1 ring-purple-500/20"
                     >
                       <span className="font-bold flex items-center gap-3">
                         <Sparkles size={18} /> Import Viral Post
@@ -329,6 +312,14 @@ const AdminDashboardPage = () => {
           </>
         )
       )}
+      <ImportViralPostModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => {
+          alert("Viral post imported successfully!");
+          window.location.reload();
+        }}
+      />
     </div>
   );
 };
