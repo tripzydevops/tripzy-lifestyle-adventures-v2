@@ -428,7 +428,7 @@ const EditPostPage = () => {
               className="flex-1 md:flex-none px-6 py-3 bg-navy-800 text-white rounded-xl font-bold border border-white/5 hover:bg-navy-700 transition-all flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : null}
-              {t("common.save")} Draft
+              {t("admin.saveDraft")}
             </button>
             <button
               type="submit"
@@ -437,10 +437,10 @@ const EditPostPage = () => {
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : null}
               {post.status === PostStatus.Scheduled
-                ? "Schedule"
+                ? t("admin.schedule")
                 : isAuthor
-                ? "Submit For Review"
-                : "Publish Now"}
+                ? t("admin.submitReview")
+                : t("admin.publishNow")}
             </button>
           </div>
         </div>

@@ -20,6 +20,8 @@ const ManageMediaPage = () => {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "image" | "video">("all");
   const { addToast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -74,6 +76,14 @@ const ManageMediaPage = () => {
     fileInputRef.current?.click();
   };
 
+  const filteredItems = mediaItems.filter((item) => {
+    const matchesSearch = item.fileName
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesFilter = filter === "all" || item.mediaType === filter;
+    return matchesSearch && matchesFilter;
+  });
+
   return (
     <div className="animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -110,6 +120,38 @@ const ManageMediaPage = () => {
         />
       </div>
 
+      {/* Search and Filters */}
+      <div className="bg-navy-900/50 backdrop-blur-xl p-4 rounded-2xl border border-white/5 mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <ImageIcon
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+            size={18}
+          />
+          <input
+            type="text"
+            placeholder={t("admin.searchMediaPlaceholder") || "Search files..."}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-navy-800/50 border border-white/5 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-gold/50 transition-colors"
+          />
+        </div>
+        <div className="flex bg-navy-950/50 p-1 rounded-xl border border-white/5">
+          {(["all", "image", "video"] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => setFilter(type)}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase tracking-wider ${
+                filter === type
+                  ? "bg-gold text-navy-950 shadow-lg"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="bg-navy-900/50 backdrop-blur-xl rounded-3xl border border-white/5 shadow-2xl p-8">
         {loading ? (
           <div className="py-20 flex justify-center">
@@ -117,9 +159,9 @@ const ManageMediaPage = () => {
           </div>
         ) : (
           <div>
-            {mediaItems.length > 0 ? (
+            {filteredItems.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                {mediaItems.map((item) => (
+                {filteredItems.map((item) => (
                   <div
                     key={item.id}
                     className="group relative aspect-square bg-navy-800/50 rounded-2xl border border-white/5 overflow-hidden transition-all hover:border-gold/30 hover:shadow-2xl hover:shadow-gold/5"

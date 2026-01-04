@@ -173,6 +173,14 @@ export interface Translations {
     deleteConfirm: string;
     deleteSuccess: string;
     saveSuccess: string;
+    saveDraft: string;
+    schedule: string;
+    submitReview: string;
+    publishNow: string;
+    aiExcerpt: string;
+    aiKeywords: string;
+    aiNarrative: string;
+    seoConfig: string;
     form: {
       postTitle: string;
       postExcerpt: string;
@@ -459,8 +467,16 @@ export const translations: Record<Language, Translations> = {
       createFirst: "Create your first story!",
       deleteConfirm:
         "Are you sure you want to delete this story? This action cannot be undone.",
-      deleteSuccess: "Story deleted successfully",
-      saveSuccess: "Story saved successfully",
+      deleteSuccess: "Item deleted successfully.",
+      saveSuccess: "Changes saved successfully.",
+      saveDraft: "Save Draft",
+      schedule: "Schedule",
+      submitReview: "Submit For Review",
+      publishNow: "Publish Now",
+      aiExcerpt: "AI Excerpt",
+      aiKeywords: "AI Keywords",
+      aiNarrative: "AI Narrative Guidelines",
+      seoConfig: "SEO & Discovery Configuration",
       form: {
         postTitle: "Story Title",
         postExcerpt: "Short Excerpt",
@@ -736,8 +752,16 @@ export const translations: Record<Language, Translations> = {
       createFirst: "İlk hikayenizi oluşturun!",
       deleteConfirm:
         "Bu hikayeyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
-      deleteSuccess: "Hikaye başarıyla silindi",
-      saveSuccess: "Hikaye başarıyla kaydedildi",
+      deleteSuccess: "Öğe başarıyla silindi.",
+      saveSuccess: "Değişiklikler başarıyla kaydedildi.",
+      saveDraft: "Taslağı Kaydet",
+      schedule: "Zamanla",
+      submitReview: "İncelemeye Gönder",
+      publishNow: "Şimdi Yayınla",
+      aiExcerpt: "AI Özeti",
+      aiKeywords: "AI Anahtar Kelimeler",
+      aiNarrative: "AI Anlatım Rehberi",
+      seoConfig: "SEO & Keşif Ayarları",
       form: {
         postTitle: "Hikaye Başlığı",
         postExcerpt: "Kısa Özet",
