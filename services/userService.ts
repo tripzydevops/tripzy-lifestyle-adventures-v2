@@ -1,17 +1,16 @@
-
-import { User, UserRole } from '../types';
-import { supabase } from '../lib/supabase';
+import { User, UserRole } from "../types";
+import { supabase } from "../lib/supabase";
 
 const mapUserFromSupabase = (data: any): User => {
   // Normalize roles from Tripzy.travel database
   let role = UserRole.Author;
   const dbRole = data.role?.toLowerCase();
-  
-  if (dbRole === 'admin' || dbRole === 'administrator' || data.is_admin) {
+
+  if (dbRole === "admin" || dbRole === "administrator" || data.is_admin) {
     role = UserRole.Administrator;
-  } else if (dbRole === 'editor') {
+  } else if (dbRole === "editor") {
     role = UserRole.Editor;
-  } else if (dbRole === 'author') {
+  } else if (dbRole === "author") {
     role = UserRole.Author;
   } else if (Object.values(UserRole).includes(data.role)) {
     role = data.role as UserRole;
@@ -19,38 +18,55 @@ const mapUserFromSupabase = (data: any): User => {
 
   return {
     id: data.id,
-    slug: data.slug || data.name?.toLowerCase().replace(/\s+/g, '-') || data.id,
-    name: data.name || 'Anonymous',
-    email: data.email || '',
+    slug: data.slug || data.name?.toLowerCase().replace(/\s+/g, "-") || data.id,
+    name: data.name || "Anonymous",
+    email: data.email || "",
     role,
-    avatarUrl: data.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || 'A')}&background=random`,
+    avatarUrl:
+      data.avatar_url ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        data.name || "A"
+      )}&background=random`,
+    isBanned: data.is_banned,
   };
 };
 
 export const userService = {
   async getAllUsers(): Promise<User[]> {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('name', { ascending: true });
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Supabase Error (getAllUsers):', error);
+      console.error("Supabase Error (getAllUsers):", error);
       return [];
     }
 
     return data.map(mapUserFromSupabase);
   },
 
+  async toggleBan(id: string, isBanned: boolean): Promise<User> {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ is_banned: isBanned })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return mapUserFromSupabase(data);
+  },
+
   async getUserById(id: string): Promise<User | undefined> {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', id)
+      .from("profiles")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) {
-      console.error('Supabase Error (getUserById):', error);
+      console.error("Supabase Error (getUserById):", error);
       return undefined;
     }
 
@@ -59,19 +75,19 @@ export const userService = {
 
   async getUserBySlug(slug: string): Promise<User | undefined> {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('slug', slug)
+      .from("profiles")
+      .select("*")
+      .eq("slug", slug)
       .single();
 
     if (error) {
-       // Try matching by name-based slug if explicit slug doesn't exist
-       const { data: allUsers } = await supabase.from('profiles').select('*');
-       const user = allUsers?.find(u => 
-         (u.slug === slug) || 
-         (u.name?.toLowerCase().replace(/\s+/g, '-') === slug)
-       );
-       return user ? mapUserFromSupabase(user) : undefined;
+      // Try matching by name-based slug if explicit slug doesn't exist
+      const { data: allUsers } = await supabase.from("profiles").select("*");
+      const user = allUsers?.find(
+        (u) =>
+          u.slug === slug || u.name?.toLowerCase().replace(/\s+/g, "-") === slug
+      );
+      return user ? mapUserFromSupabase(user) : undefined;
     }
 
     return mapUserFromSupabase(data);
@@ -81,20 +97,20 @@ export const userService = {
     const supabaseUpdates: any = {};
     if (updates.name) {
       supabaseUpdates.name = updates.name;
-      supabaseUpdates.slug = updates.name.toLowerCase().replace(/\s+/g, '-');
+      supabaseUpdates.slug = updates.name.toLowerCase().replace(/\s+/g, "-");
     }
     if (updates.avatarUrl) supabaseUpdates.avatar_url = updates.avatarUrl;
     if (updates.role) supabaseUpdates.role = updates.role;
 
     const { data, error } = await supabase
-      .from('profiles')
+      .from("profiles")
       .update(supabaseUpdates)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error) {
-      console.error('Supabase Error (updateUser):', error);
+      console.error("Supabase Error (updateUser):", error);
       throw error;
     }
 

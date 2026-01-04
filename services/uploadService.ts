@@ -25,6 +25,50 @@ const getPublicUrl = (fileName: string): string => {
 
 export const uploadService = {
   /**
+   * Converts an image to WebP format before upload (client-side)
+   */
+  async convertToWebP(file: File): Promise<File> {
+    if (!file.type.startsWith("image/") || file.type === "image/webp") {
+      return file;
+    }
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const newFile = new File(
+                [blob],
+                file.name.replace(/\.[^/.]+$/, ".webp"),
+                {
+                  type: "image/webp",
+                }
+              );
+              resolve(newFile);
+            } else {
+              resolve(file);
+            }
+          },
+          "image/webp",
+          0.85 // High quality WebP
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = URL.createObjectURL(file);
+    });
+  },
+
+  /**
    * Uploads an image or video file to Supabase Storage.
    * @param file The file to upload.
    * @returns The public URL of the uploaded file.
@@ -34,13 +78,23 @@ export const uploadService = {
       `Uploading file: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`
     );
 
+    // Auto-optimize images to WebP
+    let fileToUpload = file;
+    if (file.type.startsWith("image/")) {
+      try {
+        fileToUpload = await this.convertToWebP(file);
+      } catch (err) {
+        console.warn("WebP conversion failed, using original:", err);
+      }
+    }
+
     // Generate unique filename
-    const uniqueFileName = generateUniqueFileName(file.name);
+    const uniqueFileName = generateUniqueFileName(fileToUpload.name);
 
     // Upload to Supabase Storage
     const { error: uploadError } = await supabase.storage
       .from("blog-media")
-      .upload(uniqueFileName, file, {
+      .upload(uniqueFileName, fileToUpload, {
         cacheControl: "3600",
         upsert: false,
       });
@@ -54,7 +108,9 @@ export const uploadService = {
     const publicUrl = getPublicUrl(uniqueFileName);
 
     // Determine media type
-    const mediaType = file.type.startsWith("video/") ? "video" : "image";
+    const mediaType = fileToUpload.type.startsWith("video/")
+      ? "video"
+      : "image";
 
     // AI Metadata Generation for Images
     let altText = "";
@@ -73,7 +129,7 @@ export const uploadService = {
     // Add the new item to the media library database
     await mediaService.addMedia({
       url: publicUrl,
-      fileName: file.name,
+      fileName: fileToUpload.name,
       mediaType: mediaType,
       altText,
       caption,
@@ -81,6 +137,24 @@ export const uploadService = {
 
     console.log(`File uploaded successfully. URL: ${publicUrl}`);
     return publicUrl;
+  },
+
+  /**
+   * Bulk upload multiple files
+   */
+  async uploadMultipleFiles(files: FileList | File[]): Promise<string[]> {
+    const urls: string[] = [];
+    const fileArray = Array.from(files);
+
+    // We process sequentially to avoid overwhelming storage or DB triggers in some envs,
+    // but we could use Promise.all if we wanted massive parallel.
+    // Let's do batches of 3.
+    for (let i = 0; i < fileArray.length; i++) {
+      const url = await this.uploadFile(fileArray[i]);
+      urls.push(url);
+    }
+
+    return urls;
   },
 
   /**

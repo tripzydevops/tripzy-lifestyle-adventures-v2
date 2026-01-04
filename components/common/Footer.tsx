@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Heart,
 } from "lucide-react";
+import { newsletterService } from "../../services/newsletterService";
 
 const TRIPZY_APP_URL =
   import.meta.env.VITE_TRIPZY_APP_URL || "https://tripzy.travel";
@@ -18,12 +19,20 @@ const Footer = () => {
   const [email, setEmail] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Connect to newsletter service
-    console.log("Subscribe:", email);
-    setIsSubscribed(true);
-    setEmail("");
+    if (!email) return;
+
+    try {
+      await newsletterService.subscribe(email);
+      setIsSubscribed(true);
+      setEmail("");
+    } catch (error) {
+      console.error("Subscription failed:", error);
+      // Ideally show a toast here, but we'll stick to the existing UI flow for now
+      // or set an error state if needed.
+      alert("Failed to subscribe. Please try again.");
+    }
   };
 
   const currentYear = new Date().getFullYear();

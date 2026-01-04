@@ -99,6 +99,56 @@ export const signalService = {
       target_type: "post",
       metadata: m,
     }),
+
+  /**
+   * Fetches aggregated signal usage stats for the admin dashboard.
+   */
+  getSignalStats: async (limit = 7) => {
+    try {
+      const { data, error } = await supabase.rpc("get_signal_stats", {
+        limit_days: limit,
+      });
+
+      if (error) {
+        console.warn("Stats RPC failed, falling back to raw query aggregation");
+
+        // Fallback: Manually aggregate last 7 days from raw signals
+        const { data: rawData, error: rawError } = await supabase
+          .schema("blog")
+          .from("user_signals")
+          .select("created_at, signal_type")
+          .gte(
+            "created_at",
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+          )
+          .order("created_at", { ascending: true });
+
+        if (rawError) throw rawError;
+
+        // Group by day
+        const grouped: Record<string, any> = {};
+        rawData?.forEach((row) => {
+          const date = new Date(row.created_at).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
+          if (!grouped[date])
+            grouped[date] = { date, views: 0, clicks: 0, searches: 0 };
+
+          if (row.signal_type === "view") grouped[date].views++;
+          else if (row.signal_type === "click") grouped[date].clicks++;
+          else if (row.signal_type === "search") grouped[date].searches++;
+        });
+
+        return Object.values(grouped);
+      }
+
+      return data;
+    } catch (e) {
+      console.error("Failed to fetch signal stats:", e);
+      return [];
+    }
+  },
 };
 
 // Direct exports

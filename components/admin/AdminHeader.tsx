@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import { useNotifications } from "../../hooks/useNotifications";
 import { ChevronDown, LogOut, User, Bell, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const AdminHeader = () => {
   const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } =
+    useNotifications();
 
   return (
     <header className="flex items-center justify-between px-8 h-24 bg-navy-900 border-b border-white/5 relative z-10">
@@ -24,10 +28,78 @@ const AdminHeader = () => {
       </div>
 
       <div className="flex items-center gap-6">
-        <button className="text-gray-400 hover:text-gold transition-colors relative">
-          <Bell size={20} />
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-gold rounded-full ring-2 ring-navy-900"></span>
-        </button>
+        {/* Notification Bell */}
+        <div className="relative">
+          <button
+            onClick={() => setNotificationsOpen(!notificationsOpen)}
+            className="text-gray-400 hover:text-gold transition-colors relative"
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-gold rounded-full ring-2 ring-navy-900 animate-pulse"></span>
+            )}
+          </button>
+
+          {notificationsOpen && (
+            <div className="absolute right-0 mt-3 w-80 bg-navy-800 border border-white/10 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/5 bg-navy-900/50 flex justify-between items-center">
+                <span className="text-xs text-gray-400 uppercase tracking-widest font-bold">
+                  Notifications ({unreadCount})
+                </span>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-[10px] text-gold hover:underline"
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {notifications.length > 0 ? (
+                  notifications.map((n) => (
+                    <Link
+                      key={n.id}
+                      to={n.link || "#"}
+                      onClick={() => {
+                        markAsRead(n.id);
+                        setNotificationsOpen(false);
+                      }}
+                      className="block px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-2 h-2 mt-1.5 rounded-full ${
+                            n.type === "comment"
+                              ? "bg-blue-500"
+                              : n.type === "newsletter"
+                              ? "bg-green-500"
+                              : "bg-gold"
+                          }`}
+                        ></div>
+                        <div>
+                          <p className="text-sm text-gray-200 leading-snug">
+                            {n.message}
+                          </p>
+                          <p className="text-[10px] text-gray-500 mt-1">
+                            {new Date(n.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                    No new notifications
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="h-8 w-px bg-white/5"></div>
 

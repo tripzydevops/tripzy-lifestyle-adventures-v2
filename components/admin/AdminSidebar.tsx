@@ -9,6 +9,9 @@ import {
   UploadCloud,
   ChevronRight,
   Bot,
+  Mail,
+  MessageSquare,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { SITE_NAME } from "../../constants";
@@ -63,6 +66,46 @@ const AdminSidebar = () => {
             />
           </NavLink>
 
+          {(isAdmin || isEditor) && (
+            <>
+              <div className="pt-6 pb-2">
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-4 ml-4">
+                  Marketing
+                </div>
+              </div>
+              <NavLink
+                to="/admin/newsletter-campaigns"
+                className={getNavLinkClass}
+              >
+                <Mail className="w-5 h-5 flex-shrink-0" />
+                <span className="mx-4 flex-grow text-sm">Campaigns</span>
+                <ChevronRight
+                  size={14}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                />
+              </NavLink>
+              <NavLink to="/admin/subscribers" className={getNavLinkClass}>
+                <Users className="w-5 h-5 flex-shrink-0" />
+                <span className="mx-4 flex-grow text-sm">Subscribers</span>
+                <ChevronRight
+                  size={14}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                />
+              </NavLink>
+            </>
+          )}
+
+          {(isAdmin || isEditor) && (
+            <NavLink to="/admin/comments" className={getNavLinkClass}>
+              <MessageSquare className="w-5 h-5 flex-shrink-0" />
+              <span className="mx-4 flex-grow text-sm">Comments</span>
+              <ChevronRight
+                size={14}
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </NavLink>
+          )}
+
           <div className="pt-6 pb-2">
             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-4 ml-4">
               Resources
@@ -106,6 +149,16 @@ const AdminSidebar = () => {
                   className="opacity-0 group-hover:opacity-100 transition-opacity"
                 />
               </NavLink>
+
+              <NavLink to="/admin/seo-health" className={getNavLinkClass}>
+                <Activity className="w-5 h-5 flex-shrink-0" />
+                <span className="mx-4 flex-grow text-sm">SEO Health</span>
+                <ChevronRight
+                  size={14}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                />
+              </NavLink>
+
               <NavLink to="/admin/settings" className={getNavLinkClass}>
                 <Settings className="w-5 h-5 flex-shrink-0" />
                 <span className="mx-4 flex-grow text-sm">Settings</span>

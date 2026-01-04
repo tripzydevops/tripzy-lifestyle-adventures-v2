@@ -11,6 +11,9 @@ export interface User {
   email: string;
   role: UserRole;
   avatarUrl: string;
+  isBanned?: boolean;
+  xp?: number;
+  level?: number;
 }
 
 export enum PostStatus {
@@ -63,6 +66,7 @@ export interface Comment {
   authorName: string;
   content: string;
   createdAt: string;
+  isApproved?: boolean;
 }
 
 export interface MediaItem {
@@ -75,6 +79,7 @@ export interface MediaItem {
   caption?: string;
   mimeType?: string;
   sizeBytes?: number;
+  tags?: string[];
 }
 
 export interface GeneratePostParams {
@@ -117,4 +122,31 @@ export interface GeneratedVideoPrompt {
   negativePrompt: string;
   cameraMovement: string;
   modelSettings: string;
+}
+
+export type CampaignStatus = "draft" | "scheduled" | "sending" | "sent";
+
+export interface NewsletterCampaign {
+  id: string;
+  subject: string;
+  contentHtml: string;
+  status: CampaignStatus;
+  sentAt?: string;
+  recipientCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Achievement {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  xpReward: number;
+}
+
+export interface UserAchievement {
+  achievement: Achievement;
+  earnedAt: string;
 }

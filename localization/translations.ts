@@ -277,7 +277,21 @@ export interface Translations {
       sortByViews: string;
       views: string;
       importSuccess: string;
+      performance: string; // New
     };
+    comments: {
+      // New
+      title: string;
+      subtitle: string;
+      pending: string;
+      approve: string;
+      delete: string;
+      viewPost: string;
+      empty: string;
+      emptySubtitle: string;
+    };
+    newsletter: string; // New
+    newsletterSubtitle: string; // New
   };
 }
 
@@ -550,7 +564,20 @@ export const translations: Record<Language, Translations> = {
         sortByViews: "Sort by Views",
         views: "Views",
         importSuccess: "Viral post imported successfully!",
+        performance: "Signal Intelligence",
       },
+      comments: {
+        title: "Comment Moderation",
+        subtitle: "Review and approve pending comments from users.",
+        pending: "Pending",
+        approve: "Approve",
+        delete: "Delete",
+        viewPost: "View Post",
+        empty: "All Caught Up!",
+        emptySubtitle: "No pending comments to review.",
+      },
+      newsletter: "Newsletter Subscribers",
+      newsletterSubtitle: "Manage and export your loyal audience.",
       placeholder: {
         title: "Enter a captivating headline...",
         excerpt: "A short, catchy summary for travel lists...",
@@ -801,14 +828,14 @@ export const translations: Record<Language, Translations> = {
       profile: {
         title: "Yönetici Profili",
         subtitle: "Yönetici kimliğinizi ve kimlik bilgilerinizi yönetin.",
-        fullName: "Tam Ad",
+        fullName: "Ad Soyad",
         photoUrl: "Profil Fotoğrafı (URL)",
         saveProfile: "Profili Kaydet",
       },
       dashboard: {
-        welcomeBack: "Hoş geldiniz,",
+        welcomeBack: "Tekrar hoş geldiniz,",
         monitoringText:
-          "Tripzy Lifestyle Adventures platform sağlığı ve içerik performansı izleniyor.",
+          "Tripzy Lifestyle Adventures platform sağlığını ve içerik performansını izliyorsunuz.",
         systemOnline: "Sistem Çevrimiçi",
         errorTitle: "Panel Hatası",
         retry: "Tekrar Dene",
@@ -818,11 +845,11 @@ export const translations: Record<Language, Translations> = {
         issueSchema:
           "Supabase veritabanınızda 'blog' şemasının mevcut olduğunu doğrulayın",
         issueMigration:
-          "Migrasyon komut dosyalarını çalıştırdığınızdan emin olun",
+          "Geçiş (migration) komutlarını çalıştırdığınızdan emin olun",
         issueConsole:
           "Detaylı hata mesajları için tarayıcı konsolunu kontrol edin",
         activeStories: "Aktif Hikayeler",
-        totalExplorers: "Toplam Kaşifler",
+        totalExplorers: "Toplam Gezgin",
         underReview: "İncelemede",
         editorialDrafts: "Editöryal Taslaklar",
         quickActions: "Hızlı İşlemler",
@@ -832,15 +859,16 @@ export const translations: Record<Language, Translations> = {
         importViralPost: "Viral Yazı İçe Aktar",
         autonomousTip: "Otonom İpucu",
         tipText:
-          '"Gezginler Tokyo\'da gizli yerel mücevherleri daha fazla arıyor. Bir sonraki rehberinizde bağımsız kafelere daha fazla yer vermeyi düşünün."',
+          '"Gezginler Tokyo\'daki gizli yerel mücevherleri daha çok arıyor. Bir sonraki rehberinizde daha fazla bağımsız kafeyi öne çıkarmayı düşünün."',
         topPerforming: "En İyi Performans Gösteren Hikayeler",
-        sortByViews: "Görüntülemeye Göre Sırala",
+        sortByViews: "Görüntülenmeye Göre Sırala",
         views: "Görüntülenme",
         importSuccess: "Viral yazı başarıyla içe aktarıldı!",
+        performance: "Sinyal İstihbaratı",
       },
       placeholder: {
-        title: "Büyüleyici bir başlık girin...",
-        excerpt: "Seyahat listeleri için kısa, akılda kalıcı bir özet...",
+        title: "Etkileyici bir başlık girin...",
+        excerpt: "Gezi listeleri için kısa, akılda kalıcı bir özet...",
         metaKeywords: "macera, şehir rehberi, gizli cennet",
       },
       ai: {
@@ -848,8 +876,21 @@ export const translations: Record<Language, Translations> = {
         generatingImage: "Gemini yazınızı hayal ediyor...",
         imageUpgrade: "Görsel oluşturma şu anda güncelleniyor.",
         createSubtitle:
-          "Gemini Intelligence destekli sürükleyici seyahat hikayeleri oluşturun.",
+          "Gemini Intelligence tarafından desteklenen sürükleyici seyahat hikayeleri oluşturun.",
       },
+      comments: {
+        title: "Yorum Moderasyonu",
+        subtitle:
+          "Kullanıcılardan gelen bekleyen yorumları inceleyin ve onaylayın.",
+        pending: "Bekleyen",
+        approve: "Onayla",
+        delete: "Sil",
+        viewPost: "Yazıyı Görüntüle",
+        empty: "Her Şey Tamam!",
+        emptySubtitle: "İncelenecek bekleyen yorum yok.",
+      },
+      newsletter: "Bülten Aboneleri",
+      newsletterSubtitle: "Sadık kitlenizi yönetin ve dışa aktarın.",
     },
   },
 };

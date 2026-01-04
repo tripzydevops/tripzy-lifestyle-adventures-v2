@@ -6,6 +6,7 @@ import { embeddingService } from "./embeddingService";
 export interface PaginatedPostsResponse {
   posts: Post[];
   totalPages: number;
+  totalCount: number;
 }
 
 const slugify = (text: string) =>
@@ -115,11 +116,15 @@ export const postService = {
 
     if (error) {
       console.error("Supabase Error (getAdminPosts):", error);
-      return { posts: [], totalPages: 0 };
+      return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
     const totalPages = Math.ceil((count || 0) / limit);
-    return { posts: data.map(mapPostFromSupabase), totalPages };
+    return {
+      posts: data.map(mapPostFromSupabase),
+      totalPages,
+      totalCount: count || 0,
+    };
   },
 
   async getPostStats(): Promise<PostStats> {
@@ -209,7 +214,7 @@ export const postService = {
 
     if (countError) {
       console.error("Supabase Error (getPublishedPosts - count):", countError);
-      return { posts: [], totalPages: 0 };
+      return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
     const { data, error } = await supabase
@@ -223,11 +228,15 @@ export const postService = {
 
     if (error) {
       console.error("Supabase Error (getPublishedPosts):", error);
-      return { posts: [], totalPages: 0 };
+      return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
     const totalPages = Math.ceil((count || 0) / limit);
-    return { posts: data.map(mapPostFromSupabase), totalPages };
+    return {
+      posts: data.map(mapPostFromSupabase),
+      totalPages,
+      totalCount: count || 0,
+    };
   },
 
   async searchPosts(
@@ -235,7 +244,7 @@ export const postService = {
     page: number = 1,
     limit: number = POSTS_PER_PAGE
   ): Promise<PaginatedPostsResponse> {
-    if (!query) return { posts: [], totalPages: 0 };
+    if (!query) return { posts: [], totalPages: 0, totalCount: 0 };
     const now = new Date().toISOString();
 
     const { count, error: countError } = await supabase
@@ -248,7 +257,7 @@ export const postService = {
 
     if (countError) {
       console.error("Supabase Error (searchPosts - count):", countError);
-      return { posts: [], totalPages: 0 };
+      return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
     const { data, error } = await supabase
@@ -263,11 +272,15 @@ export const postService = {
 
     if (error) {
       console.error("Supabase Error (searchPosts):", error);
-      return { posts: [], totalPages: 0 };
+      return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
     const totalPages = Math.ceil((count || 0) / limit);
-    return { posts: data.map(mapPostFromSupabase), totalPages };
+    return {
+      posts: data.map(mapPostFromSupabase),
+      totalPages,
+      totalCount: count || 0,
+    };
   },
 
   async semanticSearchPosts(
@@ -327,7 +340,7 @@ export const postService = {
 
     if (countError) {
       console.error("Supabase Error (getPostsByCategory - count):", countError);
-      return { posts: [], totalPages: 0 };
+      return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
     const { data, error } = await supabase
@@ -342,11 +355,15 @@ export const postService = {
 
     if (error) {
       console.error("Supabase Error (getPostsByCategory):", error);
-      return { posts: [], totalPages: 0 };
+      return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
     const totalPages = Math.ceil((count || 0) / limit);
-    return { posts: data.map(mapPostFromSupabase), totalPages };
+    return {
+      posts: data.map(mapPostFromSupabase),
+      totalPages,
+      totalCount: count || 0,
+    };
   },
 
   async getPostsByTag(
@@ -366,7 +383,7 @@ export const postService = {
 
     if (countError) {
       console.error("Supabase Error (getPostsByTag - count):", countError);
-      return { posts: [], totalPages: 0 };
+      return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
     const { data, error } = await supabase
@@ -381,11 +398,15 @@ export const postService = {
 
     if (error) {
       console.error("Supabase Error (getPostsByTag):", error);
-      return { posts: [], totalPages: 0 };
+      return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
     const totalPages = Math.ceil((count || 0) / limit);
-    return { posts: data.map(mapPostFromSupabase), totalPages };
+    return {
+      posts: data.map(mapPostFromSupabase),
+      totalPages,
+      totalCount: count || 0,
+    };
   },
 
   async getPostsByAuthorId(
@@ -405,7 +426,7 @@ export const postService = {
 
     if (countError) {
       console.error("Supabase Error (getPostsByAuthorId - count):", countError);
-      return { posts: [], totalPages: 0 };
+      return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
     const { data, error } = await supabase
@@ -420,11 +441,15 @@ export const postService = {
 
     if (error) {
       console.error("Supabase Error (getPostsByAuthorId):", error);
-      return { posts: [], totalPages: 0 };
+      return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
     const totalPages = Math.ceil((count || 0) / limit);
-    return { posts: data.map(mapPostFromSupabase), totalPages };
+    return {
+      posts: data.map(mapPostFromSupabase),
+      totalPages,
+      totalCount: count || 0,
+    };
   },
 
   async getRelatedPosts(postId: string, category: string): Promise<Post[]> {

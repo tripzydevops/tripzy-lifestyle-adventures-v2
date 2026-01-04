@@ -20,6 +20,8 @@ import { PostStatus, Post } from "../../types";
 import Spinner from "../../components/common/Spinner";
 import StatCard from "../../components/admin/StatCard";
 import ImportViralPostModal from "../../components/admin/ImportViralPostModal";
+import PostStatsChart from "../../components/admin/PostStatsChart";
+import { signalService } from "../../services/signalService";
 
 interface DashboardStats {
   totalPosts: number;
@@ -36,20 +38,23 @@ const AdminDashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [signalStats, setSignalStats] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         console.log("🔍 AdminDashboard: Starting to fetch stats...");
-        const [postStats, topPostsData, users] = await Promise.all([
+        const [postStats, topPostsData, users, signals] = await Promise.all([
           postService.getPostStats(),
           postService.getTopPosts(5),
           userService.getAllUsers(),
+          signalService.getSignalStats(7),
         ]);
 
         console.log("📊 AdminDashboard: Fetched data:", {
           postsCount: postStats.totalPosts,
           usersCount: users.length,
+          signalsCount: Array.isArray(signals) ? signals.length : 0,
         });
 
         const totalUsers = users.length;
@@ -58,7 +63,7 @@ const AdminDashboardPage = () => {
         const { totalPosts, pendingPosts, draftPosts } = postStats;
 
         setTopPosts(topPostsData);
-
+        setSignalStats(Array.isArray(signals) ? signals : []);
         setStats({ totalPosts, totalUsers, pendingPosts, draftPosts });
         setError(null);
         console.log("✅ AdminDashboard: Stats set successfully");
@@ -182,6 +187,11 @@ const AdminDashboardPage = () => {
                 iconBgColor="bg-navy-800"
                 iconColor="text-purple-400"
               />
+            </div>
+
+            {/* Signal Intelligence Chart */}
+            <div className="mb-0 animate-fade-in-up">
+              <PostStatsChart data={signalStats} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

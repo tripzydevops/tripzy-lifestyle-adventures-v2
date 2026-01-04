@@ -3,6 +3,7 @@ import { useSettings } from "../../hooks/useSettings";
 import { useToast } from "../../hooks/useToast";
 import { useLanguage } from "../../localization/LanguageContext";
 import { SiteSettings } from "../../types";
+import { exportService } from "../../services/exportService";
 import Spinner from "../../components/common/Spinner";
 import { AVAILABLE_FONTS, AVAILABLE_COLORS } from "../../constants";
 import { Settings, Palette, Share2, Save, Globe, Type } from "lucide-react";
@@ -115,6 +116,78 @@ const SettingsPage = () => {
                 className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Data Management Settings */}
+        <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-3xl border border-white/5">
+          <h2 className="text-xl font-serif font-bold text-white mb-6 flex items-center gap-2">
+            <Settings size={20} className="text-gold" />
+            Backup & Export
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const count = await exportService.exportPosts();
+                  addToast(`Exported ${count} posts successfully`, "success");
+                } catch {
+                  addToast("Failed to export posts", "error");
+                }
+              }}
+              className="px-6 py-4 bg-navy-800 border border-white/10 rounded-2xl text-white font-bold hover:bg-gold hover:text-navy-950 transition-all text-sm"
+            >
+              Export Posts (JSON)
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const count = await exportService.exportComments();
+                  addToast(
+                    `Exported ${count} comments successfully`,
+                    "success"
+                  );
+                } catch {
+                  addToast("Failed to export comments", "error");
+                }
+              }}
+              className="px-6 py-4 bg-navy-800 border border-white/10 rounded-2xl text-white font-bold hover:bg-gold hover:text-navy-950 transition-all text-sm"
+            >
+              Export Comments
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const count = await exportService.exportSubscribers();
+                  addToast(
+                    `Exported ${count} subscribers successfully`,
+                    "success"
+                  );
+                } catch {
+                  addToast("Failed to export subscribers", "error");
+                }
+              }}
+              className="px-6 py-4 bg-navy-800 border border-white/10 rounded-2xl text-white font-bold hover:bg-gold hover:text-navy-950 transition-all text-sm"
+            >
+              Export Subscribers
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const count = await exportService.exportMediaManifest();
+                  addToast(`Exported ${count} media items`, "success");
+                } catch {
+                  addToast("Failed to export media manifest", "error");
+                }
+              }}
+              className="px-6 py-4 bg-navy-800 border border-white/10 rounded-2xl text-white font-bold hover:bg-gold hover:text-navy-950 transition-all text-sm"
+            >
+              Export Media List
+            </button>
           </div>
         </div>
 

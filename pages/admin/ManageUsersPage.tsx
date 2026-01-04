@@ -39,6 +39,19 @@ const ManageUsersPage = () => {
     }
   };
 
+  const handleBanToggle = async (userId: string, isBanned: boolean) => {
+    try {
+      await userService.toggleBan(userId, isBanned);
+      setUsers(users.map((u) => (u.id === userId ? { ...u, isBanned } : u)));
+      addToast(
+        isBanned ? "User has been banned." : "User has been unbanned.",
+        "success"
+      );
+    } catch (error) {
+      addToast("Failed to update user status.", "error");
+    }
+  };
+
   const getRoleBadgeColor = (role: UserRole) => {
     switch (role) {
       case UserRole.Administrator:
@@ -118,8 +131,13 @@ const ManageUsersPage = () => {
                           </div>
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-white">
+                          <div className="text-sm font-bold text-white flex items-center gap-2">
                             {user.name}
+                            {user.isBanned && (
+                              <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-500 text-[10px] uppercase font-bold tracking-wider">
+                                Banned
+                              </span>
+                            )}
                           </div>
                           <div className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
                             ID: {user.id.substring(0, 8)}...
@@ -182,6 +200,22 @@ const ManageUsersPage = () => {
                             >
                               Author{" "}
                               <UserIcon size={12} className="text-gold" />
+                            </button>
+
+                            <div className="h-px bg-white/5 my-1"></div>
+
+                            <button
+                              onClick={() =>
+                                handleBanToggle(user.id, !user.isBanned)
+                              }
+                              className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors flex items-center justify-between ${
+                                user.isBanned
+                                  ? "text-green-400 hover:bg-green-500/10"
+                                  : "text-red-400 hover:bg-red-500/10"
+                              }`}
+                            >
+                              {user.isBanned ? "Unban User" : "Ban User"}
+                              <Shield size={12} />
                             </button>
                           </div>
                         </div>

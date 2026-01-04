@@ -26,6 +26,7 @@ const mapMediaFromSupabase = (data: any): MediaItem => ({
   caption: data.caption,
   mimeType: data.mime_type,
   sizeBytes: data.size_bytes,
+  tags: data.tags || [],
 });
 
 export const mediaService = {
@@ -51,6 +52,7 @@ export const mediaService = {
       url: mediaData.url,
       filename: mediaData.fileName, // Correct column name is 'filename' without underscore
       mime_type: mediaData.mediaType === "video" ? "video/mp4" : "image/jpeg",
+      tags: mediaData.tags || [],
     };
 
     const { data, error } = await supabase
@@ -101,6 +103,7 @@ export const mediaService = {
       supabaseUpdates.mime_type = updates.mimeType;
     if (updates.sizeBytes !== undefined)
       supabaseUpdates.size_bytes = updates.sizeBytes;
+    if (updates.tags !== undefined) supabaseUpdates.tags = updates.tags;
 
     const { data, error } = await supabase
       .schema("blog")

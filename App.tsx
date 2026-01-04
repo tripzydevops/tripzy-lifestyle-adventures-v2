@@ -31,6 +31,12 @@ import SDKTestPage from "./pages/SDKTestPage";
 
 import { TripzyProvider } from "./hooks/useTripzy";
 
+import ManageSubscribersPage from "./pages/admin/ManageSubscribersPage";
+import ManageCommentsPage from "./pages/admin/ManageCommentsPage";
+import NewsletterCampaignsPage from "./pages/admin/NewsletterCampaignsPage";
+import CampaignEditorPage from "./pages/admin/CampaignEditorPage";
+import SEOHealthPage from "./pages/admin/SEOHealthPage";
+
 function App() {
   return (
     <BrowserRouter>
@@ -122,6 +128,7 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
+
                     <Route
                       path="ai-studio"
                       element={
@@ -137,10 +144,90 @@ function App() {
                       }
                     />
                     <Route
+                      path="seo-health"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={[
+                            UserRole.Administrator,
+                            UserRole.Editor,
+                          ]}
+                        >
+                          <SEOHealthPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="settings"
                       element={
                         <ProtectedRoute allowedRoles={[UserRole.Administrator]}>
                           <SettingsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    <Route
+                      path="newsletter-campaigns"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={[
+                            UserRole.Administrator,
+                            UserRole.Editor,
+                          ]}
+                        >
+                          <NewsletterCampaignsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="newsletter/new"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={[
+                            UserRole.Administrator,
+                            UserRole.Editor,
+                          ]}
+                        >
+                          <CampaignEditorPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="newsletter/edit/:id"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={[
+                            UserRole.Administrator,
+                            UserRole.Editor,
+                          ]}
+                        >
+                          <CampaignEditorPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="subscribers"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={[
+                            UserRole.Administrator,
+                            UserRole.Editor,
+                          ]}
+                        >
+                          <ManageSubscribersPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    <Route
+                      path="comments"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={[
+                            UserRole.Administrator,
+                            UserRole.Editor,
+                          ]}
+                        >
+                          <ManageCommentsPage />
                         </ProtectedRoute>
                       }
                     />
