@@ -87,14 +87,24 @@ CREATE POLICY "Admins can update notifications"
 -- ============================================
 -- 3. REALTIME ENABLING
 -- ============================================
--- Enable Realtime for specific tables so the Admin UI updates instantly
--- Note: This requires the 'supabase_realtime' publication to exist (default in Supabase)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'blog' AND tablename = 'comments') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE blog.comments;
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'blog' AND tablename = 'newsletter_subscribers') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE blog.newsletter_subscribers;
+  END IF;
 
--- Add tables to publication
-ALTER PUBLICATION supabase_realtime ADD TABLE blog.comments;
-ALTER PUBLICATION supabase_realtime ADD TABLE blog.newsletter_subscribers;
-ALTER PUBLICATION supabase_realtime ADD TABLE blog.notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'blog' AND tablename = 'notifications') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE blog.notifications;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'profiles') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+  END IF;
+END $$;
 
 -- ============================================
 -- 4. AUTOMATED TRIGGERS FOR NOTIFICATIONS

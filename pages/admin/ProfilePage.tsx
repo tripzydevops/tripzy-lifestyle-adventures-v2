@@ -156,7 +156,9 @@ const ProfilePage = () => {
               className="w-full py-3 bg-gold text-navy-950 rounded-2xl font-bold flex items-center justify-center gap-2 hover:shadow-2xl hover:shadow-gold/20 transition-all active:scale-95 disabled:opacity-50"
             >
               <Save size={18} />
-              {isSaving ? "Saving..." : t("admin.profile.saveProfile")}
+              {isSaving
+                ? t("admin.profile.saving")
+                : t("admin.profile.saveProfile")}
             </button>
           </form>
         </div>
@@ -167,9 +169,11 @@ const ProfilePage = () => {
           <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-3xl border border-white/5">
             <div className="flex justify-between items-end mb-4">
               <div>
-                <h3 className="text-lg font-bold text-white">Current Level</h3>
+                <h3 className="text-lg font-bold text-white">
+                  {t("admin.profile.currentLevel")}
+                </h3>
                 <div className="text-4xl font-serif text-gold font-bold mt-1">
-                  Level {level}
+                  {t("admin.profile.level")} {level}
                 </div>
               </div>
               <div className="text-right">
@@ -177,7 +181,7 @@ const ProfilePage = () => {
                   {Math.floor(currentLevelProgress)} / {nextLevelReq} XP
                 </div>
                 <div className="text-xs text-gray-500 uppercase tracking-widest">
-                  To Next Level
+                  {t("admin.profile.toNextLevel")}
                 </div>
               </div>
             </div>
@@ -195,7 +199,7 @@ const ProfilePage = () => {
           <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-3xl border border-white/5">
             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
               <Trophy className="text-gold" size={20} />
-              Achievements
+              {t("admin.profile.achievements")}
             </h3>
             <AchievementsList
               allAchievements={allAchievements}

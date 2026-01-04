@@ -19,7 +19,7 @@ const ManageUsersPage = () => {
         const fetchedUsers = await userService.getAllUsers();
         setUsers(fetchedUsers);
       } catch (error) {
-        addToast("Failed to fetch users.", "error");
+        addToast(t("admin.users.fetchError"), "error");
       } finally {
         setLoading(false);
       }
@@ -33,9 +33,9 @@ const ManageUsersPage = () => {
       setUsers(
         users.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
       );
-      addToast("User role updated!", "success");
+      addToast(t("admin.users.updateSuccess"), "success");
     } catch (error) {
-      addToast("Failed to update user role.", "error");
+      addToast(t("admin.users.updateError"), "error");
     }
   };
 
@@ -44,11 +44,11 @@ const ManageUsersPage = () => {
       await userService.toggleBan(userId, isBanned);
       setUsers(users.map((u) => (u.id === userId ? { ...u, isBanned } : u)));
       addToast(
-        isBanned ? "User has been banned." : "User has been unbanned.",
+        isBanned ? t("admin.users.banSuccess") : t("admin.users.unbanSuccess"),
         "success"
       );
     } catch (error) {
-      addToast("Failed to update user status.", "error");
+      addToast(t("admin.users.statusError"), "error");
     }
   };
 
@@ -70,12 +70,10 @@ const ManageUsersPage = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-serif font-bold text-white mb-2 flex items-center gap-3">
-            <Users size={32} className="text-gold" />
-            {t("admin.manageUsers") || "Manage Community"}
+            {t("admin.users.manageCommunity")}
           </h1>
           <p className="text-gray-400 text-sm">
-            Total of {users.length} unique travelers and administrators across
-            the Tripzy ecosystem.
+            {t("admin.users.communitySubtitle")}
           </p>
         </div>
       </div>
@@ -91,16 +89,16 @@ const ManageUsersPage = () => {
               <thead>
                 <tr className="border-b border-white/5 bg-white/[0.02]">
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">
-                    {t("admin.user") || "User"}
+                    {t("admin.users.user")}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">
-                    {t("admin.email") || "Email Identity"}
+                    {t("admin.users.email")}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">
-                    {t("admin.role") || "Access Level"}
+                    {t("admin.users.role")}
                   </th>
                   <th className="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-widest">
-                    {t("admin.actions") || "Control"}
+                    {t("admin.users.control")}
                   </th>
                 </tr>
               </thead>
@@ -135,7 +133,7 @@ const ManageUsersPage = () => {
                             {user.name}
                             {user.isBanned && (
                               <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-500 text-[10px] uppercase font-bold tracking-wider">
-                                Banned
+                                {t("admin.users.banned")}
                               </span>
                             )}
                           </div>
@@ -169,7 +167,7 @@ const ManageUsersPage = () => {
                           />
                           <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-navy-800 border border-white/10 rounded-xl p-2 shadow-2xl z-50 min-w-[160px]">
                             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest p-2 border-b border-white/5 mb-1">
-                              Update Authority
+                              {t("admin.users.updateAuthority")}
                             </p>
                             <button
                               onClick={() =>
@@ -180,7 +178,7 @@ const ManageUsersPage = () => {
                               }
                               className="w-full text-left px-3 py-2 text-xs text-white hover:bg-white/5 rounded-lg transition-colors flex items-center justify-between"
                             >
-                              Administrator{" "}
+                              {t("admin.users.roles.admin")}{" "}
                               <Shield size={12} className="text-purple-400" />
                             </button>
                             <button
@@ -189,7 +187,7 @@ const ManageUsersPage = () => {
                               }
                               className="w-full text-left px-3 py-2 text-xs text-white hover:bg-white/5 rounded-lg transition-colors flex items-center justify-between"
                             >
-                              Editor{" "}
+                              {t("admin.users.roles.editor")}{" "}
                               <Shield size={12} className="text-blue-400" />
                             </button>
                             <button
@@ -198,7 +196,7 @@ const ManageUsersPage = () => {
                               }
                               className="w-full text-left px-3 py-2 text-xs text-white hover:bg-white/5 rounded-lg transition-colors flex items-center justify-between"
                             >
-                              Author{" "}
+                              {t("admin.users.roles.author")}{" "}
                               <UserIcon size={12} className="text-gold" />
                             </button>
 
@@ -214,7 +212,9 @@ const ManageUsersPage = () => {
                                   : "text-red-400 hover:bg-red-500/10"
                               }`}
                             >
-                              {user.isBanned ? "Unban User" : "Ban User"}
+                              {user.isBanned
+                                ? t("admin.users.unban")
+                                : t("admin.users.ban")}
                               <Shield size={12} />
                             </button>
                           </div>

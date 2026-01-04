@@ -173,6 +173,10 @@ export interface Translations {
     deleteConfirm: string;
     deleteSuccess: string;
     saveSuccess: string;
+    viewLive: string; // New
+    selectFeatured: string; // New
+    altText: string; // New
+    altPlaceholder: string; // New
     saveDraft: string;
     schedule: string;
     submitReview: string;
@@ -207,6 +211,15 @@ export interface Translations {
       generatingImage: string;
       imageUpgrade: string;
       createSubtitle: string;
+      improveProse: string;
+      translateTurkish: string;
+      generateOutline: string;
+      narrativeGuidelines: string;
+      dismissSuggestions: string;
+      generateFeaturedImage: string;
+      seoDiscovery: string;
+      aiExcerptLabel: string;
+      aiKeywordsLabel: string;
     };
 
     // New Media Library Keys
@@ -243,6 +256,11 @@ export interface Translations {
       shareImageUrl: string;
       commitChanges: string;
       synchronizing: string;
+      backupExport: string;
+      exportPosts: string;
+      exportComments: string;
+      exportSubscribers: string;
+      exportMedia: string;
     };
     profile: {
       title: string;
@@ -250,6 +268,10 @@ export interface Translations {
       fullName: string;
       photoUrl: string;
       saveProfile: string;
+      saving: string;
+      currentLevel: string;
+      toNextLevel: string;
+      achievements: string;
     };
     dashboard: {
       welcomeBack: string;
@@ -277,10 +299,69 @@ export interface Translations {
       sortByViews: string;
       views: string;
       importSuccess: string;
-      performance: string; // New
+      performance: string;
+    };
+    media: {
+      manageMedia: string;
+      mediaSubtitle: string;
+      newMedia: string;
+      searchMedia: string;
+      noMediaFound: string;
+      dragDropText: string;
+      uploadFirst: string;
+      importMedia: string;
+      importSubtitle: string;
+      pasteUrl: string;
+      bridging: string;
+      importToLibrary: string;
+      previewAppeared: string;
+      uploadSuccess: string;
+      uploadFailed: string;
+      urlCopied: string;
+      imagesAndVideos: string;
+      uploading: string;
+      allTags: string;
+      copyUrl: string;
+      openOriginal: string;
+      delete: string;
+      preview: string;
+      filename: string;
+      type: string;
+      tags: string;
+      size: string;
+      actions: string;
+      dropToUpload: string;
+      types: {
+        all: string;
+        image: string;
+        video: string;
+      };
+    };
+    users: {
+      manageCommunity: string;
+      communitySubtitle: string;
+      totalUsersText: string;
+      updateAuthority: string;
+      unban: string;
+      ban: string;
+      banned: string;
+      roles: {
+        admin: string;
+        editor: string;
+        author: string;
+      };
+      email: string;
+      role: string;
+      user: string;
+      control: string;
+      fetchError: string;
+      updateSuccess: string;
+      updateError: string;
+      banSuccess: string;
+      unbanSuccess: string;
+      statusError: string;
     };
     comments: {
-      // New
       title: string;
       subtitle: string;
       pending: string;
@@ -290,8 +371,32 @@ export interface Translations {
       empty: string;
       emptySubtitle: string;
     };
-    newsletter: string; // New
-    newsletterSubtitle: string; // New
+    newsletter: string;
+    newsletterSubtitle: string;
+    manageUsers: string;
+    user: string;
+    email: string;
+    role: string;
+    maps: {
+      title: string;
+      addMap: string;
+      editMap: string;
+      mapName: string;
+      mapType: string;
+      markers: string;
+      route: string;
+      polygon: string;
+      centerLat: string;
+      centerLng: string;
+      zoom: string;
+      saveMap: string;
+      deleteMap: string;
+      clickToPlace: string;
+      loadError: string;
+      loading: string;
+      noMaps: string;
+      namePlaceholder: string;
+    };
   };
 }
 
@@ -483,6 +588,10 @@ export const translations: Record<Language, Translations> = {
         "Are you sure you want to delete this story? This action cannot be undone.",
       deleteSuccess: "Item deleted successfully.",
       saveSuccess: "Changes saved successfully.",
+      viewLive: "View Live Post", // New
+      selectFeatured: "Select Featured Media", // New
+      altText: "Alt Text", // New
+      altPlaceholder: "Describe the media for accessibility", // New
       saveDraft: "Save Draft",
       schedule: "Schedule",
       submitReview: "Submit For Review",
@@ -526,6 +635,11 @@ export const translations: Record<Language, Translations> = {
         shareImageUrl: "Share Image URL",
         commitChanges: "Commit Changes",
         synchronizing: "Synchronizing...",
+        backupExport: "Backup & Export", // New
+        exportPosts: "Export Posts (JSON)", // New
+        exportComments: "Export Comments", // New
+        exportSubscribers: "Export Subscribers", // New
+        exportMedia: "Export Media List", // New
       },
       profile: {
         title: "Executive Profile",
@@ -533,6 +647,10 @@ export const translations: Record<Language, Translations> = {
         fullName: "Full Name",
         photoUrl: "Profile Photo (URL)",
         saveProfile: "Save Profile",
+        saving: "Saving...", // New
+        currentLevel: "Current Level", // New
+        toNextLevel: "To Next Level", // New
+        achievements: "Achievements", // New
       },
       dashboard: {
         welcomeBack: "Welcome back,",
@@ -578,6 +696,75 @@ export const translations: Record<Language, Translations> = {
       },
       newsletter: "Newsletter Subscribers",
       newsletterSubtitle: "Manage and export your loyal audience.",
+      manageUsers: "Manage Users",
+      user: "User",
+      email: "Email",
+      role: "Role",
+      media: {
+        manageMedia: "Media Library",
+        mediaSubtitle:
+          "Curate your visual story through images and cinematic clips.",
+        newMedia: "Upload Assets",
+        searchMedia: "Search by filename or tags...",
+        noMediaFound: "No media found in your archives.",
+        dragDropText:
+          "Drag and drop files here, or click the button above to start building your library.",
+        uploadFirst: "Upload your first asset",
+        importMedia: "External Bridge",
+        importSubtitle:
+          "Fetch media directly from external travel sources and CDNs.",
+        pasteUrl:
+          "Paste the direct URL of an image or video to bridge it into your Tripzy media library.",
+        bridging: "Safely Bridging...",
+        importToLibrary: "Import to Library",
+        previewAppeared: "Preview will appear here after a successful bridge.",
+        uploadSuccess: "{count} file(s) uploaded successfully",
+        uploadFailed: "Upload failed",
+        urlCopied: "URL copied to clipboard",
+        imagesAndVideos: "Images and Videos",
+        uploading: "Uploading",
+        allTags: "All Tags",
+        copyUrl: "Copy URL",
+        openOriginal: "Open Original",
+        delete: "Delete",
+        preview: "Preview",
+        filename: "Filename",
+        type: "Type",
+        tags: "Tags",
+        size: "Size",
+        actions: "Actions",
+        dropToUpload: "Drop to Upload",
+        types: {
+          all: "All",
+          image: "Image",
+          video: "Video",
+        },
+      },
+      users: {
+        manageCommunity: "Manage Community",
+        communitySubtitle:
+          "Orchestrate the unique travelers and administrators across the Tripzy ecosystem.",
+        totalUsersText: "Total of {count} active members",
+        updateAuthority: "Update Authority",
+        unban: "Unban User",
+        ban: "Ban User",
+        banned: "Banned",
+        roles: {
+          admin: "Administrator",
+          editor: "Editor",
+          author: "Author",
+        },
+        email: "Email Identity",
+        role: "Access Level",
+        user: "Traveler",
+        control: "Control",
+        fetchError: "Failed to fetch users.",
+        updateSuccess: "User role updated!",
+        updateError: "Failed to update user role!",
+        banSuccess: "User has been banned.",
+        unbanSuccess: "User has been unbanned.",
+        statusError: "Failed to update user status.",
+      },
       placeholder: {
         title: "Enter a captivating headline...",
         excerpt: "A short, catchy summary for travel lists...",
@@ -589,6 +776,35 @@ export const translations: Record<Language, Translations> = {
         imageUpgrade: "Image generation is currently being upgraded.",
         createSubtitle:
           "Create immersive travel stories powered by Gemini Intelligence.",
+        improveProse: "Improve Prose",
+        translateTurkish: "Translate to Turkish",
+        generateOutline: "Post Structure",
+        narrativeGuidelines: "AI Narrative Guidelines",
+        dismissSuggestions: "Dismiss suggestions",
+        generateFeaturedImage: "Generate Featured Image with AI",
+        seoDiscovery: "SEO & Discovery Configuration",
+        aiExcerptLabel: "AI Excerpt",
+        aiKeywordsLabel: "AI Keywords",
+      },
+      maps: {
+        title: "Interactive Maps",
+        addMap: "Add New Map",
+        editMap: "Edit Map",
+        mapName: "Map Name",
+        mapType: "Map Type",
+        markers: "Markers Only",
+        route: "Travel Route",
+        polygon: "Area Highlight",
+        centerLat: "Latitude",
+        centerLng: "Longitude",
+        zoom: "Zoom Level",
+        saveMap: "Save Map Data",
+        deleteMap: "Remove Map",
+        clickToPlace: "Click map to place marker",
+        loadError: "Failed to load maps",
+        loading: "Loading Maps...",
+        noMaps: "No maps added to this adventure yet.",
+        namePlaceholder: "e.g., Hidden Cafes in Kadikoy",
       },
     },
   },
@@ -782,6 +998,10 @@ export const translations: Record<Language, Translations> = {
       deleteSuccess: "Öğe başarıyla silindi.",
       saveSuccess: "Değişiklikler başarıyla kaydedildi.",
       saveDraft: "Taslağı Kaydet",
+      viewLive: "Canlı Yazıyı Görüntüle", // New
+      selectFeatured: "Öne Çıkan Medyayı Seç", // New
+      altText: "Alternatif Metin", // New
+      altPlaceholder: "Erişilebilirlik için medyayı tanımlayın", // New
       schedule: "Zamanla",
       submitReview: "İncelemeye Gönder",
       publishNow: "Şimdi Yayınla",
@@ -824,6 +1044,11 @@ export const translations: Record<Language, Translations> = {
         shareImageUrl: "Paylaşım Görseli URL'si",
         commitChanges: "Değişiklikleri Kaydet",
         synchronizing: "Senkronize ediliyor...",
+        backupExport: "Yedekleme ve Dışa Aktarma", // New
+        exportPosts: "Yazıları Dışa Aktar (JSON)", // New
+        exportComments: "Yorumları Dışa Aktar", // New
+        exportSubscribers: "Aboneleri Dışa Aktar", // New
+        exportMedia: "Medya Listesini Dışa Aktar", // New
       },
       profile: {
         title: "Yönetici Profili",
@@ -831,6 +1056,10 @@ export const translations: Record<Language, Translations> = {
         fullName: "Ad Soyad",
         photoUrl: "Profil Fotoğrafı (URL)",
         saveProfile: "Profili Kaydet",
+        saving: "Kaydediliyor...", // New
+        currentLevel: "Mevcut Seviye", // New
+        toNextLevel: "Sonraki Seviyeye", // New
+        achievements: "Başarımlar", // New
       },
       dashboard: {
         welcomeBack: "Tekrar hoş geldiniz,",
@@ -868,15 +1097,24 @@ export const translations: Record<Language, Translations> = {
       },
       placeholder: {
         title: "Etkileyici bir başlık girin...",
-        excerpt: "Gezi listeleri için kısa, akılda kalıcı bir özet...",
-        metaKeywords: "macera, şehir rehberi, gizli cennet",
+        excerpt: "Seyahat listeleri için kısa, akılda kalıcı bir özet...",
+        metaKeywords: "macera, şehir rehberi, gizli mücevher",
       },
       ai: {
         generating: "Yapay Zeka ile Oluştur",
         generatingImage: "Gemini yazınızı hayal ediyor...",
-        imageUpgrade: "Görsel oluşturma şu anda güncelleniyor.",
+        imageUpgrade: "Görüntü oluşturma şu anda güncelleniyor.",
         createSubtitle:
-          "Gemini Intelligence tarafından desteklenen sürükleyici seyahat hikayeleri oluşturun.",
+          "Gemini Zekası ile güçlendirilmiş sürükleyici seyahat hikayeleri oluşturun.",
+        improveProse: "Metni İyileştir",
+        translateTurkish: "Türkçe'ye Çevir",
+        generateOutline: "Yazı Yapısı",
+        narrativeGuidelines: "AI Anlatım Rehberi",
+        dismissSuggestions: "Önerileri Kapat",
+        generateFeaturedImage: "Yapay Zeka ile Öne Çıkan Görsel Oluştur",
+        seoDiscovery: "SEO ve Keşif Yapılandırması",
+        aiExcerptLabel: "AI Özet",
+        aiKeywordsLabel: "AI Anahtar Kelimeler",
       },
       comments: {
         title: "Yorum Moderasyonu",
@@ -886,11 +1124,100 @@ export const translations: Record<Language, Translations> = {
         approve: "Onayla",
         delete: "Sil",
         viewPost: "Yazıyı Görüntüle",
-        empty: "Her Şey Tamam!",
+        empty: "Hepsi Tamam!",
         emptySubtitle: "İncelenecek bekleyen yorum yok.",
       },
       newsletter: "Bülten Aboneleri",
       newsletterSubtitle: "Sadık kitlenizi yönetin ve dışa aktarın.",
+      manageUsers: "Kullanıcıları Yönet",
+      user: "Kullanıcı",
+      email: "E-posta",
+      role: "Rol",
+      media: {
+        manageMedia: "Medya Kütüphanesi",
+        mediaSubtitle:
+          "Görsel hikayenizi resimler ve sinematik kliplerle düzenleyin.",
+        newMedia: "Varlık Yükle",
+        searchMedia: "Dosya adı veya etiketlere göre ara...",
+        noMediaFound: "Arşivlerinizde medya bulunamadı.",
+        dragDropText:
+          "Dosyaları buraya sürükleyip bırakın veya kütüphanenizi oluşturmaya başlamak için yukarıdaki düğmeye tıklayın.",
+        uploadFirst: "İlk varlığınızı yükleyin",
+        importMedia: "Dış Köprü",
+        importSubtitle: "Medya varlıklarını doğrudan dış kaynaklardan getirin.",
+        pasteUrl:
+          "Bir resmi veya videoyu Tripzy medya kütüphanenize dahil etmek için doğrudan URL'sini yapıştırın.",
+        bridging: "Güvenle Köprü Kuruluyor...",
+        importToLibrary: "Kütüphaneye Aktar",
+        previewAppeared:
+          "Başarılı bir köprüden sonra önizleme burada görünecektir.",
+        uploadSuccess: "{count} dosya başarıyla yüklendi",
+        uploadFailed: "Yükleme başarısız",
+        urlCopied: "URL panoya kopyalandı",
+        imagesAndVideos: "Resimler ve Videolar",
+        uploading: "Yükleniyor",
+        allTags: "Tüm Etiketler",
+        copyUrl: "URL'yi Kopyala",
+        openOriginal: "Orijinali Aç",
+        delete: "Sil",
+        preview: "Önizleme",
+        filename: "Dosya Adı",
+        type: "Tür",
+        tags: "Etiketler",
+        size: "Boyut",
+        actions: "İşlemler",
+        dropToUpload: "Yüklemek için Bırakın",
+        types: {
+          all: "Tümü",
+          image: "Resim",
+          video: "Video",
+        },
+      },
+      users: {
+        manageCommunity: "Topluluğu Yönet",
+        communitySubtitle:
+          "Tripzy ekosistemindeki gezginleri ve yöneticileri koordine edin.",
+        totalUsersText: "Toplam {count} aktif üye",
+        updateAuthority: "Yetkiyi Güncelle",
+        unban: "Yasağı Kaldır",
+        ban: "Kullanıcıyı Yasakla",
+        banned: "Yasaklı",
+        roles: {
+          admin: "Yönetici",
+          editor: "Editör",
+          author: "Yazar",
+        },
+        email: "E-posta Kimliği",
+        role: "Erişim Seviyesi",
+        user: "Gezgin",
+        control: "Kontrol",
+        fetchError: "Kullanıcılar getirilemedi.",
+        updateSuccess: "Kullanıcı rolü güncellendi!",
+        updateError: "Kullanıcı rolü güncellenemedi!",
+        banSuccess: "Kullanıcı yasaklandı.",
+        unbanSuccess: "Kullanıcı yasağı kaldırıldı.",
+        statusError: "Kullanıcı durumu güncellenemedi.",
+      },
+      maps: {
+        title: "Etkileşimli Haritalar",
+        addMap: "Yeni Harita Ekle",
+        editMap: "Haritayı Düzenle",
+        mapName: "Harita Adı",
+        mapType: "Harita Türü",
+        markers: "Sadece İşaretçiler",
+        route: "Seyahat Rotası",
+        polygon: "Alan Vurgulama",
+        centerLat: "Enlem",
+        centerLng: "Boylam",
+        zoom: "Yakınlaştırma",
+        saveMap: "Harita Verilerini Kaydet",
+        deleteMap: "Haritayı Kaldır",
+        clickToPlace: "İşaretçi yerleştirmek için haritaya tıklayın",
+        loadError: "Haritalar yüklenemedi",
+        loading: "Haritalar Yükleniyor...",
+        noMaps: "Bu maceraya henüz harita eklenmedi.",
+        namePlaceholder: "Örn: Kadıköy'deki Gizli Kafeler",
+      },
     },
   },
 };

@@ -70,10 +70,16 @@ const ManageMediaPage = () => {
         setUploadProgress({ current: i + 1, total: files.length });
         await uploadService.uploadFile(fileArray[i]);
       }
-      addToast(`${files.length} file(s) uploaded successfully`, "success");
+      addToast(
+        t("admin.media.uploadSuccess").replace(
+          "{count}",
+          files.length.toString()
+        ),
+        "success"
+      );
       fetchMedia();
     } catch (error) {
-      addToast("Upload failed", "error");
+      addToast(t("admin.media.uploadFailed"), "error");
     } finally {
       setIsUploading(false);
       setUploadProgress({ current: 0, total: 0 });
@@ -100,7 +106,7 @@ const ManageMediaPage = () => {
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-    addToast("URL copied to clipboard", "success");
+    addToast(t("admin.media.urlCopied"), "success");
   };
 
   const handleDelete = async (item: MediaItem) => {
@@ -146,8 +152,12 @@ const ManageMediaPage = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gold/10 backdrop-blur-md border-4 border-dashed border-gold pointer-events-none">
           <div className="text-gold flex flex-col items-center">
             <Upload size={64} className="mb-4 animate-bounce" />
-            <h2 className="text-3xl font-bold font-serif">Drop to Upload</h2>
-            <p className="text-gold/80 font-bold">Images and Videos</p>
+            <h2 className="text-3xl font-bold font-serif">
+              {t("admin.media.dropToUpload")}
+            </h2>
+            <p className="text-gold/80 font-bold">
+              {t("admin.media.imagesAndVideos")}
+            </p>
           </div>
         </div>
       )}
@@ -156,9 +166,11 @@ const ManageMediaPage = () => {
         <div>
           <h1 className="text-3xl font-serif font-bold text-white mb-2 flex items-center gap-3">
             <ImageIcon className="text-gold" />
-            {t("admin.manageMedia")}
+            {t("admin.media.manageMedia")}
           </h1>
-          <p className="text-gray-400 text-sm">{t("admin.mediaSubtitle")}</p>
+          <p className="text-gray-400 text-sm">
+            {t("admin.media.mediaSubtitle")}
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -166,7 +178,8 @@ const ManageMediaPage = () => {
             <div className="flex items-center gap-2 bg-navy-900 border border-gold/30 px-4 py-2 rounded-xl text-gold animate-pulse">
               <Loader2 size={16} className="animate-spin" />
               <span className="text-xs font-bold uppercase tracking-wider">
-                Uploading {uploadProgress.current}/{uploadProgress.total}
+                {t("admin.media.uploading")} {uploadProgress.current}/
+                {uploadProgress.total}
               </span>
             </div>
           )}
@@ -176,7 +189,7 @@ const ManageMediaPage = () => {
             className="bg-gold text-navy-950 px-6 py-3 rounded-xl font-bold flex items-center hover:shadow-xl hover:shadow-gold/20 transition-all active:scale-[0.98] disabled:opacity-50"
           >
             <PlusCircle size={20} className="mr-2" />
-            {t("admin.newMedia")}
+            {t("admin.media.newMedia")}
           </button>
         </div>
         <input
@@ -199,7 +212,7 @@ const ManageMediaPage = () => {
             />
             <input
               type="text"
-              placeholder="Search by filename or tags..."
+              placeholder={t("admin.media.searchMedia")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-navy-900/50 backdrop-blur-sm border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-gold/50 transition-all"
@@ -217,7 +230,7 @@ const ManageMediaPage = () => {
                     : "text-gray-400 hover:text-white"
                 }`}
               >
-                {type}
+                {t(`admin.media.types.${type}`)}
               </button>
             ))}
           </div>
@@ -258,7 +271,7 @@ const ManageMediaPage = () => {
                   : "bg-white/5 text-gray-400 hover:text-white"
               }`}
             >
-              All Tags
+              {t("admin.media.allTags")}
             </button>
             {allTags.map((tag) => (
               <button
@@ -335,7 +348,7 @@ const ManageMediaPage = () => {
                         <button
                           onClick={() => handleCopyUrl(item.url, item.id)}
                           className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-gold hover:text-navy-950 transition-all"
-                          title="Copy URL"
+                          title={t("admin.media.copyUrl")}
                         >
                           {copiedId === item.id ? (
                             <Check size={14} />
@@ -348,7 +361,7 @@ const ManageMediaPage = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-white/10 hover:text-white transition-all"
-                          title="Open Original"
+                          title={t("admin.media.openOriginal")}
                         >
                           <ExternalLink size={14} />
                         </a>
@@ -356,7 +369,7 @@ const ManageMediaPage = () => {
                       <button
                         onClick={() => handleDelete(item)}
                         className="p-2 bg-red-500/10 text-red-500/60 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                        title="Delete"
+                        title={t("admin.media.delete")}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -371,22 +384,22 @@ const ManageMediaPage = () => {
                 <thead>
                   <tr className="border-b border-white/5">
                     <th className="pb-4 text-xs font-bold text-gray-500 uppercase tracking-widest pl-4">
-                      Preview
+                      {t("admin.media.preview")}
                     </th>
                     <th className="pb-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
-                      Filename
+                      {t("admin.media.filename")}
                     </th>
                     <th className="pb-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
-                      Type
+                      {t("admin.media.type")}
                     </th>
                     <th className="pb-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
-                      Tags
+                      {t("admin.media.tags")}
                     </th>
                     <th className="pb-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
-                      Size
+                      {t("admin.media.size")}
                     </th>
                     <th className="pb-4 text-xs font-bold text-gray-500 uppercase tracking-widest text-right pr-4">
-                      Actions
+                      {t("admin.media.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -476,17 +489,16 @@ const ManageMediaPage = () => {
               />
             </div>
             <h3 className="text-xl font-serif font-bold text-white mb-2">
-              No media found
+              {t("admin.media.noMediaFound")}
             </h3>
             <p className="text-gray-500 max-w-sm mx-auto mb-8">
-              Drag and drop files here, or click the button above to start
-              building your library.
+              {t("admin.media.dragDropText")}
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="text-gold font-bold hover:underline tracking-widest text-xs uppercase"
             >
-              {t("admin.uploadFirst")}
+              {t("admin.media.uploadFirst")}
             </button>
           </div>
         )}

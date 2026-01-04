@@ -24,4 +24,9 @@ CREATE POLICY "Admins full access campaigns" ON blog.newsletter_campaigns
   FOR ALL USING (public.check_is_admin());
 
 -- Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE blog.newsletter_campaigns;
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'blog' AND tablename = 'newsletter_campaigns') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE blog.newsletter_campaigns;
+  END IF;
+END $$;

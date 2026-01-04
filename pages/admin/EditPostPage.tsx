@@ -18,7 +18,8 @@ import PostEditorSidebar from "../../components/admin/PostEditorSidebar";
 import MediaLibraryModal from "../../components/admin/MediaLibraryModal";
 import AIGenerateModal from "../../components/admin/AIGenerateModal";
 import AIQuickActions from "../../components/admin/AIQuickActions";
-import APIKeyModal from "../../components/admin/APIKeyModal"; // Added import
+import APIKeyModal from "../../components/admin/APIKeyModal";
+import MapEditor from "../../components/admin/MapEditor"; // Added import
 
 import {
   Sparkles,
@@ -468,7 +469,7 @@ const EditPostPage = () => {
                 />
                 <button
                   type="button"
-                  title="Generate Featured Image with AI"
+                  title={t("admin.ai.generateFeaturedImage")}
                   disabled={isAiGenerating}
                   onClick={handleAiGenerateImage}
                   className="p-4 bg-navy-800 border border-white/5 text-purple-400 rounded-2xl hover:border-purple-400/50 hover:bg-purple-400/10 transition-all shrink-0 group"
@@ -490,12 +491,12 @@ const EditPostPage = () => {
                 <button
                   onClick={() => setAiSuggestions(null)}
                   className="absolute top-4 right-4 text-gold/50 hover:text-gold transition-colors"
-                  title="Dismiss suggestions"
+                  title={t("admin.ai.dismissSuggestions")}
                 >
                   <X size={20} />
                 </button>
                 <h2 className="flex items-center gap-2 text-gold m-0 text-lg font-bold mb-4">
-                  <Sparkles size={20} /> AI Narrative Guidelines
+                  <Sparkles size={20} /> {t("admin.ai.narrativeGuidelines")}
                 </h2>
                 <div className="text-gray-200 leading-relaxed whitespace-pre-line text-sm border-l-2 border-gold/30 pl-4">
                   {aiSuggestions}
@@ -516,6 +517,13 @@ const EditPostPage = () => {
                 onMediaButtonClick={() => openMediaModal("insert")}
               />
             </div>
+
+            {/* Interactive Map Editor Section (Layer 1 Integration) */}
+            {!isNewPost && postId && (
+              <div className="animate-in fade-in duration-700">
+                <MapEditor postId={postId} />
+              </div>
+            )}
             {/* SEO & metadata */}
             <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-3xl border border-white/5">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -525,7 +533,7 @@ const EditPostPage = () => {
                     {t("admin.form.metaInformation")}
                   </h3>
                   <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold">
-                    SEO & Discovery Configuration
+                    {t("admin.ai.seoDiscovery")}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -535,7 +543,7 @@ const EditPostPage = () => {
                     disabled={isAiGenerating}
                     className="flex items-center gap-1.5 text-[10px] font-bold bg-blue-500/10 text-blue-400 px-4 py-2 rounded-full border border-blue-500/20 hover:bg-blue-500/20 transition-all uppercase tracking-widest"
                   >
-                    <Sparkles size={12} /> AI Excerpt
+                    <Sparkles size={12} /> {t("admin.ai.aiExcerptLabel")}
                   </button>
                   <button
                     type="button"
@@ -543,7 +551,7 @@ const EditPostPage = () => {
                     disabled={isAiGenerating}
                     className="flex items-center gap-1.5 text-[10px] font-bold bg-purple-500/10 text-purple-400 px-4 py-2 rounded-full border border-purple-500/20 hover:bg-purple-500/20 transition-all uppercase tracking-widest"
                   >
-                    <Wand size={12} /> AI Keywords
+                    <Wand size={12} /> {t("admin.ai.aiKeywordsLabel")}
                   </button>
                 </div>
               </div>

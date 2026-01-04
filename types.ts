@@ -150,3 +150,16 @@ export interface UserAchievement {
   achievement: Achievement;
   earnedAt: string;
 }
+
+export interface MapItem {
+  id: string;
+  postId: string;
+  name: string;
+  type: "markers" | "route" | "polygon";
+  centerLat: number;
+  centerLng: number;
+  zoom: number;
+  mapStyle: "streets" | "satellite" | "outdoors" | "light" | "dark";
+  data: any[]; // Markers or Route points
+  createdAt: string;
+}

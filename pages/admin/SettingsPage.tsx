@@ -123,7 +123,7 @@ const SettingsPage = () => {
         <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-3xl border border-white/5">
           <h2 className="text-xl font-serif font-bold text-white mb-6 flex items-center gap-2">
             <Settings size={20} className="text-gold" />
-            Backup & Export
+            {t("admin.settings.backupExport")}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
@@ -138,7 +138,7 @@ const SettingsPage = () => {
               }}
               className="px-6 py-4 bg-navy-800 border border-white/10 rounded-2xl text-white font-bold hover:bg-gold hover:text-navy-950 transition-all text-sm"
             >
-              Export Posts (JSON)
+              {t("admin.settings.exportPosts")}
             </button>
             <button
               type="button"
@@ -155,7 +155,7 @@ const SettingsPage = () => {
               }}
               className="px-6 py-4 bg-navy-800 border border-white/10 rounded-2xl text-white font-bold hover:bg-gold hover:text-navy-950 transition-all text-sm"
             >
-              Export Comments
+              {t("admin.settings.exportComments")}
             </button>
             <button
               type="button"
@@ -172,7 +172,7 @@ const SettingsPage = () => {
               }}
               className="px-6 py-4 bg-navy-800 border border-white/10 rounded-2xl text-white font-bold hover:bg-gold hover:text-navy-950 transition-all text-sm"
             >
-              Export Subscribers
+              {t("admin.settings.exportSubscribers")}
             </button>
             <button
               type="button"
@@ -186,7 +186,7 @@ const SettingsPage = () => {
               }}
               className="px-6 py-4 bg-navy-800 border border-white/10 rounded-2xl text-white font-bold hover:bg-gold hover:text-navy-950 transition-all text-sm"
             >
-              Export Media List
+              {t("admin.settings.exportMedia")}
             </button>
           </div>
         </div>

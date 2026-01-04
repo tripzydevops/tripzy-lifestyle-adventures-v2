@@ -1,5 +1,6 @@
 import React from "react";
 import { Sparkles, Globe, ClipboardList } from "lucide-react";
+import { useLanguage } from "../../localization/LanguageContext";
 
 interface AIQuickActionsProps {
   onImprove: () => void;
@@ -14,6 +15,8 @@ const AIQuickActions: React.FC<AIQuickActionsProps> = ({
   onOutline,
   isGenerating,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <>
       <div className="bg-gradient-to-r from-gold/20 via-blue-500/10 to-purple-500/10 h-1 rounded-t-3xl mx-4"></div>
@@ -46,7 +49,7 @@ const AIQuickActions: React.FC<AIQuickActionsProps> = ({
                 size={14}
                 className="text-gold group-hover/btn:scale-110 transition-transform"
               />{" "}
-              Improve Prose
+              {t("admin.ai.improveProse")}
             </button>
             <button
               type="button"
@@ -58,7 +61,7 @@ const AIQuickActions: React.FC<AIQuickActionsProps> = ({
                 size={14}
                 className="text-blue-400 group-hover/btn:rotate-12 transition-transform"
               />{" "}
-              Turkish Translate
+              {t("admin.ai.translateTurkish")}
             </button>
             <button
               type="button"
@@ -70,7 +73,7 @@ const AIQuickActions: React.FC<AIQuickActionsProps> = ({
                 size={14}
                 className="text-purple-400 group-hover/btn:scale-110 transition-transform"
               />{" "}
-              Post Structure
+              {t("admin.ai.generateOutline")}
             </button>
           </div>
         </div>

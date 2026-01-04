@@ -15,7 +15,10 @@ export const seoService = {
     const issues: SEOIssue[] = [];
 
     // Fetch all posts
-    const { data: posts, error } = await supabase.from("posts").select("*");
+    const { data: posts, error } = await supabase
+      .schema("blog")
+      .from("posts")
+      .select("*");
 
     if (error || !posts) {
       console.error("Failed to fetch posts for SEO check", error);

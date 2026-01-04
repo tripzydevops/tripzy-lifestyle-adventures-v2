@@ -104,7 +104,7 @@ const PostEditorSidebar: React.FC<PostEditorSidebarProps> = ({
               target="_blank"
               className="text-gold hover:text-gold/80 flex items-center text-sm font-bold mt-4"
             >
-              <Eye size={16} className="mr-2" /> View Live Post
+              <Eye size={16} className="mr-2" /> {t("admin.viewLive")}
             </Link>
           )}
         </div>
@@ -203,7 +203,7 @@ const PostEditorSidebar: React.FC<PostEditorSidebarProps> = ({
               className="group-hover:scale-110 transition-transform mb-2"
             />
             <span className="text-xs font-bold uppercase tracking-widest">
-              Select Featured Media
+              {t("admin.selectFeatured")}
             </span>
           </button>
         )}
@@ -214,7 +214,7 @@ const PostEditorSidebar: React.FC<PostEditorSidebarProps> = ({
               htmlFor="featuredMediaAlt"
               className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1"
             >
-              Alt Text
+              {t("admin.altText")}
             </label>
             <input
               type="text"
@@ -223,7 +223,7 @@ const PostEditorSidebar: React.FC<PostEditorSidebarProps> = ({
               value={post.featuredMediaAlt || ""}
               onChange={(e) => onPostChange("featuredMediaAlt", e.target.value)}
               className="w-full bg-navy-800/50 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-gray-600"
-              placeholder="Describe the media for accessibility"
+              placeholder={t("admin.altPlaceholder")}
             />
           </div>
         )}
