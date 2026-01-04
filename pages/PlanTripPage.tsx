@@ -73,18 +73,20 @@ const PlanTripPage = () => {
             <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 mb-6 backdrop-blur-sm">
               <Sparkles size={16} className="text-amber-400" />
               <span className="text-sm font-semibold uppercase tracking-wider text-white">
-                {t.tripPlanner.badge}
+                {language === "tr" ? "Yapay Zeka" : "AI Powered"}
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold font-serif mb-6 leading-tight text-white">
-              {t.tripPlanner.title}{" "}
+              {language === "tr" ? "Hayalindeki" : "Where will your next"}{" "}
               <span className="text-amber-400 italic">
-                {language === "tr" ? "maceranız" : "adventure"}
+                {language === "tr" ? "maceran" : "adventure"}
               </span>{" "}
-              {language === "tr" ? "nereye götürecek?" : "take you?"}
+              {language === "tr" ? "nerede?" : "take you?"}
             </h1>
             <p className="text-lg text-gray-300 mb-10 max-w-2xl mx-auto">
-              {t.tripPlanner.subtitle}
+              {language === "tr"
+                ? "Saniyeler içinde yapay zeka destekli seyahat planları oluşturun."
+                : "Plan your next adventure in seconds with our AI-powered travel itinerary generator."}
             </p>
 
             <form

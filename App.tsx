@@ -27,8 +27,9 @@ import ImportMediaPage from "./pages/admin/ImportMediaPage";
 import AIStudioPage from "./pages/admin/AIStudioPage";
 import AuthorPage from "./pages/AuthorPage";
 import PlanTripPage from "./pages/PlanTripPage";
-import SignalTracker from "./components/common/SignalTracker";
 import SDKTestPage from "./pages/SDKTestPage";
+
+import { TripzyProvider } from "./hooks/useTripzy";
 
 function App() {
   return (
@@ -37,51 +38,31 @@ function App() {
         <ToastProvider>
           <SettingsProvider>
             <AuthProvider>
-              <SignalTracker />
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<HomePage />} />
-                <Route path="/post/:postId" element={<PostDetailsPage />} />
-                <Route path="/author/:authorSlug" element={<AuthorPage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/contact" element={<ContactPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/sitemap.xml" element={<Sitemap />} />
-                <Route path="/search" element={<SearchPage />} />
-                <Route path="/plan" element={<PlanTripPage />} />
-                <Route path="/test-sdk" element={<SDKTestPage />} />
-                <Route
-                  path="/category/:categoryName"
-                  element={<ArchivePage type="category" />}
-                />
-                <Route
-                  path="/tag/:tagName"
-                  element={<ArchivePage type="tag" />}
-                />
+              <TripzyProvider>
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/post/:postId" element={<PostDetailsPage />} />
+                  <Route path="/author/:authorSlug" element={<AuthorPage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/sitemap.xml" element={<Sitemap />} />
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route path="/plan" element={<PlanTripPage />} />
+                  <Route path="/test-sdk" element={<SDKTestPage />} />
+                  <Route
+                    path="/category/:categoryName"
+                    element={<ArchivePage type="category" />}
+                  />
+                  <Route
+                    path="/tag/:tagName"
+                    element={<ArchivePage type="tag" />}
+                  />
 
-                {/* Admin Routes */}
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute
-                      allowedRoles={[
-                        UserRole.Administrator,
-                        UserRole.Editor,
-                        UserRole.Author,
-                      ]}
-                    >
-                      <AdminLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<Navigate to="dashboard" replace />} />
-                  <Route path="dashboard" element={<AdminDashboardPage />} />
-                  <Route path="posts" element={<ManagePostsPage />} />
-                  <Route path="posts/new" element={<EditPostPage />} />
-                  <Route path="posts/edit/:postId" element={<EditPostPage />} />
-                  <Route path="profile" element={<ProfilePage />} />
+                  {/* Admin Routes */}
                   <Route
-                    path="media"
+                    path="/admin"
                     element={
                       <ProtectedRoute
                         allowedRoles={[
@@ -90,52 +71,82 @@ function App() {
                           UserRole.Author,
                         ]}
                       >
-                        <ManageMediaPage />
+                        <AdminLayout />
                       </ProtectedRoute>
                     }
-                  />
-                  <Route
-                    path="import"
-                    element={
-                      <ProtectedRoute
-                        allowedRoles={[UserRole.Administrator, UserRole.Editor]}
-                      >
-                        <ImportMediaPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="users"
-                    element={
-                      <ProtectedRoute allowedRoles={[UserRole.Administrator]}>
-                        <ManageUsersPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="ai-studio"
-                    element={
-                      <ProtectedRoute
-                        allowedRoles={[
-                          UserRole.Administrator,
-                          UserRole.Editor,
-                          UserRole.Author,
-                        ]}
-                      >
-                        <AIStudioPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="settings"
-                    element={
-                      <ProtectedRoute allowedRoles={[UserRole.Administrator]}>
-                        <SettingsPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                </Route>
-              </Routes>
+                  >
+                    <Route
+                      index
+                      element={<Navigate to="dashboard" replace />}
+                    />
+                    <Route path="dashboard" element={<AdminDashboardPage />} />
+                    <Route path="posts" element={<ManagePostsPage />} />
+                    <Route path="posts/new" element={<EditPostPage />} />
+                    <Route
+                      path="posts/edit/:postId"
+                      element={<EditPostPage />}
+                    />
+                    <Route path="profile" element={<ProfilePage />} />
+                    <Route
+                      path="media"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={[
+                            UserRole.Administrator,
+                            UserRole.Editor,
+                            UserRole.Author,
+                          ]}
+                        >
+                          <ManageMediaPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="import"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={[
+                            UserRole.Administrator,
+                            UserRole.Editor,
+                          ]}
+                        >
+                          <ImportMediaPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="users"
+                      element={
+                        <ProtectedRoute allowedRoles={[UserRole.Administrator]}>
+                          <ManageUsersPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="ai-studio"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={[
+                            UserRole.Administrator,
+                            UserRole.Editor,
+                            UserRole.Author,
+                          ]}
+                        >
+                          <AIStudioPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="settings"
+                      element={
+                        <ProtectedRoute allowedRoles={[UserRole.Administrator]}>
+                          <SettingsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Route>
+                </Routes>
+              </TripzyProvider>
             </AuthProvider>
           </SettingsProvider>
         </ToastProvider>

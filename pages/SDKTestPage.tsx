@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { TripzyClient } from "../lib/tripzy-sdk/TripzyClient";
-import { SupabaseMemoryAdapter } from "../lib/tripzy-sdk/adapters/SupabaseAdapter";
+import { useTripzy } from "../hooks/useTripzy";
 
 const SDKTestPage: React.FC = () => {
   const [query, setQuery] = useState("");
@@ -8,28 +7,20 @@ const SDKTestPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { client, isReady } = useTripzy();
+
   const handleSearch = async () => {
+    if (!isReady || !client) {
+      setError("SDK is not ready. Check environment variables.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResults(null);
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      if (!apiKey || !supabaseUrl || !supabaseKey) {
-        throw new Error("Missing Environment Variables");
-      }
-
-      const memory = new SupabaseMemoryAdapter(supabaseUrl, supabaseKey);
-      const sdk = new TripzyClient({
-        apiKey,
-        memoryAdapter: memory,
-        debug: true,
-      });
-
-      const recommendation = await sdk.getRecommendations(query);
+      const recommendation = await client.getRecommendations(query);
       setResults(recommendation);
     } catch (err: any) {
       console.error(err);
