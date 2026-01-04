@@ -199,18 +199,27 @@ const EditPostPage = () => {
     if (!checkAiConfig()) return;
 
     if (!post.title) {
-      addToast(t("blog.leaveComment"), "info");
+      addToast(t("blog.leaveComment"), "info"); // Using existing key for 'Provide title' warning if specific one missing, or fallback
       return;
     }
     setIsAiGenerating(true);
     addToast(t("admin.ai.generatingImage"), "info");
+
     try {
-      // Note: Gemini 2.0 Flash is text-only. This is a placeholder for future Image Gen integration
-      // or using a search-based image fetcher.
-      // For now, we return empty or use a placeholder service if available.
-      handlePostChange("featuredMediaUrl", "");
-      addToast(t("admin.ai.imageUpgrade"), "info");
+      // Use the new Generation Service (Gemini Refinement -> Pollinations Flux)
+      const context = `${post.title}. ${post.excerpt || ""}`;
+      const imageUrl = await aiContentService.generateImage(context);
+
+      handlePostChange("featuredMediaUrl", imageUrl);
+
+      // Auto set alt text if empty
+      if (!post.featuredMediaAlt) {
+        handlePostChange("featuredMediaAlt", post.title);
+      }
+
+      addToast(t("common.success"), "success");
     } catch (e) {
+      console.error(e);
       addToast(t("common.error"), "error");
     } finally {
       setIsAiGenerating(false);

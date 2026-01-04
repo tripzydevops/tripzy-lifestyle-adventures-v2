@@ -156,7 +156,12 @@ export interface Translations {
     manageMedia: string;
     newPost: string;
     newMedia: string;
+    mediaSubtitle: string; // New
     noMedia: string;
+    uploadSuccess: string; // New
+    uploadError: string; // New
+    loadError: string; // New
+    uploadFirst: string; // New
     editPost: string;
     title: string;
     author: string;
@@ -195,6 +200,23 @@ export interface Translations {
       imageUpgrade: string;
       createSubtitle: string;
     };
+
+    // New Media Library Keys
+    mediaLibrary: string;
+    unsplash: string;
+    library: string;
+    searchMediaPlaceholder: string;
+    searchUnsplashPlaceholder: string;
+    uploading: string;
+    upload: string;
+    import: string;
+    desertsFound: string;
+    exploreWorld: string;
+    searchArchivesEmpty: string;
+    searchUnsplashEmpty: string;
+    accessingArchives: string;
+    searchingWorld: string;
+
     settings: {
       title: string;
       subtitle: string;
@@ -220,6 +242,33 @@ export interface Translations {
       fullName: string;
       photoUrl: string;
       saveProfile: string;
+    };
+    dashboard: {
+      welcomeBack: string;
+      monitoringText: string;
+      systemOnline: string;
+      errorTitle: string;
+      retry: string;
+      commonIssues: string;
+      issueCredentials: string;
+      issueSchema: string;
+      issueMigration: string;
+      issueConsole: string;
+      activeStories: string;
+      totalExplorers: string;
+      underReview: string;
+      editorialDrafts: string;
+      quickActions: string;
+      newAdventure: string;
+      contentManager: string;
+      liveSite: string;
+      importViralPost: string;
+      autonomousTip: string;
+      tipText: string;
+      topPerforming: string;
+      sortByViews: string;
+      views: string;
+      importSuccess: string;
     };
   };
 }
@@ -377,7 +426,29 @@ export const translations: Record<Language, Translations> = {
       manageMedia: "Manage Media",
       newPost: "New Post",
       newMedia: "Add New Media",
+      mediaSubtitle: "Manage your visual assets and storytelling resources.",
       noMedia: "No media found. Start by uploading your first asset.",
+      uploadSuccess: "Media uploaded successfully!",
+      uploadError: "Media upload failed.",
+      loadError: "Failed to load media.",
+      uploadFirst: "Start by uploading your first asset",
+
+      mediaLibrary: "Media Library",
+      unsplash: "Unsplash",
+      library: "Library",
+      searchMediaPlaceholder: "Search files...",
+      searchUnsplashPlaceholder: "Search Unsplash...",
+      uploading: "Uploading...",
+      upload: "Upload",
+      import: "Import",
+      desertsFound: "Deserts were found...",
+      exploreWorld: "Explore the World",
+      searchArchivesEmpty:
+        'No files matching "{query}" in your current expedition archives.',
+      searchUnsplashEmpty:
+        "Search for high-quality travel photography from Unsplash freely.",
+      accessingArchives: "Accessing travel archives...",
+      searchingWorld: "Searching global photography...",
       editPost: "Edit Post",
       title: "Title",
       author: "Author",
@@ -432,6 +503,37 @@ export const translations: Record<Language, Translations> = {
         fullName: "Full Name",
         photoUrl: "Profile Photo (URL)",
         saveProfile: "Save Profile",
+      },
+      dashboard: {
+        welcomeBack: "Welcome back,",
+        monitoringText:
+          "Monitoring Tripzy Lifestyle Adventures platform health and content performance.",
+        systemOnline: "System Online",
+        errorTitle: "Dashboard Error",
+        retry: "Retry",
+        commonIssues: "Common issues:",
+        issueCredentials:
+          "Check that your Supabase credentials in .env.local are correct",
+        issueSchema:
+          "Verify that the 'blog' schema exists in your Supabase database",
+        issueMigration: "Ensure you've run the migration scripts",
+        issueConsole: "Check browser console for detailed error messages",
+        activeStories: "Active Stories",
+        totalExplorers: "Total Explorers",
+        underReview: "Under Review",
+        editorialDrafts: "Editorial Drafts",
+        quickActions: "Quick Actions",
+        newAdventure: "New Adventure",
+        contentManager: "Content Manager",
+        liveSite: "Live Site",
+        importViralPost: "Import Viral Post",
+        autonomousTip: "Autonomous Tip",
+        tipText:
+          '"Travelers are searching more for hidden local gems in Tokyo. Consider highlighting more independent cafes in your next guide."',
+        topPerforming: "Top Performing Stories",
+        sortByViews: "Sort by Views",
+        views: "Views",
+        importSuccess: "Viral post imported successfully!",
       },
       placeholder: {
         title: "Enter a captivating headline...",
@@ -600,7 +702,30 @@ export const translations: Record<Language, Translations> = {
       manageMedia: "Medyayı Yönet",
       newPost: "Yeni Yazı",
       newMedia: "Yeni Medya Ekle",
+      mediaSubtitle:
+        "Görsel varlıklarınızı ve hikaye anlatımı kaynaklarınızı yönetin.",
       noMedia: "Medya bulunamadı. İlk dosyanızı yükleyerek başlayın.",
+      uploadSuccess: "Medya başarıyla yüklendi!",
+      uploadError: "Medya yüklemesi başarısız oldu.",
+      loadError: "Medya yüklenemedi.",
+      uploadFirst: "İlk varlığınızı yükleyerek başlayın",
+
+      mediaLibrary: "Medya Kütüphanesi",
+      unsplash: "Unsplash",
+      library: "Kütüphane",
+      searchMediaPlaceholder: "Dosyaları ara...",
+      searchUnsplashPlaceholder: "Unsplash'te ara...",
+      uploading: "Yükleniyor...",
+      upload: "Yükle",
+      import: "İçe Aktar",
+      desertsFound: "Çöller bulundu...",
+      exploreWorld: "Dünyayı Keşfet",
+      searchArchivesEmpty:
+        'Mevcut keşif arşivlerinizde "{query}" ile eşleşen dosya yok.',
+      searchUnsplashEmpty:
+        "Unsplash'ten yüksek kaliteli seyahat fotoğraflarını özgürce arayın.",
+      accessingArchives: "Seyahat arşivlerine erişiliyor...",
+      searchingWorld: "Küresel fotoğrafçılık aranıyor...",
       editPost: "Yazıyı Düzenle",
       title: "Başlık",
       author: "Yazar",
@@ -655,6 +780,39 @@ export const translations: Record<Language, Translations> = {
         fullName: "Tam Ad",
         photoUrl: "Profil Fotoğrafı (URL)",
         saveProfile: "Profili Kaydet",
+      },
+      dashboard: {
+        welcomeBack: "Hoş geldiniz,",
+        monitoringText:
+          "Tripzy Lifestyle Adventures platform sağlığı ve içerik performansı izleniyor.",
+        systemOnline: "Sistem Çevrimiçi",
+        errorTitle: "Panel Hatası",
+        retry: "Tekrar Dene",
+        commonIssues: "Yaygın sorunlar:",
+        issueCredentials:
+          ".env.local dosyasındaki Supabase kimlik bilgilerinizin doğru olduğunu kontrol edin",
+        issueSchema:
+          "Supabase veritabanınızda 'blog' şemasının mevcut olduğunu doğrulayın",
+        issueMigration:
+          "Migrasyon komut dosyalarını çalıştırdığınızdan emin olun",
+        issueConsole:
+          "Detaylı hata mesajları için tarayıcı konsolunu kontrol edin",
+        activeStories: "Aktif Hikayeler",
+        totalExplorers: "Toplam Kaşifler",
+        underReview: "İncelemede",
+        editorialDrafts: "Editöryal Taslaklar",
+        quickActions: "Hızlı İşlemler",
+        newAdventure: "Yeni Macera",
+        contentManager: "İçerik Yöneticisi",
+        liveSite: "Canlı Site",
+        importViralPost: "Viral Yazı İçe Aktar",
+        autonomousTip: "Otonom İpucu",
+        tipText:
+          '"Gezginler Tokyo\'da gizli yerel mücevherleri daha fazla arıyor. Bir sonraki rehberinizde bağımsız kafelere daha fazla yer vermeyi düşünün."',
+        topPerforming: "En İyi Performans Gösteren Hikayeler",
+        sortByViews: "Görüntülemeye Göre Sırala",
+        views: "Görüntülenme",
+        importSuccess: "Viral yazı başarıyla içe aktarıldı!",
       },
       placeholder: {
         title: "Büyüleyici bir başlık girin...",

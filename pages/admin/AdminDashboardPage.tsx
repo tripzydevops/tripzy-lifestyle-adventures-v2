@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { useLanguage } from "../../localization/LanguageContext";
 import {
   FileText,
   Users,
@@ -29,6 +30,7 @@ interface DashboardStats {
 
 const AdminDashboardPage = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [topPosts, setTopPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,27 +41,23 @@ const AdminDashboardPage = () => {
     const fetchStats = async () => {
       try {
         console.log("🔍 AdminDashboard: Starting to fetch stats...");
-        const [posts, users] = await Promise.all([
-          postService.getAllPosts(),
+        const [postStats, topPostsData, users] = await Promise.all([
+          postService.getPostStats(),
+          postService.getTopPosts(5),
           userService.getAllUsers(),
         ]);
 
         console.log("📊 AdminDashboard: Fetched data:", {
-          postsCount: posts.length,
+          postsCount: postStats.totalPosts,
           usersCount: users.length,
         });
 
-        const totalPosts = posts.length;
         const totalUsers = users.length;
-        const pendingPosts = posts.filter(
-          (p) => p.status === PostStatus.PendingReview
-        ).length;
-        const draftPosts = posts.filter(
-          (p) => p.status === PostStatus.Draft
-        ).length;
 
-        const sortedPosts = [...posts].sort((a, b) => b.views - a.views);
-        setTopPosts(sortedPosts.slice(0, 5));
+        // Use the stats directly from the service
+        const { totalPosts, pendingPosts, draftPosts } = postStats;
+
+        setTopPosts(topPostsData);
 
         setStats({ totalPosts, totalUsers, pendingPosts, draftPosts });
         setError(null);
@@ -88,17 +86,15 @@ const AdminDashboardPage = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/5">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold font-serif text-white mb-2">
-            Welcome back, <span className="text-gold">{user?.name}</span>
+            {t("admin.dashboard.welcomeBack")}{" "}
+            <span className="text-gold">{user?.name}</span>
           </h1>
-          <p className="text-gray-500">
-            Monitoring Tripzy Lifestyle Adventures platform health and content
-            performance.
-          </p>
+          <p className="text-gray-500">{t("admin.dashboard.monitoringText")}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full text-green-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-            System Online
+            {t("admin.dashboard.systemOnline")}
           </div>
           <div className="px-4 py-2 bg-gold/10 border border-gold/20 rounded-full text-gold text-xs font-bold uppercase tracking-widest flex items-center gap-2">
             <Clock size={14} />
@@ -132,29 +128,25 @@ const AdminDashboardPage = () => {
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-red-500 mb-2">
-                  Dashboard Error
+                  {t("admin.dashboard.errorTitle")}
                 </h3>
                 <p className="text-gray-300 mb-4">{error}</p>
                 <button
                   onClick={() => window.location.reload()}
                   className="px-6 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl text-red-400 font-bold transition-all"
                 >
-                  Retry
+                  {t("admin.dashboard.retry")}
                 </button>
               </div>
             </div>
           </div>
           <div className="text-center text-gray-500 text-sm max-w-xl">
-            <p className="mb-2">Common issues:</p>
+            <p className="mb-2">{t("admin.dashboard.commonIssues")}</p>
             <ul className="text-left space-y-1">
-              <li>
-                • Check that your Supabase credentials in .env.local are correct
-              </li>
-              <li>
-                • Verify that the 'blog' schema exists in your Supabase database
-              </li>
-              <li>• Ensure you've run the migration scripts</li>
-              <li>• Check browser console for detailed error messages</li>
+              <li>• {t("admin.dashboard.issueCredentials")}</li>
+              <li>• {t("admin.dashboard.issueSchema")}</li>
+              <li>• {t("admin.dashboard.issueMigration")}</li>
+              <li>• {t("admin.dashboard.issueConsole")}</li>
             </ul>
           </div>
         </div>
@@ -164,28 +156,28 @@ const AdminDashboardPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               <StatCard
                 icon={<FileText size={20} />}
-                label="Active Stories"
+                label={t("admin.dashboard.activeStories")}
                 value={stats.totalPosts}
                 iconBgColor="bg-navy-800"
                 iconColor="text-gold"
               />
               <StatCard
                 icon={<Users size={20} />}
-                label="Total Explorers"
+                label={t("admin.dashboard.totalExplorers")}
                 value={stats.totalUsers}
                 iconBgColor="bg-navy-800"
                 iconColor="text-blue-400"
               />
               <StatCard
                 icon={<Eye size={20} />}
-                label="Under Review"
+                label={t("admin.dashboard.underReview")}
                 value={stats.pendingPosts}
                 iconBgColor="bg-navy-800"
                 iconColor="text-orange-400"
               />
               <StatCard
                 icon={<PenSquare size={20} />}
-                label="Editorial Drafts"
+                label={t("admin.dashboard.editorialDrafts")}
                 value={stats.draftPosts}
                 iconBgColor="bg-navy-800"
                 iconColor="text-purple-400"
@@ -197,7 +189,7 @@ const AdminDashboardPage = () => {
                 <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-3xl border border-white/5 shadow-xl group">
                   <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                     <TrendingUp size={20} className="text-gold" />
-                    Quick Actions
+                    {t("admin.dashboard.quickActions")}
                   </h2>
                   <div className="grid grid-cols-1 gap-3">
                     <Link
@@ -205,7 +197,8 @@ const AdminDashboardPage = () => {
                       className="flex items-center justify-between p-4 bg-navy-800 hover:bg-gold hover:text-navy-950 rounded-2xl transition-all duration-300 group/btn"
                     >
                       <span className="font-bold flex items-center gap-3">
-                        <PenSquare size={18} /> New Adventure
+                        <PenSquare size={18} />{" "}
+                        {t("admin.dashboard.newAdventure")}
                       </span>
                       <ChevronRight
                         size={16}
@@ -217,7 +210,8 @@ const AdminDashboardPage = () => {
                       className="flex items-center justify-between p-4 bg-navy-800/50 hover:bg-white/5 text-gray-400 hover:text-white rounded-2xl transition-all"
                     >
                       <span className="font-bold flex items-center gap-3">
-                        <FileText size={18} /> Content Manager
+                        <FileText size={18} />{" "}
+                        {t("admin.dashboard.contentManager")}
                       </span>
                       <ChevronRight size={16} />
                     </Link>
@@ -228,7 +222,7 @@ const AdminDashboardPage = () => {
                       className="flex items-center justify-between p-4 bg-navy-800/50 hover:bg-white/5 text-gray-400 hover:text-white rounded-2xl transition-all"
                     >
                       <span className="font-bold flex items-center gap-3">
-                        <Eye size={18} /> Live Site
+                        <Eye size={18} /> {t("admin.dashboard.liveSite")}
                       </span>
                       <ExternalLink size={16} />
                     </a>
@@ -240,7 +234,8 @@ const AdminDashboardPage = () => {
                       className="w-full flex items-center justify-between p-4 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-2xl transition-all mb-2 ring-1 ring-purple-500/20"
                     >
                       <span className="font-bold flex items-center gap-3">
-                        <Sparkles size={18} /> Import Viral Post
+                        <Sparkles size={18} />{" "}
+                        {t("admin.dashboard.importViralPost")}
                       </span>
                     </button>
                   </div>
@@ -251,12 +246,10 @@ const AdminDashboardPage = () => {
                     <Sparkles size={64} className="text-gold" />
                   </div>
                   <h3 className="text-gold font-bold text-sm tracking-widest uppercase mb-4">
-                    Autonomous Tip
+                    {t("admin.dashboard.autonomousTip")}
                   </h3>
                   <p className="text-gray-300 text-sm leading-relaxed italic">
-                    "Travelers are searching more for hidden local gems in
-                    Tokyo. Consider highlighting more independent cafes in your
-                    next guide."
+                    {t("admin.dashboard.tipText")}
                   </p>
                 </div>
               </div>
@@ -265,10 +258,10 @@ const AdminDashboardPage = () => {
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-xl font-bold text-white flex items-center gap-3">
                     <ThumbsUp size={20} className="text-gold" />
-                    Top Performing Stories
+                    {t("admin.dashboard.topPerforming")}
                   </h2>
                   <div className="text-xs text-gray-500 font-bold uppercase tracking-widest">
-                    Sort by Views
+                    {t("admin.dashboard.sortByViews")}
                   </div>
                 </div>
 
@@ -301,7 +294,7 @@ const AdminDashboardPage = () => {
                           {post.views.toLocaleString()}
                         </div>
                         <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-                          Views
+                          {t("admin.dashboard.views")}
                         </div>
                       </div>
                     </Link>
@@ -316,7 +309,7 @@ const AdminDashboardPage = () => {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onSuccess={() => {
-          alert("Viral post imported successfully!");
+          alert(t("admin.dashboard.importSuccess"));
           window.location.reload();
         }}
       />

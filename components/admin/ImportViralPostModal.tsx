@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Sparkles, FileText, ClipboardList } from "lucide-react";
 import { postService } from "../../services/postService";
+import { aiContentService } from "../../services/aiContentService";
 import { useAuth } from "../../hooks/useAuth";
 import { PostStatus, Post } from "../../types";
 
@@ -48,14 +49,37 @@ const ImportViralPostModal: React.FC<ImportViralPostModalProps> = ({
         .replace(/background-color:\s*#[0-9a-f]{3,6};?/gi, "")
         .replace(/background:\s*#[0-9a-f]{3,6};?/gi, "");
 
+      // AI Enhancement: Generate Tags & SEO if possible
+      let generatedTags = ["Viral", "Trending"];
+      let generatedMetaDesc = "";
+
+      try {
+        const seoResult = await aiContentService.generateSEO(
+          title,
+          processedContent
+        );
+        if (seoResult.metaKeywords) {
+          generatedTags = [
+            ...new Set([
+              ...generatedTags,
+              ...seoResult.metaKeywords.split(",").map((s) => s.trim()),
+            ]),
+          ];
+        }
+        generatedMetaDesc = seoResult.metaDescription || "";
+      } catch (err) {
+        console.warn("Auto-tagging failed:", err);
+      }
+
       const newPost: Partial<Post> = {
         title,
         content: processedContent,
-        excerpt: excerpt || content.substring(0, 150) + "...",
+        excerpt:
+          excerpt || generatedMetaDesc || content.substring(0, 150) + "...",
         authorId: user?.id,
         status: PostStatus.Draft,
         category: "Trending",
-        tags: ["Viral", "Travel Trends"],
+        tags: generatedTags,
         views: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

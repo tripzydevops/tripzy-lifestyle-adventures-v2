@@ -479,6 +479,34 @@ export const aiContentService = {
     }
   },
 
+  async generateImage(context: string): Promise<string> {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) throw new Error("Gemini API key not configured.");
+
+    // 1. Refine the prompt for Image Generation using Gemini
+    const promptRefinement = `
+      Create a detailed, photorealistic travel photography prompt based on this context: "${context}".
+      
+      Rules:
+      - Focus on lighting, composition, and atmosphere.
+      - No text overlay.
+      - Style: National Geographic, 8k, high detailed.
+      - Length: Max 25 words.
+      - Return ONLY the prompt text.
+    `;
+
+    const refinedPrompt = await callGemini(promptRefinement);
+    const cleanPrompt = refinedPrompt.trim().replace(/['"]/g, "");
+
+    // 2. Use Pollinations.ai (Flux Model or similar high-quality open model)
+    // We utilize a random seed to ensure uniqueness even for same prompts
+    const seed = Math.floor(Math.random() * 1000000);
+    const encodedPrompt = encodeURIComponent(cleanPrompt);
+
+    // Using Flux-Realism or Default model via Pollinations
+    return `https://pollinations.ai/p/${encodedPrompt}?width=1280&height=720&seed=${seed}&model=flux-realism&nologo=true`;
+  },
+
   isConfigured(): boolean {
     return !!getGeminiApiKey();
   },

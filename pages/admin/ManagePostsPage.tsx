@@ -5,41 +5,50 @@ import { Post, User } from "../../types";
 import { postService } from "../../services/postService";
 import { userService } from "../../services/userService";
 import Spinner from "../../components/common/Spinner";
-import { PlusCircle, Search, Filter, FileText } from "lucide-react";
+import { PlusCircle, Search, Filter, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "../../hooks/useToast";
 import { useLanguage } from "../../localization/LanguageContext";
 import PostTableRow from "../../components/admin/PostTableRow";
 
 const ManagePostsPage = () => {
   const { t } = useLanguage();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const { addToast } = useToast();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const POSTS_PER_PAGE = 20;
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [fetchedPosts, fetchedUsers] = await Promise.all([
-        postService.getAllPosts(),
+      // NOTE: We still fetch all users to map names. 
+      // Ideally, users should also be paginated or fetched by ID, 
+      // but users list is generally smaller than posts list.
+      const [fetchedData, fetchedUsers] = await Promise.all([
+        postService.getAdminPosts(currentPage, POSTS_PER_PAGE, searchQuery),
         userService.getAllUsers(),
       ]);
-      setPosts(fetchedPosts);
+      setPosts(fetchedData.posts);
+      setTotalPages(fetchedData.totalPages);
       setUsers(fetchedUsers);
     } catch (error) {
       addToast(t("common.error"), "error");
     } finally {
       setLoading(false);
     }
-  }, [addToast, t]);
+  }, [currentPage, searchQuery, addToast, t]);
 
   useEffect(() => {
-    fetchData();
+    // Debounce search
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 300);
+    return () => clearTimeout(timer);
   }, [fetchData]);
 
   const getUserName = useCallback(
     (authorId: string) => {
+      // NOTE: This might return "Unknown" if the user list is paginated and the author 
+      // is not in the current first page of users. 
+      // ideally we should fetch authors for the posts we have.
       return users.find((u) => u.id === authorId)?.name || "Unknown";
     },
     [users]
@@ -60,9 +69,11 @@ const ManagePostsPage = () => {
     [addToast, fetchData, t]
   );
 
-  const filteredPosts = posts.filter((post) =>
-    post.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   return (
     <div className="animate-in fade-in duration-500">
@@ -72,7 +83,8 @@ const ManagePostsPage = () => {
             {t("admin.managePosts")}
           </h1>
           <p className="text-gray-400 text-sm">
-            Total of {posts.length} stories published in the Tripzy database.
+            {/* Since we do server pagination, specific total might need an extra count call or just use totalPages estimate */}
+            Manage your published stories and drafts.
           </p>
         </div>
         <Link
@@ -133,8 +145,8 @@ const ManagePostsPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredPosts.length > 0 ? (
-                  filteredPosts.map((post) => (
+                {posts.length > 0 ? (
+                  posts.map((post) => (
                     <PostTableRow
                       key={post.id}
                       post={post}
@@ -161,8 +173,32 @@ const ManagePostsPage = () => {
               </tbody>
             </table>
           </div>
+          </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-6">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="p-2 rounded-lg bg-navy-800 text-white disabled:opacity-50 hover:bg-navy-700 transition"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <span className="text-gray-400 text-sm font-bold tracking-widest">
+            PAGE {currentPage} OF {totalPages}
+          </span>
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded-lg bg-navy-800 text-white disabled:opacity-50 hover:bg-navy-700 transition"
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

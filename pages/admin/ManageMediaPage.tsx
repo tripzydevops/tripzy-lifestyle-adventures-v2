@@ -8,7 +8,6 @@ import { useLanguage } from "../../localization/LanguageContext";
 import Spinner from "../../components/common/Spinner";
 import {
   PlusCircle,
-  UploadCloud,
   PlayCircle,
   Image as ImageIcon,
   Trash2,
@@ -30,11 +29,11 @@ const ManageMediaPage = () => {
       const items = await mediaService.getAllMedia();
       setMediaItems(items);
     } catch (error) {
-      addToast("Failed to load media.", "error");
+      addToast(t("admin.loadError"), "error");
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   useEffect(() => {
     fetchMedia();
@@ -49,10 +48,10 @@ const ManageMediaPage = () => {
     setIsUploading(true);
     try {
       await uploadService.uploadFile(file);
-      addToast("Media uploaded successfully!", "success");
+      addToast(t("admin.uploadSuccess"), "success");
       fetchMedia();
     } catch (error) {
-      addToast("Media upload failed.", "error");
+      addToast(t("admin.uploadError"), "error");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -60,19 +59,14 @@ const ManageMediaPage = () => {
   };
 
   const handleDelete = async (item: MediaItem) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this file? This cannot be undone."
-      )
-    )
-      return;
+    if (!window.confirm(t("admin.deleteConfirm"))) return;
 
     try {
       await uploadService.deleteFile(item.id, item.url);
-      addToast("File deleted successfully.", "success");
+      addToast(t("admin.deleteSuccess"), "success");
       fetchMedia();
     } catch (error) {
-      addToast("Delete failed.", "error");
+      addToast(t("common.error"), "error");
     }
   };
 
@@ -86,11 +80,9 @@ const ManageMediaPage = () => {
         <div>
           <h1 className="text-3xl font-serif font-bold text-white mb-2 flex items-center gap-3">
             <ImageIcon className="text-gold" />
-            {t("admin.manageMedia") || "Media Library"}
+            {t("admin.manageMedia")}
           </h1>
-          <p className="text-gray-400 text-sm">
-            Manage your visual assets and storytelling resources.
-          </p>
+          <p className="text-gray-400 text-sm">{t("admin.mediaSubtitle")}</p>
         </div>
 
         <button
@@ -101,12 +93,11 @@ const ManageMediaPage = () => {
           {isUploading ? (
             <>
               <Loader2 size={20} className="mr-2 animate-spin" />{" "}
-              {t("common.processing") || "Uploading..."}
+              {t("admin.uploading")}
             </>
           ) : (
             <>
-              <PlusCircle size={20} className="mr-2" />{" "}
-              {t("admin.newMedia") || "Upload New"}
+              <PlusCircle size={20} className="mr-2" /> {t("admin.newMedia")}
             </>
           )}
         </button>
@@ -188,13 +179,13 @@ const ManageMediaPage = () => {
                   <ImageIcon size={40} />
                 </div>
                 <p className="text-gray-500 font-serif text-lg">
-                  {t("admin.noMedia") || "Your library is empty"}
+                  {t("admin.noMedia")}
                 </p>
                 <button
                   onClick={triggerFileUpload}
                   className="text-gold font-bold mt-2 hover:underline"
                 >
-                  Start by uploading your first asset
+                  {t("admin.uploadFirst")}
                 </button>
               </div>
             )}
