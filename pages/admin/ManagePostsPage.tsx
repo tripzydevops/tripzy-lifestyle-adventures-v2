@@ -5,22 +5,34 @@ import { Post, User } from "../../types";
 import { postService } from "../../services/postService";
 import { userService } from "../../services/userService";
 import Spinner from "../../components/common/Spinner";
-import { PlusCircle, Search, Filter, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  PlusCircle,
+  Search,
+  Filter,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useToast } from "../../hooks/useToast";
 import { useLanguage } from "../../localization/LanguageContext";
 import PostTableRow from "../../components/admin/PostTableRow";
 
 const ManagePostsPage = () => {
   const { t } = useLanguage();
+  const { addToast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const POSTS_PER_PAGE = 20;
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // NOTE: We still fetch all users to map names. 
-      // Ideally, users should also be paginated or fetched by ID, 
+      // NOTE: We still fetch all users to map names.
+      // Ideally, users should also be paginated or fetched by ID,
       // but users list is generally smaller than posts list.
       const [fetchedData, fetchedUsers] = await Promise.all([
         postService.getAdminPosts(currentPage, POSTS_PER_PAGE, searchQuery),
@@ -46,8 +58,8 @@ const ManagePostsPage = () => {
 
   const getUserName = useCallback(
     (authorId: string) => {
-      // NOTE: This might return "Unknown" if the user list is paginated and the author 
-      // is not in the current first page of users. 
+      // NOTE: This might return "Unknown" if the user list is paginated and the author
+      // is not in the current first page of users.
       // ideally we should fetch authors for the posts we have.
       return users.find((u) => u.id === authorId)?.name || "Unknown";
     },
@@ -172,7 +184,6 @@ const ManagePostsPage = () => {
                 )}
               </tbody>
             </table>
-          </div>
           </div>
         )}
       </div>
