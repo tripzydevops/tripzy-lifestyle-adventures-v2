@@ -19,10 +19,10 @@ Build the "Brain" of the Tripzy Recommendation Engine. This involves enhancing t
     - [x] **Lifestyle Inference**: LLM prompt updated to infer "Lifestyle Vibes" (e.g., Budget, Digital Nomad).
     - [x] **Cross-Domain Mapping**: Added instruction for "Concept -> Attribute" mapping in prompts.
 - [x] **LangGraph Readiness**: Refactored into `buildPrompt` and `executeLLM` methods for modular portability.
-- [ ] **LangGraph Backend Implementation**:
-    - [x] Create `StateGraph` with nodes for Signal Analysis, Constraint Inference, and Recommendation.
-    - [x] Implement conditional edges for "Cold Start" vs "Contextual" flows (Handled via mode detection in `analyze_user_node`).
-    - [x] Connect `main.py` API to the LangGraph runnable.
+- [ ] **Reasoning Engine Implementation**:
+    - [x] Create State Machine logic for Signal Analysis, Constraint Inference, and Recommendation.
+    - [x] Implement "Cold Start" vs "Contextual" mode switching.
+    - [x] Connect `main.py` API to the custom Agent runner (Replaced LangGraph due to Python 3.14 compatibility).
 
 ### 3. Agent Testing
 - [x] Create a test harness to simulate a "New User" with zero history (implemented in **AIStudioPage**).
