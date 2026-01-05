@@ -22,3 +22,31 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files - NEVER commit these!
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
+# Test files
+test_payload.json
+models.json
+

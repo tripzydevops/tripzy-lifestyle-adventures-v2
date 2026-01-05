@@ -35,8 +35,23 @@ export class ReasoningLayer {
   public async analyze(query: string = "", userSignals: any[]) {
     try {
       const mode = userSignals.length === 0 ? "COLD_START" : "CONTEXTUAL";
-      const prompt = this.buildPrompt(mode, query, userSignals);
-      const analysis = await this.executeLLM(prompt);
+
+      // Call Python Backend for Reasoning
+      const backendResponse = await this.callBackendReasoning(
+        query,
+        userSignals
+      );
+
+      const analysis = {
+        intent: backendResponse.content, // Using recommendation content as intent summary for now
+        keywords: [], // Backend doesn't return keywords yet
+        lifestyleVibe: backendResponse.lifestyleVibe,
+        constraints: backendResponse.constraints,
+        reasoning: backendResponse.reasoning,
+        searchQuery: query,
+        confidence: backendResponse.confidence,
+      };
+
       const vector = await this.generateVector(analysis, query);
 
       return {
@@ -49,53 +64,45 @@ export class ReasoningLayer {
     }
   }
 
-  private buildPrompt(mode: string, query: string, signals: any[]): string {
-    const context =
-      mode === "CONTEXTUAL"
-        ? `User History: ${JSON.stringify(signals.slice(-10))}` // Deep history
-        : "User History: NONE (New User / Cold Start)";
+  private async callBackendReasoning(query: string, signals: any[]) {
+    try {
+      // Use local backend or env var
+      const API_URL =
+        import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
 
-    return `
-      ACT AS: Tripzy Autonomous Agent (Layer 2)
-      DOMAIN: ${this.domain}
-      MODE: ${mode}
-      
-      CONTEXT:
-      Query: "${query}"
-      ${context}
-      
-      TASKS:
-      1. ANALYZE INTENT: What is the user looking for in the context of ${this.domain}?
-      2. COLD START INFERENCE:
-         - If MODE is COLD_START, infer "Lifestyle Vibe" from the query keywords alone.
-      3. CROSS-DOMAIN MAPPING:
-         - Map abstract concepts to concrete attributes in ${this.domain}.
-         ${this.customInstructions}
-      4. CONSTRAINT DETECTION:
-         - ${this.constraintsLabel}
-      
-      OUTPUT (JSON ONLY):
-      {
-        "intent": "Short summary",
-        "keywords": ["tag1", "tag2", "tag3"],
-        "lifestyleVibe": "Inferred vibe (e.g. Luxury, Adventure)",
-        "constraints": ["Constraint 1", "Constraint 2"],
-        "reasoning": "Why you chose this",
-        "searchQuery": "Optimized semantic search string",
-        "confidence": 0.0-1.0
+      const response = await fetch(`${API_URL}/recommend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          session_id: "client-" + Date.now(), // Generate prompt session
+          query: query,
+          user_context: { signals: signals },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
       }
-    `;
+
+      return await response.json();
+    } catch (e) {
+      console.error("Failed to call backend:", e);
+      // Fallback local execution if backend fails?
+      // For now, let's throw to trigger the fallback response.
+      throw e;
+    }
+  }
+
+  // Legacy local prompt builder - kept for reference or hybrid mode if needed
+  private buildPrompt(mode: string, query: string, signals: any[]): string {
+    return "";
   }
 
   private async executeLLM(prompt: string): Promise<any> {
-    const result = await this.model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
-    text = text
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-    return JSON.parse(text);
+    // Deprecated in favor of callBackendReasoning
+    return {};
   }
 
   private async generateVector(analysis: any, originalQuery: string) {
