@@ -29,7 +29,27 @@ dist-ssr
 .env.*.local
 .env.development
 .env.production
+.env.staging
+.env.test
 backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+.env.backup
+*.env
+*.env.local
+
+# Secrets and sensitive files
+*.pem
+*.key
+*.pub
+secrets.json
+credentials.json
+auth_token*
+id_rsa*
+id_ed25519*
+fb_credentials.json
+service-account.json
 
 # Python
 __pycache__/
