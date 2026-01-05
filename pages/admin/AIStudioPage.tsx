@@ -802,75 +802,121 @@ const AIStudioPage = () => {
                   </div>
                 </div>
               ) : activeTab === "agent" && agentAnalysis ? (
-                <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-navy-800/50 p-6 rounded-2xl border border-white/5">
-                      <div className="text-xs text-gray-500 uppercase font-bold mb-2">
-                        Inferred Vibe
-                      </div>
-                      <div className="text-xl text-gold font-serif">
-                        {agentAnalysis.lifestyleVibe || "N/A"}
-                      </div>
+                <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500 pb-10">
+                  {/* Energy / UI Directive Section */}
+                  <div className="bg-navy-800/80 border border-gold/20 rounded-3xl p-8 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4">
+                      {agentAnalysis.ui_directive === "immersion" ? (
+                        <div className="flex items-center gap-2 bg-purple-500/20 text-purple-400 px-4 py-2 rounded-full border border-purple-500/30 text-sm font-bold animate-pulse">
+                          <Sparkles size={14} /> Immersion Mode
+                        </div>
+                      ) : agentAnalysis.ui_directive === "high_energy" ? (
+                        <div className="flex items-center gap-2 bg-orange-500/20 text-orange-400 px-4 py-2 rounded-full border border-orange-500/30 text-sm font-bold animate-bounce">
+                          <Zap size={14} /> High Energy Mode
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 bg-blue-500/20 text-blue-400 px-4 py-2 rounded-full border border-blue-500/30 text-sm font-bold">
+                          <Layout size={14} /> Utility Mode
+                        </div>
+                      )}
                     </div>
-                    <div className="bg-navy-800/50 p-6 rounded-2xl border border-white/5">
-                      <div className="text-xs text-gray-500 uppercase font-bold mb-2">
-                        Confidence
+
+                    <div className="flex items-center gap-6">
+                      <div className="w-16 h-16 bg-navy-950 rounded-[20px] flex items-center justify-center border border-white/5">
+                        <BrainCircuit size={32} className="text-gold" />
                       </div>
-                      <div className="text-xl text-cyan-400 font-bold">
-                        {(agentAnalysis.confidence * 100).toFixed(0)}%
+                      <div>
+                        <h4 className="text-2xl font-serif font-bold text-white mb-1">
+                          {agentAnalysis.lifestyleVibe || "Analyzing..."}
+                        </h4>
+                        <div className="flex items-center gap-3">
+                          <div className="h-1.5 w-32 bg-navy-950 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gold transition-all duration-1000"
+                              style={{
+                                width: `${
+                                  (agentAnalysis.confidence || 0) * 100
+                                }%`,
+                              }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-bold text-gold">
+                            {((agentAnalysis.confidence || 0) * 100).toFixed(0)}
+                            % Confidence
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-navy-800/30 border border-white/5 rounded-2xl p-6">
-                    <div className="text-xs text-gray-500 uppercase font-bold mb-3">
-                      Reasoning Logic
+                  {/* Thought Stream */}
+                  {agentAnalysis.thoughts && (
+                    <div className="space-y-3">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                        <Bot size={14} /> Reasoning Thought Stream
+                      </label>
+                      <div className="space-y-2">
+                        {agentAnalysis.thoughts.map(
+                          (thought: string, idx: number) => (
+                            <div
+                              key={idx}
+                              className="flex gap-4 items-start animate-in fade-in slide-in-from-left-2"
+                              style={{ animationDelay: `${idx * 150}ms` }}
+                            >
+                              <div className="w-1 h-1 rounded-full bg-gold/40 mt-2.5"></div>
+                              <p className="text-gray-400 text-sm italic py-1">
+                                {thought}
+                              </p>
+                            </div>
+                          )
+                        )}
+                      </div>
                     </div>
-                    <p className="text-gray-200 italic">
-                      "{agentAnalysis.reasoning}"
-                    </p>
-                  </div>
+                  )}
 
-                  {agentAnalysis.constraints && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-navy-800/30 border border-white/5 rounded-2xl p-6">
-                      <div className="text-xs text-gray-500 uppercase font-bold mb-3">
-                        Inferred Constraints
+                      <div className="text-xs text-gray-500 uppercase font-bold mb-3 flex items-center gap-2">
+                        <Zap size={14} className="text-orange-400" />
+                        Constraints Detected
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {agentAnalysis.constraints.map((c: string) => (
+                        {(agentAnalysis.constraints || []).map((c: string) => (
                           <span
                             key={c}
-                            className="px-3 py-1 bg-red-900/30 text-red-400 border border-red-500/30 rounded-lg text-sm"
+                            className="px-3 py-1 bg-red-900/20 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold"
                           >
                             {c}
                           </span>
                         ))}
                       </div>
                     </div>
-                  )}
 
-                  <div className="bg-navy-800/30 border border-white/5 rounded-2xl p-6">
-                    <div className="text-xs text-gray-500 uppercase font-bold mb-3">
-                      Cross-Domain Mapping (Keywords)
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {agentAnalysis.keywords.map((k: string) => (
-                        <span
-                          key={k}
-                          className="px-3 py-1 bg-cyan-900/30 text-cyan-400 border border-cyan-500/30 rounded-lg text-sm"
-                        >
-                          {k}
-                        </span>
-                      ))}
+                    <div className="bg-navy-800/30 border border-white/5 rounded-2xl p-6">
+                      <div className="text-xs text-gray-500 uppercase font-bold mb-3 flex items-center gap-2">
+                        <Globe size={14} className="text-cyan-400" />
+                        Semantic Keywords
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(agentAnalysis.keywords || []).map((k: string) => (
+                          <span
+                            key={k}
+                            className="px-3 py-1 bg-cyan-900/20 text-cyan-400 border border-cyan-500/20 rounded-lg text-xs font-bold"
+                          >
+                            {k}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-black/20 rounded-xl font-mono text-xs text-gray-400 break-all">
-                    <span className="text-gray-600 block mb-1">
-                      Generated Vector (First 10 Dims):
-                    </span>
-                    {JSON.stringify(agentAnalysis.searchVector?.slice(0, 10))}
-                    ...
+                  <div className="p-6 bg-navy-800/10 border border-white/5 rounded-2xl relative">
+                    <div className="text-xs text-gray-500 uppercase font-bold mb-3">
+                      Executive Reasoning
+                    </div>
+                    <p className="text-gray-300 leading-relaxed">
+                      {agentAnalysis.reasoning}
+                    </p>
                   </div>
                 </div>
               ) : activeTab === "history" ? (

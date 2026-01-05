@@ -187,14 +187,19 @@ class Agent:
         TASKS:
         1. ANALYZE INTENT: What is the user looking for?
         2. INFER CONSTRAINTS: Budget (Low/High), Group (Solo/Family), Pace (Fast/Slow).
-        3. CROSS-DOMAIN MAPPING: If Cold Start, look at query keywords to map to attributes (e.g. "Spa" -> "Relaxation").
+        3. CROSS-DOMAIN MAPPING: Map keywords to attributes (e.g. "Spa" -> "Relaxation").
+        4. UI DIRECTIVE: Determine energy level: "immersion" (scenic/slow), "high_energy" (fast/viral), or "utility" (data).
+        5. THOUGHT STREAM: Breakdown your steps for the simulation UI.
         
         OUTPUT JSON:
         {{
-            "intent": "Brief summary",
-            "constraints": ["Constraint 1", "Constraint 2"],
-            "lifestyleVibe": "e.g. Luxury, Adventure, Budget",
-            "reasoning": "Why you inferred this"
+            "lifestyleVibe": "string",
+            "constraints": ["string"],
+            "ui_directive": "immersion" | "high_energy" | "utility",
+            "confidence": 0.0-1.0,
+            "reasoning": "Detailed explanation",
+            "thoughts": ["Step 1...", "Step 2...", "Step 3..."],
+            "keywords": ["tag1", "tag2"]
         }}
         """
         
