@@ -831,6 +831,24 @@ const AIStudioPage = () => {
                     </p>
                   </div>
 
+                  {agentAnalysis.constraints && (
+                    <div className="bg-navy-800/30 border border-white/5 rounded-2xl p-6">
+                      <div className="text-xs text-gray-500 uppercase font-bold mb-3">
+                        Inferred Constraints
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {agentAnalysis.constraints.map((c: string) => (
+                          <span
+                            key={c}
+                            className="px-3 py-1 bg-red-900/30 text-red-400 border border-red-500/30 rounded-lg text-sm"
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="bg-navy-800/30 border border-white/5 rounded-2xl p-6">
                     <div className="text-xs text-gray-500 uppercase font-bold mb-3">
                       Cross-Domain Mapping (Keywords)

@@ -53,12 +53,15 @@ export class ReasoningLayer {
       3. CROSS-DOMAIN MAPPING:
          - Map abstract concepts to concrete travel attributes.
          - "Cyberpunk" -> Neon lights, Tokyo, Nightlife, Tech.
+      4. CONSTRAINT DETECTION:
+         - Infer constraints: Budget (Cheap/Luxury), Travelers (Family/Solo), Pace (Fast/Slow).
       
       OUTPUT (JSON ONLY):
       {
         "intent": "Short summary",
         "keywords": ["tag1", "tag2", "tag3"],
         "lifestyleVibe": "Inferred vibe (e.g. Luxury, Adventure)",
+        "constraints": ["Family Friendly", "Budget", "etc..."],
         "reasoning": "Why you chose this",
         "searchQuery": "Optimized semantic search string",
         "confidence": 0.0-1.0
