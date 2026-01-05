@@ -23,13 +23,28 @@ export class SupabaseMemoryAdapter implements IMemoryAdapter {
   }
 
   async saveSignal(signal: any): Promise<void> {
+    return this.saveSignals([signal]);
+  }
+
+  async saveSignals(signals: any[]): Promise<void> {
+    // Map SDK (CamelCase) -> Supabase DB (snake_case)
+    const formattedSignals = signals.map((s) => ({
+      session_id: s.sessionId,
+      signal_type: s.type,
+      metadata: s.data,
+      // Try to extract content ID if present in metadata
+      target_id: s.data?.targetId || s.data?.postId || null,
+      created_at: s.timestamp,
+    }));
+
     const { error } = await this.supabase
       .from(this.config.signalsTable)
-      .insert([signal]);
+      .insert(formattedSignals);
 
     if (error) {
-      console.warn(`[SupabaseAdapter] Failed to save signal: ${error.message}`);
-      // Only throw if critical, otherwise let the SDK continue
+      console.warn(
+        `[SupabaseAdapter] Failed to save batch signals: ${error.message}`
+      );
     }
   }
 

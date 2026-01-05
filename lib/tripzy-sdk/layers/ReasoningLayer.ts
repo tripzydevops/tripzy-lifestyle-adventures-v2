@@ -15,56 +15,10 @@ export class ReasoningLayer {
 
   public async analyze(query: string = "", userSignals: any[]) {
     try {
-      // 1. Construct Context from Signals (if any)
-      const signalContext =
-        userSignals.length > 0
-          ? `User History: ${JSON.stringify(userSignals.slice(-5))}`
-          : "User History: None (Cold Start)";
-
-      // 2. Build Agent Prompts
-      const prompt = `
-        ACT AS: Tripzy Autonomous Agent (Layer 2)
-        
-        CONTEXT:
-        Query: "${query}"
-        ${signalContext}
-        
-        TASK:
-        Analyze the user's intent. If they have no history (Cold Start), infer preferences from the query style/keywords.
-        Perform "Cross-Domain Mapping" (e.g. "Cyberpunk" -> Tokyo).
-        
-        OUTPUT (JSON):
-        {
-          "intent": "Short summary of what they want",
-          "keywords": ["keyword1", "keyword2", "keyword3"],
-          "reasoning": "Explanation of why this was chosen",
-          "searchQuery": "Optimized sentence for semantic search",
-          "confidence": 0.0-1.0
-        }
-      `;
-
-      // 3. Execute Reasoning
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text();
-
-      // Sanitization
-      text = text
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
-
-      const analysis = JSON.parse(text);
-
-      // 4. Generate Embedding for Search
-      // We use the "searchQuery" or combine intent + keywords
-      const textToEmbed =
-        analysis.searchQuery ||
-        `${analysis.intent} ${analysis.keywords.join(" ")}`;
-      const embeddingResult = await this.embeddingModel.embedContent(
-        textToEmbed
-      );
-      const vector = embeddingResult.embedding.values;
+      const mode = userSignals.length === 0 ? "COLD_START" : "CONTEXTUAL";
+      const prompt = this.buildPrompt(mode, query, userSignals);
+      const analysis = await this.executeLLM(prompt);
+      const vector = await this.generateVector(analysis, query);
 
       return {
         ...analysis,
@@ -72,26 +26,81 @@ export class ReasoningLayer {
       };
     } catch (error) {
       console.error("Tripzy Brain Error:", error);
-
-      // Fallback: Generate embedding for the raw query
-      let fallbackVector: number[] = [];
-      try {
-        const embeddingResult = await this.embeddingModel.embedContent(
-          query || "travel"
-        );
-        fallbackVector = embeddingResult.embedding.values;
-      } catch (e) {
-        console.error("Embedding fallback failed", e);
-      }
-
-      return {
-        intent: "General Discovery",
-        keywords: [query],
-        reasoning: "Fallback: Standard keyword search",
-        searchQuery: query,
-        confidence: 0.1,
-        searchVector: fallbackVector,
-      };
+      return this.getFallbackResponse(query, error);
     }
+  }
+
+  private buildPrompt(mode: string, query: string, signals: any[]): string {
+    const context =
+      mode === "CONTEXTUAL"
+        ? `User History: ${JSON.stringify(signals.slice(-10))}` // Deep history
+        : "User History: NONE (New User / Cold Start)";
+
+    return `
+      ACT AS: Tripzy Autonomous Agent (Layer 2)
+      MODE: ${mode}
+      
+      CONTEXT:
+      Query: "${query}"
+      ${context}
+      
+      TASKS:
+      1. ANALYZE INTENT: What is the user looking for?
+      2. COLD START INFERENCE:
+         - If MODE is COLD_START, infer "Lifestyle Vibe" from the query keywords alone.
+         - E.g., "cheap food" -> Vibe: Budget, Authentic, Street Food.
+         - E.g., "fast wifi" -> Vibe: Digital Nomad, Remote Work.
+      3. CROSS-DOMAIN MAPPING:
+         - Map abstract concepts to concrete travel attributes.
+         - "Cyberpunk" -> Neon lights, Tokyo, Nightlife, Tech.
+      
+      OUTPUT (JSON ONLY):
+      {
+        "intent": "Short summary",
+        "keywords": ["tag1", "tag2", "tag3"],
+        "lifestyleVibe": "Inferred vibe (e.g. Luxury, Adventure)",
+        "reasoning": "Why you chose this",
+        "searchQuery": "Optimized semantic search string",
+        "confidence": 0.0-1.0
+      }
+    `;
+  }
+
+  private async executeLLM(prompt: string): Promise<any> {
+    const result = await this.model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text();
+    text = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+    return JSON.parse(text);
+  }
+
+  private async generateVector(analysis: any, originalQuery: string) {
+    const text =
+      analysis.searchQuery ||
+      `${analysis.intent} ${analysis.keywords.join(" ")}`;
+    const result = await this.embeddingModel.embedContent(text);
+    return result.embedding.values;
+  }
+
+  private async getFallbackResponse(query: string, error: any) {
+    let fallbackVector: number[] = [];
+    try {
+      const result = await this.embeddingModel.embedContent(query || "travel");
+      fallbackVector = result.embedding.values;
+    } catch (e) {
+      console.error("Fallback embed failed", e);
+    }
+
+    return {
+      intent: "Fallback Search",
+      keywords: [query],
+      reasoning: "Error in reasoning engine. Using raw query.",
+      searchQuery: query,
+      confidence: 0.1,
+      searchVector: fallbackVector,
+    };
   }
 }

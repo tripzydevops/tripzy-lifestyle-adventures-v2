@@ -21,7 +21,11 @@ import {
   X,
   Video,
   Clapperboard,
+  BrainCircuit,
+  Lightbulb,
 } from "lucide-react";
+import { TripzyClient } from "../../lib/tripzy-sdk/TripzyClient";
+import { SupabaseMemoryAdapter } from "../../lib/tripzy-sdk/adapters/SupabaseAdapter";
 
 type HistoryItem = {
   id: string;
@@ -36,7 +40,7 @@ const AIStudioPage = () => {
   const { language: appLanguage } = useLanguage();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<
-    "social" | "titles" | "video" | "history"
+    "social" | "titles" | "video" | "history" | "agent"
   >("social");
   const [language, setLanguage] = useState<"en" | "tr">("en");
 
@@ -79,6 +83,49 @@ const AIStudioPage = () => {
   const [generatingTitles, setGeneratingTitles] = useState(false);
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([]);
   const [tempKey, setTempKey] = useState("");
+
+  // Agent State
+  const [agentQuery, setAgentQuery] = useState("");
+  const [agentAnalysis, setAgentAnalysis] = useState<any>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const handleAgentAnalysis = async () => {
+    if (!agentQuery) return;
+    setAnalyzing(true);
+    try {
+      // Initialize SDK on the fly for demo
+      const memory = new SupabaseMemoryAdapter(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY
+      );
+
+      const apiKey =
+        localStorage.getItem("TRIPZY_AI_KEY") ||
+        import.meta.env.VITE_GEMINI_API_KEY;
+
+      if (!apiKey) {
+        addToast("API Key Missing", "error");
+        setAnalyzing(false);
+        return;
+      }
+
+      const client = new TripzyClient({
+        apiKey,
+        memoryAdapter: memory,
+        debug: true,
+      });
+
+      // Simulate a Cold Start (Zero Signals)
+      const result = await client.brain.analyze(agentQuery, []);
+      setAgentAnalysis(result);
+      addToast("Agent Analysis Complete", "success");
+    } catch (error) {
+      console.error(error);
+      addToast("Agent Failed", "error");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -303,6 +350,11 @@ const AIStudioPage = () => {
               tr: `Geçmiş (${history.length})`,
             },
           },
+          {
+            id: "agent",
+            icon: <BrainCircuit size={18} />,
+            label: { en: "Agent Simulation", tr: "Ajan Simülasyonu" },
+          },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -340,168 +392,210 @@ const AIStudioPage = () => {
                 : "Title Parameters"}
             </h3>
 
-            <div className="space-y-6">
-              {activeTab === "video" ? (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
-                      {language === "tr"
-                        ? "Video Konusu / Sahne"
-                        : "Topic / Scene Description"}
-                    </label>
-                    <textarea
-                      rows={5}
-                      value={videoTopic}
-                      onChange={(e) => setVideoTopic(e.target.value)}
-                      placeholder={
-                        language === "tr"
-                          ? "Örn: Bali pirinç tarlalarında gün batımında yürüyen bir gezgin..."
-                          : "Detailed scene description e.g., Traveler walking through rice terraces..."
-                      }
-                      className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 resize-none font-medium"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
-                      {language === "tr" ? "Görsel Stil" : "Visual Style"}
-                    </label>
-                    <input
-                      type="text"
-                      value={visualStyle}
-                      onChange={(e) => setVisualStyle(e.target.value)}
-                      className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 font-medium"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
-                      Target AI Model
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(["runway", "luma", "kling"] as const).map((m) => (
-                        <button
-                          key={m}
-                          onClick={() => setVideoModel(m)}
-                          className={`py-3 px-2 rounded-xl text-sm font-bold capitalize border ${
-                            videoModel === m
-                              ? "bg-navy-800 border-gold text-white"
-                              : "bg-navy-900 border-white/5 text-gray-400"
-                          }`}
-                        >
-                          {m}
-                        </button>
-                      ))}
+            {activeTab === "agent" ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-gold/10 border border-gold/20 rounded-2xl">
+                  <h4 className="flex items-center gap-2 text-gold font-bold mb-2">
+                    <Lightbulb size={16} />
+                    Cold Start Simulation
+                  </h4>
+                  <p className="text-xs text-gray-400">
+                    Test how Layer 2 (The Brain) handles a user with ZERO
+                    history. It will infer lifestyle vibes and perform
+                    cross-domain mapping from just a query.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                    Simulated User Query
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={agentQuery}
+                    onChange={(e) => setAgentQuery(e.target.value)}
+                    placeholder="e.g. cheap authentic food in chaos"
+                    className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all font-medium"
+                  />
+                </div>
+
+                <button
+                  onClick={handleAgentAnalysis}
+                  disabled={analyzing || !agentQuery}
+                  className="w-full py-5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-cyan-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  <BrainCircuit size={22} />
+                  {analyzing ? "Reasoning..." : "Analyze Intent"}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {activeTab === "video" ? (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                        {language === "tr"
+                          ? "Video Konusu / Sahne"
+                          : "Topic / Scene Description"}
+                      </label>
+                      <textarea
+                        rows={5}
+                        value={videoTopic}
+                        onChange={(e) => setVideoTopic(e.target.value)}
+                        placeholder={
+                          language === "tr"
+                            ? "Örn: Bali pirinç tarlalarında gün batımında yürüyen bir gezgin..."
+                            : "Detailed scene description e.g., Traveler walking through rice terraces..."
+                        }
+                        className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 resize-none font-medium"
+                      />
                     </div>
-                  </div>
-                  <button
-                    onClick={generateVideoPrompt}
-                    disabled={generatingVideo}
-                    className="w-full py-5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-pink-500/20 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
-                  >
-                    <Clapperboard size={22} />
-                    {language === "tr" ? "Video Komutu Yaz" : "Generate Prompt"}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
-                      {language === "tr"
-                        ? "Konu / Destinasyon"
-                        : "Topic / Destination"}
-                    </label>
-                    <input
-                      type="text"
-                      value={activeTab === "social" ? socialTarget : titleTopic}
-                      onChange={(e) =>
-                        activeTab === "social"
-                          ? setSocialTarget(e.target.value)
-                          : setTitleTopic(e.target.value)
-                      }
-                      placeholder={
-                        language === "tr"
-                          ? "örn: Bali Seyahat Rehberi"
-                          : "e.g., Bali Travel Guide"
-                      }
-                      className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 font-medium"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
-                      {language === "tr"
-                        ? "Ek İçerik veya Notlar"
-                        : "Additional Context or Notes"}
-                    </label>
-                    <textarea
-                      rows={6}
-                      value={
-                        activeTab === "social" ? socialContext : titleContext
-                      }
-                      onChange={(e) =>
-                        activeTab === "social"
-                          ? setSocialContext(e.target.value)
-                          : setTitleContext(e.target.value)
-                      }
-                      placeholder={
-                        language === "tr"
-                          ? "Makale içeriği veya anahtar noktalar..."
-                          : "Article content or key points..."
-                      }
-                      className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 resize-none font-medium h-[200px]"
-                    />
-                  </div>
-
-                  {activeTab === "titles" || activeTab === "history" ? (
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                        {language === "tr" ? "Görsel Stil" : "Visual Style"}
+                      </label>
+                      <input
+                        type="text"
+                        value={visualStyle}
+                        onChange={(e) => setVisualStyle(e.target.value)}
+                        className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 font-medium"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                        Target AI Model
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(["runway", "luma", "kling"] as const).map((m) => (
+                          <button
+                            key={m}
+                            onClick={() => setVideoModel(m)}
+                            className={`py-3 px-2 rounded-xl text-sm font-bold capitalize border ${
+                              videoModel === m
+                                ? "bg-navy-800 border-gold text-white"
+                                : "bg-navy-900 border-white/5 text-gray-400"
+                            }`}
+                          >
+                            {m}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <button
-                      onClick={generateTitleSuggestions}
-                      disabled={generatingTitles}
-                      className="w-full py-5 bg-gradient-to-r from-purple-500 to-gold text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-purple-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                      style={{
-                        display: activeTab === "history" ? "none" : "flex",
-                      }}
+                      onClick={generateVideoPrompt}
+                      disabled={generatingVideo}
+                      className="w-full py-5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-pink-500/20 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
                     >
-                      <Wand2 size={22} />
+                      <Clapperboard size={22} />
                       {language === "tr"
-                        ? "Sihirli Başlıklar Üret"
-                        : "Generate Magic Titles"}
+                        ? "Video Komutu Yaz"
+                        : "Generate Prompt"}
                     </button>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-3 pt-4">
-                      <button
-                        onClick={() => generateSocialContent("instagram")}
-                        disabled={generatingSocial}
-                        className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-purple-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                      >
-                        <Instagram size={20} />
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
                         {language === "tr"
-                          ? "Instagram İçin Üret"
-                          : "Generate for Instagram"}
-                      </button>
-                      <button
-                        onClick={() => generateSocialContent("twitter")}
-                        disabled={generatingSocial}
-                        className="w-full py-4 bg-[#1DA1F2] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                      >
-                        <Twitter size={20} />
-                        {language === "tr"
-                          ? "Twitter İçin Üret"
-                          : "Generate for Twitter"}
-                      </button>
-                      <button
-                        onClick={() => generateSocialContent("facebook")}
-                        disabled={generatingSocial}
-                        className="w-full py-4 bg-[#4267B2] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-800/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                      >
-                        <Facebook size={20} />
-                        {language === "tr"
-                          ? "Facebook İçin Üret"
-                          : "Generate for Facebook"}
-                      </button>
+                          ? "Konu / Destinasyon"
+                          : "Topic / Destination"}
+                      </label>
+                      <input
+                        type="text"
+                        value={
+                          activeTab === "social" ? socialTarget : titleTopic
+                        }
+                        onChange={(e) =>
+                          activeTab === "social"
+                            ? setSocialTarget(e.target.value)
+                            : setTitleTopic(e.target.value)
+                        }
+                        placeholder={
+                          language === "tr"
+                            ? "örn: Bali Seyahat Rehberi"
+                            : "e.g., Bali Travel Guide"
+                        }
+                        className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 font-medium"
+                      />
                     </div>
-                  )}
-                </>
-              )}
-            </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                        {language === "tr"
+                          ? "Ek İçerik veya Notlar"
+                          : "Additional Context or Notes"}
+                      </label>
+                      <textarea
+                        rows={6}
+                        value={
+                          activeTab === "social" ? socialContext : titleContext
+                        }
+                        onChange={(e) =>
+                          activeTab === "social"
+                            ? setSocialContext(e.target.value)
+                            : setTitleContext(e.target.value)
+                        }
+                        placeholder={
+                          language === "tr"
+                            ? "Makale içeriği veya anahtar noktalar..."
+                            : "Article content or key points..."
+                        }
+                        className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-gold/30 transition-all placeholder:text-navy-700 resize-none font-medium h-[200px]"
+                      />
+                    </div>
+
+                    {activeTab === "titles" || activeTab === "history" ? (
+                      <button
+                        onClick={generateTitleSuggestions}
+                        disabled={generatingTitles}
+                        className="w-full py-5 bg-gradient-to-r from-purple-500 to-gold text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-purple-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                        style={{
+                          display: activeTab === "history" ? "none" : "flex",
+                        }}
+                      >
+                        <Wand2 size={22} />
+                        {language === "tr"
+                          ? "Sihirli Başlıklar Üret"
+                          : "Generate Magic Titles"}
+                      </button>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-3 pt-4">
+                        <button
+                          onClick={() => generateSocialContent("instagram")}
+                          disabled={generatingSocial}
+                          className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-purple-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                        >
+                          <Instagram size={20} />
+                          {language === "tr"
+                            ? "Instagram İçin Üret"
+                            : "Generate for Instagram"}
+                        </button>
+                        <button
+                          onClick={() => generateSocialContent("twitter")}
+                          disabled={generatingSocial}
+                          className="w-full py-4 bg-[#1DA1F2] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                        >
+                          <Twitter size={20} />
+                          {language === "tr"
+                            ? "Twitter İçin Üret"
+                            : "Generate for Twitter"}
+                        </button>
+                        <button
+                          onClick={() => generateSocialContent("facebook")}
+                          disabled={generatingSocial}
+                          className="w-full py-4 bg-[#4267B2] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-blue-800/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                        >
+                          <Facebook size={20} />
+                          {language === "tr"
+                            ? "Facebook İçin Üret"
+                            : "Generate for Facebook"}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -705,6 +799,60 @@ const AIStudioPage = () => {
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+              ) : activeTab === "agent" && agentAnalysis ? (
+                <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-navy-800/50 p-6 rounded-2xl border border-white/5">
+                      <div className="text-xs text-gray-500 uppercase font-bold mb-2">
+                        Inferred Vibe
+                      </div>
+                      <div className="text-xl text-gold font-serif">
+                        {agentAnalysis.lifestyleVibe || "N/A"}
+                      </div>
+                    </div>
+                    <div className="bg-navy-800/50 p-6 rounded-2xl border border-white/5">
+                      <div className="text-xs text-gray-500 uppercase font-bold mb-2">
+                        Confidence
+                      </div>
+                      <div className="text-xl text-cyan-400 font-bold">
+                        {(agentAnalysis.confidence * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-navy-800/30 border border-white/5 rounded-2xl p-6">
+                    <div className="text-xs text-gray-500 uppercase font-bold mb-3">
+                      Reasoning Logic
+                    </div>
+                    <p className="text-gray-200 italic">
+                      "{agentAnalysis.reasoning}"
+                    </p>
+                  </div>
+
+                  <div className="bg-navy-800/30 border border-white/5 rounded-2xl p-6">
+                    <div className="text-xs text-gray-500 uppercase font-bold mb-3">
+                      Cross-Domain Mapping (Keywords)
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {agentAnalysis.keywords.map((k: string) => (
+                        <span
+                          key={k}
+                          className="px-3 py-1 bg-cyan-900/30 text-cyan-400 border border-cyan-500/30 rounded-lg text-sm"
+                        >
+                          {k}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-black/20 rounded-xl font-mono text-xs text-gray-400 break-all">
+                    <span className="text-gray-600 block mb-1">
+                      Generated Vector (First 10 Dims):
+                    </span>
+                    {JSON.stringify(agentAnalysis.searchVector?.slice(0, 10))}
+                    ...
                   </div>
                 </div>
               ) : activeTab === "history" ? (
