@@ -6,6 +6,11 @@ export interface TripzyConfig {
   apiKey: string; // For Gemini/AI
   memoryAdapter: IMemoryAdapter; // The Plug-and-Play Database Adapter
   debug?: boolean;
+  reasoningConfig?: {
+    domain: string;
+    constraintsLabel: string;
+    customInstructions?: string;
+  };
 }
 
 export class TripzyClient {
@@ -21,7 +26,7 @@ export class TripzyClient {
 
     // Initialize Layers with Dependency Injection
     this.memory = config.memoryAdapter;
-    this.brain = new ReasoningLayer(config.apiKey);
+    this.brain = new ReasoningLayer(config.apiKey, config.reasoningConfig);
     this.signals = new SignalLayer(this.memory);
 
     if (config.debug) {

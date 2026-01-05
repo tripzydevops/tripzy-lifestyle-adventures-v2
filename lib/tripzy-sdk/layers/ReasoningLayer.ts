@@ -5,12 +5,31 @@ export class ReasoningLayer {
   private model: any;
   private embeddingModel: any;
 
-  constructor(apiKey: string) {
+  private domain: string;
+  private constraintsLabel: string;
+  private customInstructions: string;
+
+  constructor(
+    apiKey: string,
+    config: {
+      domain: string;
+      constraintsLabel: string;
+      customInstructions?: string;
+    } = {
+      domain: "Travel & Lifestyle",
+      constraintsLabel:
+        "Infer constraints: Budget (Cheap/Luxury), Travelers (Family/Solo), Pace (Fast/Slow).",
+    }
+  ) {
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     this.embeddingModel = this.genAI.getGenerativeModel({
       model: "text-embedding-004",
     });
+
+    this.domain = config.domain;
+    this.constraintsLabel = config.constraintsLabel;
+    this.customInstructions = config.customInstructions || "";
   }
 
   public async analyze(query: string = "", userSignals: any[]) {
@@ -38,6 +57,7 @@ export class ReasoningLayer {
 
     return `
       ACT AS: Tripzy Autonomous Agent (Layer 2)
+      DOMAIN: ${this.domain}
       MODE: ${mode}
       
       CONTEXT:
@@ -45,23 +65,21 @@ export class ReasoningLayer {
       ${context}
       
       TASKS:
-      1. ANALYZE INTENT: What is the user looking for?
+      1. ANALYZE INTENT: What is the user looking for in the context of ${this.domain}?
       2. COLD START INFERENCE:
          - If MODE is COLD_START, infer "Lifestyle Vibe" from the query keywords alone.
-         - E.g., "cheap food" -> Vibe: Budget, Authentic, Street Food.
-         - E.g., "fast wifi" -> Vibe: Digital Nomad, Remote Work.
       3. CROSS-DOMAIN MAPPING:
-         - Map abstract concepts to concrete travel attributes.
-         - "Cyberpunk" -> Neon lights, Tokyo, Nightlife, Tech.
+         - Map abstract concepts to concrete attributes in ${this.domain}.
+         ${this.customInstructions}
       4. CONSTRAINT DETECTION:
-         - Infer constraints: Budget (Cheap/Luxury), Travelers (Family/Solo), Pace (Fast/Slow).
+         - ${this.constraintsLabel}
       
       OUTPUT (JSON ONLY):
       {
         "intent": "Short summary",
         "keywords": ["tag1", "tag2", "tag3"],
         "lifestyleVibe": "Inferred vibe (e.g. Luxury, Adventure)",
-        "constraints": ["Family Friendly", "Budget", "etc..."],
+        "constraints": ["Constraint 1", "Constraint 2"],
         "reasoning": "Why you chose this",
         "searchQuery": "Optimized semantic search string",
         "confidence": 0.0-1.0
