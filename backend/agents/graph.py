@@ -25,7 +25,8 @@ model = genai.GenerativeModel('gemini-2.0-flash')
 async def supabase_fetch_signals(session_id: str):
     headers = {
         "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}"
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Accept-Profile": "blog"
     }
     url = f"{SUPABASE_URL}/rest/v1/user_signals"
     params = {
@@ -40,7 +41,7 @@ async def supabase_fetch_signals(session_id: str):
                 r.raise_for_status()
                 return await r.json()
         except Exception as e:
-            print(f"Supabase Settings Fetch Error: {e}")
+            print(f"Supabase Signals Fetch Error: {e}")
             return []
 
 async def supabase_retrieve_context(query_text: str, vibe_filter: str):

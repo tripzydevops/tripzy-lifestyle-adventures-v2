@@ -11,6 +11,8 @@ import { SupabaseMemoryAdapter } from "../lib/tripzy-sdk/adapters/SupabaseAdapte
 interface TripzyContextType {
   client: TripzyClient | null;
   isReady: boolean;
+  track: (eventType: string, metadata?: any) => void;
+  getRecommendations: (query?: string) => Promise<any>;
 }
 
 const TripzyContext = createContext<TripzyContextType | undefined>(undefined);
@@ -50,8 +52,30 @@ export const TripzyProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
+  const track = (eventType: string, metadata: any = {}) => {
+    if (client) {
+      client.track(eventType, metadata);
+    } else {
+      console.warn("Tripzy SDK: Client not initialized yet.");
+    }
+  };
+
+  const getRecommendations = async (query?: string) => {
+    if (client) {
+      return await client.getRecommendations(query);
+    }
+    return { content: [], reasoning: "Client not ready" };
+  };
+
   return (
-    <TripzyContext.Provider value={{ client, isReady: !!client }}>
+    <TripzyContext.Provider
+      value={{
+        client,
+        isReady: !!client,
+        track,
+        getRecommendations,
+      }}
+    >
       {children}
     </TripzyContext.Provider>
   );

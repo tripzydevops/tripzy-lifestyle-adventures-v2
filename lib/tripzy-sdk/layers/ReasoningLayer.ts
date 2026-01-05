@@ -68,7 +68,7 @@ export class ReasoningLayer {
     try {
       // Use local backend or env var
       const API_URL =
-        import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
+        import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
       const response = await fetch(`${API_URL}/recommend`, {
         method: "POST",
