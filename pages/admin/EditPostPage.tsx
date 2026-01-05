@@ -52,10 +52,13 @@ const EditPostPage = () => {
     featuredMediaUrl: "",
     featuredMediaType: "image",
     featuredMediaAlt: "",
-    metaTitle: "",
-    metaDescription: "",
     metaKeywords: "",
     publishedAt: null,
+    intelligenceMetadata: {
+      vibe_persona: "",
+      primary_constraint: "",
+      ui_directive: "utility",
+    },
   });
 
   const [loading, setLoading] = useState(false);
@@ -142,9 +145,12 @@ const EditPostPage = () => {
       excerpt: generatedPost.excerpt,
       category: generatedPost.suggestedCategory || prev.category,
       tags: generatedPost.suggestedTags || prev.tags,
-      metaTitle: generatedPost.metaTitle,
-      metaDescription: generatedPost.metaDescription,
       metaKeywords: generatedPost.metaKeywords,
+      intelligenceMetadata: generatedPost.intelligenceMetadata || {
+        vibe_persona: "",
+        primary_constraint: "",
+        ui_directive: "utility",
+      },
     }));
     setIsDirty(true);
     setIsAiModalOpen(false);
@@ -613,6 +619,100 @@ const EditPostPage = () => {
                       placeholder={t("admin.placeholder.metaKeywords")}
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Intelligence Intelligence Section (Layer 2) */}
+            <div className="bg-navy-900/50 backdrop-blur-xl p-8 rounded-3xl border border-white/5">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div>
+                  <h3 className="text-xl font-serif font-bold text-white flex items-center gap-2">
+                    <Bot size={20} className="text-gold" />
+                    {t("admin.form.intelligenceMetadata") ||
+                      "Intelligence Intelligence"}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold">
+                    {t("admin.ai.reasoningSignals") ||
+                      "Autonomous Reasoning Signals"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="vibe"
+                    className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
+                  >
+                    {t("admin.form.vibePersona") || "Inferred Vibe"}
+                  </label>
+                  <input
+                    type="text"
+                    id="vibe"
+                    value={post.intelligenceMetadata?.vibe_persona || ""}
+                    onChange={(e) =>
+                      setPost((prev) => ({
+                        ...prev,
+                        intelligenceMetadata: {
+                          ...prev.intelligenceMetadata,
+                          vibe_persona: e.target.value,
+                        },
+                      }))
+                    }
+                    className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
+                    placeholder="e.g., Urban Rebel"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="constraint"
+                    className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
+                  >
+                    {t("admin.form.primaryConstraint") || "Primary Constraint"}
+                  </label>
+                  <input
+                    type="text"
+                    id="constraint"
+                    value={post.intelligenceMetadata?.primary_constraint || ""}
+                    onChange={(e) =>
+                      setPost((prev) => ({
+                        ...prev,
+                        intelligenceMetadata: {
+                          ...prev.intelligenceMetadata,
+                          primary_constraint: e.target.value,
+                        },
+                      }))
+                    }
+                    className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
+                    placeholder="e.g., Crowd Density"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="directive"
+                    className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
+                  >
+                    {t("admin.form.uiDirective") || "UI Directive"}
+                  </label>
+                  <select
+                    id="directive"
+                    value={post.intelligenceMetadata?.ui_directive || "utility"}
+                    onChange={(e) =>
+                      setPost((prev) => ({
+                        ...prev,
+                        intelligenceMetadata: {
+                          ...prev.intelligenceMetadata,
+                          ui_directive: e.target.value as any,
+                        },
+                      }))
+                    }
+                    className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30 appearance-none cursor-pointer"
+                  >
+                    <option value="utility">Utility (Standard)</option>
+                    <option value="immersion">Immersion (Deep Read)</option>
+                    <option value="high_energy">High Energy (Active)</option>
+                  </select>
                 </div>
               </div>
             </div>

@@ -23,6 +23,12 @@ export enum PostStatus {
   Scheduled = "Scheduled",
 }
 
+export interface IntelligenceMetadata {
+  vibe_persona?: string;
+  primary_constraint?: string;
+  ui_directive?: "immersion" | "high_energy" | "utility";
+}
+
 export interface Post {
   id: string;
   title: string;
@@ -43,6 +49,7 @@ export interface Post {
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
+  intelligenceMetadata?: IntelligenceMetadata;
 }
 
 export interface SiteSettings {
@@ -102,6 +109,7 @@ export interface GeneratedPost {
   metaKeywords?: string;
   suggestedCategory?: string;
   suggestedTags?: string[];
+  intelligenceMetadata?: IntelligenceMetadata;
 }
 
 export interface SEOResult {

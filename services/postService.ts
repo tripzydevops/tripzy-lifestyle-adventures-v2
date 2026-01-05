@@ -68,6 +68,7 @@ const mapPostFromSupabase = (data: any): Post => ({
   metaTitle: data.meta_title,
   metaDescription: data.meta_description,
   metaKeywords: data.meta_keywords,
+  intelligenceMetadata: data.metadata || {},
 });
 
 export interface PostStats {
@@ -548,6 +549,7 @@ export const postService = {
           ? new Date().toISOString()
           : null),
       embedding: embedding,
+      metadata: postData.intelligenceMetadata || {},
     };
 
     const { data, error } = await supabase
@@ -591,6 +593,8 @@ export const postService = {
       supabaseUpdates.meta_description = updates.metaDescription;
     if (updates.metaKeywords !== undefined)
       supabaseUpdates.meta_keywords = updates.metaKeywords;
+    if (updates.intelligenceMetadata !== undefined)
+      supabaseUpdates.metadata = updates.intelligenceMetadata;
 
     // Update embedding if title or content changed
     if (updates.title || updates.content || updates.excerpt) {
