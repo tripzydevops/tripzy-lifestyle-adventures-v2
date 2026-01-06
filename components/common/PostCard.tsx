@@ -22,7 +22,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       ) {
         try {
           const { results } = await unsplashService.searchPhotos(
-            post.title,
+            post.title + " travel aesthetic",
             1,
             1
           );

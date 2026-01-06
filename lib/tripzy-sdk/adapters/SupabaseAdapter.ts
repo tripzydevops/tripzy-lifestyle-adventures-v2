@@ -15,7 +15,7 @@ export class SupabaseMemoryAdapter implements IMemoryAdapter {
     config = {
       signalsTable: "blog.user_signals",
       contentTable: "blog.posts",
-      vectorFunction: "blog.match_posts",
+      vectorFunction: "match_posts",
     }
   ) {
     this.supabase = createClient(url, key);
