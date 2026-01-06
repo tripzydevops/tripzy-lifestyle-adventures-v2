@@ -51,14 +51,26 @@ const DynamicUnsplashImage: React.FC<DynamicUnsplashImageProps> = ({
           : "";
 
         // Search: [Translated Term] + [Location] + "travel"
+        // Search: [Translated Term] + [Location] + "travel"
         const searchQuery =
           `${translatedTerm} ${locationContext} travel`.trim();
 
-        const { results } = await unsplashService.searchPhotos(
-          searchQuery,
-          1,
-          1
-        );
+        let { results } = await unsplashService.searchPhotos(searchQuery, 1, 1);
+
+        // FALLBACK: If specific query returns no results, try just the location context
+        if (results.length === 0 && locationContext) {
+          console.log(
+            "Specific image search failed, trying fallback:",
+            locationContext
+          );
+          const fallbackQuery = `${locationContext} travel aesthetic`;
+          const fallbackRes = await unsplashService.searchPhotos(
+            fallbackQuery,
+            1,
+            1
+          );
+          results = fallbackRes.results;
+        }
 
         if (isMounted && results.length > 0) {
           setImgUrl(results[0].url);
