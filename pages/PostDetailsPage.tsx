@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { Post } from "../types";
 import { postService } from "../services/postService";
 import { aiService } from "../services/aiService";
+import { unsplashService } from "../services/unsplashService";
 import { useTripzy } from "../hooks/useTripzy";
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
@@ -138,12 +139,42 @@ const PostDetailsPage = () => {
       return;
     }
 
+    // Dynamic Image Fallback
+    if (post && !post.featuredMediaUrl) {
+      const fetchFallbackImage = async () => {
+        try {
+          // Use title for search, fallback to category
+          const query = post.title.split(":")[0] || post.category || "travel";
+          const { results } = await unsplashService.searchPhotos(query, 1, 1);
+          if (results.length > 0) {
+            setPost((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    featuredMediaUrl: results[0].url,
+                    featuredMediaAlt: results[0].description,
+                  }
+                : null
+            );
+          }
+        } catch (e) {
+          console.warn("Failed to fetch fallback image", e);
+        }
+      };
+      fetchFallbackImage();
+    }
+
     // Detect if content is Markdown or HTML (Matching logic in PostContentRenderer)
-    const hasHtmlTags = /<p>|<div|<article|<span|<br/i.test(post.content);
+    const markdownHeaderCheck = /^#+\s/m.test(post.content);
+    const htmlTagCount = (post.content.match(/<[^>]+>/g) || []).length;
+
     const isLegacyHtml =
-      hasHtmlTags &&
+      !markdownHeaderCheck &&
+      htmlTagCount > 5 &&
       (post.content.includes("<article") ||
+        post.content.includes("<div") ||
         (post.content.match(/<p>/g) || []).length > 2);
+
     const isMarkdown = !isLegacyHtml;
 
     const newHeadings: Heading[] = [];

@@ -11,6 +11,7 @@ import { Play, ArrowRight, Sparkles, MapPin, ExternalLink } from "lucide-react";
 import { useLanguage } from "../localization/LanguageContext";
 
 import { useTripzy } from "../hooks/useTripzy";
+import DiscoveryHero from "../components/home/DiscoveryHero";
 
 const TRIPZY_APP_URL =
   import.meta.env.VITE_TRIPZY_APP_URL || "https://tripzy.travel";
@@ -26,6 +27,51 @@ const HomePage = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [aiIntent, setAiIntent] = useState<string | null>(null);
   const [videos, setVideos] = useState<YoutubeVideo[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Hybrid Search Logic
+  const handleSearch = async (term: string, vibes: string[]) => {
+    setIsSearching(true);
+    setLoading(true);
+    window.scrollTo({ top: 900, behavior: "smooth" }); // Scroll to results
+
+    try {
+      // Level 1: Pure Vibe Filter (Fastest)
+      if (!term && vibes.length > 0) {
+        // TODO: Filter locally or via simple SQL query
+        // For now, let's just use the tripzy hook if available, or simulate filtering
+        console.log("Searching by vibes:", vibes);
+      }
+
+      // Level 2 & 3: AI Search
+      if (tripzy && (term || vibes.length > 0)) {
+        // Construct natural query from vibes
+        const vibeQuery =
+          vibes.length > 0
+            ? `I'm looking for a ${vibes.join(" and ")} experience.`
+            : "";
+        const fullQuery = `${vibeQuery} ${term}`.trim();
+
+        const result = await tripzy.getRecommendations(fullQuery);
+
+        if (result.content) {
+          setPosts(result.content);
+          setAiIntent(result.intent);
+          setTotalPages(1);
+        }
+      } else {
+        // Fallback if no SDK or no query
+        const { posts: fetchedPosts, totalPages: fetchedTotalPages } =
+          await postService.getPublishedPosts(1); // Reset to page 1
+        setPosts(fetchedPosts);
+      }
+    } catch (e) {
+      console.error("Search failed:", e);
+    } finally {
+      setIsSearching(false);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const loadVideos = async () => {
@@ -82,74 +128,7 @@ const HomePage = () => {
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center overflow-hidden">
-          {/* Background Image */}
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: `url('https://picsum.photos/seed/tripzy-hero/1920/1080')`,
-            }}
-          />
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-navy-950/30 via-navy-950/60 to-navy-900" />
-
-          {/* Content */}
-          <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-gold/10 border border-gold/30 rounded-full px-4 py-2 mb-6 animate-fade-in">
-              <Sparkles className="w-4 h-4 text-gold" />
-              <span className="text-gold text-sm font-medium">
-                {t("homepage.heroBadge")}
-              </span>
-            </div>
-
-            <h1 className="text-5xl md:text-7xl font-bold font-serif mb-6 animate-slide-up">
-              <span className="text-white">
-                {aiIntent ? "Selected Just For You:" : t("homepage.heroTitle1")}
-              </span>
-              <span className="block mt-2 bg-gradient-to-r from-gold via-gold-light to-primary-light bg-clip-text text-transparent">
-                {aiIntent ? aiIntent : t("homepage.heroTitle2")}
-              </span>
-            </h1>
-
-            <p
-              className="text-xl md:text-2xl text-slate-300 font-light mb-8 max-w-2xl mx-auto animate-fade-in"
-              style={{ animationDelay: "0.2s" }}
-            >
-              {aiIntent
-                ? "Based on your recent interests, we've curated these adventures."
-                : t("homepage.heroSubtitle")}
-            </p>
-
-            <div
-              className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in"
-              style={{ animationDelay: "0.4s" }}
-            >
-              <a
-                href="#latest-stories"
-                className="btn bg-gradient-to-r from-primary to-primary-dark text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all hover:-translate-y-1"
-              >
-                {t("homepage.exploreStories")}
-              </a>
-              <a
-                href={TRIPZY_APP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn bg-gradient-to-r from-gold to-gold-dark text-navy-950 px-8 py-4 rounded-xl font-semibold hover:shadow-lg hover:shadow-gold/30 transition-all hover:-translate-y-1 flex items-center gap-2"
-              >
-                <MapPin className="w-5 h-5" />
-                {t("homepage.findDeals")}
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
-
-          {/* Scroll Indicator */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-            <div className="w-6 h-10 rounded-full border-2 border-white/30 flex items-start justify-center p-2">
-              <div className="w-1 h-2 bg-gold rounded-full" />
-            </div>
-          </div>
-        </section>
+        <DiscoveryHero onSearch={handleSearch} isSearching={isSearching} />
 
         {/* YouTube Videos Section */}
         <section className="py-20 bg-navy-950/50">

@@ -338,6 +338,75 @@ textarea::placeholder {
   }
 }
 
+/* =========================================
+   LEGACY CONTENT FIXES
+   Make old HTML posts look like premium Markdown
+   ========================================= */
+
+.legacy-html-content img {
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  margin-top: 2.5rem;
+  margin-bottom: 2.5rem;
+  width: 100%;
+  max-height: 600px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.legacy-html-content img:hover {
+  transform: scale(1.02);
+}
+
+.legacy-html-content h2 {
+  font-family: var(--font-serif);
+  color: var(--color-gold) !important;
+  font-size: 2rem;
+  margin-top: 3rem;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+}
+
+.legacy-html-content h3 {
+  font-family: var(--font-serif);
+  color: var(--color-text-primary) !important;
+  font-size: 1.5rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+}
+
+.legacy-html-content p {
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+  font-size: 1.125rem;
+  margin-bottom: 1.5rem;
+}
+
+.legacy-html-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--color-text-secondary);
+}
+
+.legacy-html-content li::marker {
+  color: var(--color-gold);
+}
+
+.legacy-html-content a {
+  color: var(--color-primary-light);
+  text-decoration: underline;
+  text-decoration-color: rgba(96, 165, 250, 0.3);
+  text-underline-offset: 4px;
+}
+
+.legacy-html-content a:hover {
+  color: var(--color-gold);
+  text-decoration-color: var(--color-gold);
+}
+
 @keyframes pulse-glow {
 
   0%,

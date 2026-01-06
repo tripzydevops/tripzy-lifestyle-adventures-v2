@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import ImageGallery from "./ImageGallery";
+import DynamicUnsplashImage from "./DynamicUnsplashImage";
 
 const slugify = (text: string) => {
   const turkishMap: { [key: string]: string } = {
@@ -54,7 +55,9 @@ const PostContentRenderer: React.FC<PostContentRendererProps> = ({
       .replace(/## 🛠 TRIPZY INTELLIGENCE DATA[\s\S]*?(?=##|$)/gi, "")
       .replace(/## (The )?Multi-Agent Perspective[\s\S]*?(?=##|$)/gi, "")
       .replace(/## (The )?Agent Approach[\s\S]*?(?=##|$)/gi, "")
-      .replace(/\[IMAGE:\s*[^\]]*\]/g, "")
+      // Turn [IMAGE: description] into ![description](unsplash:description) for dynamic processing
+      .replace(/\[IMAGE:\s*([^\]]+)\]/g, "![ $1 ](unsplash:$1)")
+      // .replace(/\[IMAGE:\s*[^\]]*\]/g, "") // OLD STRIPPING LOGIC
       .replace(
         /<div class="magazine-image-placeholder"[^>]*>[\s\S]*?<\/div>/g,
         ""
@@ -72,10 +75,15 @@ const PostContentRenderer: React.FC<PostContentRendererProps> = ({
     );
 
     // 2. ROBUST FORMAT DETECTION
-    const hasHtmlTags = /<p>|<div|<article|<span|<br/i.test(processedContent);
+    const htmlTagCount = (processedContent.match(/<[^>]+>/g) || []).length;
+    const markdownHeaderCheck = /^#+\s/m.test(processedContent); // Checks for # Heading at start of lines
+
+    // Only treat as HTML if it has SIGNIFICANT HTML tags AND NO Markdown headers
     const isLegacyHtml =
-      hasHtmlTags &&
+      !markdownHeaderCheck &&
+      htmlTagCount > 5 &&
       (processedContent.includes("<article") ||
+        processedContent.includes("<div") ||
         (processedContent.match(/<p>/g) || []).length > 2);
 
     if (isLegacyHtml) {
@@ -144,6 +152,15 @@ const PostContentRenderer: React.FC<PostContentRendererProps> = ({
               />
             ),
             img: ({ node, src, alt, ...props }) => {
+              if (src && src.startsWith("unsplash:")) {
+                return (
+                  <DynamicUnsplashImage
+                    query={src}
+                    alt={alt || "Tripzy AI Image"}
+                    {...props}
+                  />
+                );
+              }
               return (
                 <div className="my-10 relative group">
                   <img
