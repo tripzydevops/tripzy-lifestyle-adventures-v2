@@ -66,7 +66,12 @@ const DiscoveryHero: React.FC<DiscoveryProps> = ({ onSearch, isSearching }) => {
   return (
     <div className="relative w-full h-[500px] flex items-center justify-center overflow-hidden">
       {/* Background with Overlay */}
-      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469474932222-de90811e9240?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1469474932222-de90811e9240?q=80&w=2070&auto=format&fit=crop')`,
+        }}
+      >
         <div className="absolute inset-0 bg-gradient-to-b from-navy-950/70 via-navy-900/60 to-navy-950/90" />
       </div>
 
