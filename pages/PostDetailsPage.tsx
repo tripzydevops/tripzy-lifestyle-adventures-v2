@@ -143,8 +143,10 @@ const PostDetailsPage = () => {
     if (post && !post.featuredMediaUrl) {
       const fetchFallbackImage = async () => {
         try {
-          // Use title for search, fallback to category
-          const query = post.title.split(":")[0] || post.category || "travel";
+          // Use title + aesthetic for better Unsplash match
+          const query =
+            (post.title.split(":")[0] || post.category || "travel") +
+            " travel aesthetic";
           const { results } = await unsplashService.searchPhotos(query, 1, 1);
           if (results.length > 0) {
             setPost((prev) =>

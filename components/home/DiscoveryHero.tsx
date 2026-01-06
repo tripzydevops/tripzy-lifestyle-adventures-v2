@@ -72,7 +72,7 @@ const DiscoveryHero: React.FC<DiscoveryProps> = ({ onSearch, isSearching }) => {
           alt="Travel Background"
           className="w-full h-full object-cover opacity-60"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-navy-950/60 via-navy-900/20 to-navy-950/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-navy-950/20 via-navy-900/10 to-navy-950/90" />
       </div>
 
       <div className="relative z-10 container mx-auto px-4 text-center max-w-4xl">
