@@ -4,16 +4,34 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import ImageGallery from "./ImageGallery";
 
-const slugify = (text: string) =>
-  text
+const slugify = (text: string) => {
+  const turkishMap: { [key: string]: string } = {
+    ı: "i",
+    ğ: "g",
+    ü: "u",
+    ş: "s",
+    ö: "o",
+    ç: "c",
+    I: "i",
+    Ğ: "g",
+    Ü: "u",
+    Ş: "s",
+    Ö: "o",
+    Ç: "c",
+  };
+  return text
     .toString()
     .toLowerCase()
     .trim()
+    .split("")
+    .map((char) => turkishMap[char] || char)
+    .join("")
     .replace(/\s+/g, "-")
     .replace(/[^\w-]+/g, "")
     .replace(/--+/g, "-")
     .replace(/^-+/, "")
     .replace(/-+$/, "");
+};
 
 interface PostContentRendererProps {
   content: string;
@@ -45,6 +63,13 @@ const PostContentRenderer: React.FC<PostContentRendererProps> = ({
       .replace(/(<br\s*\/?>\s*){3,}/gi, "<br><br>")
       .replace(/<p>\s*<\/p>/g, "")
       .replace(/<p>\s*<br\s*\/?>\s*<\/p>/g, "");
+
+    // 1.5. FIX HTML-WRAPPED MARKDOWN HEADERS (Common when pasting)
+    // If a paragraph starts with markdown header characters, unwrap it
+    processedContent = processedContent.replace(
+      /<p>\s*(#{1,6}\s+[^<]+)\s*<\/p>/g,
+      "$1\n"
+    );
 
     // 2. ROBUST FORMAT DETECTION
     const hasHtmlTags = /<p>|<div|<article|<span|<br/i.test(processedContent);

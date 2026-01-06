@@ -21,16 +21,34 @@ import RelatedPosts from "../components/common/RelatedPosts";
 import CommentsSection from "../components/common/CommentsSection";
 import PostContentRenderer from "../components/common/PostContentRenderer";
 
-const slugify = (text: string) =>
-  text
+const slugify = (text: string) => {
+  const turkishMap: { [key: string]: string } = {
+    ı: "i",
+    ğ: "g",
+    ü: "u",
+    ş: "s",
+    ö: "o",
+    ç: "c",
+    I: "i",
+    Ğ: "g",
+    Ü: "u",
+    Ş: "s",
+    Ö: "o",
+    Ç: "c",
+  };
+  return text
     .toString()
     .toLowerCase()
     .trim()
+    .split("")
+    .map((char) => turkishMap[char] || char)
+    .join("")
     .replace(/\s+/g, "-")
     .replace(/[^\w-]+/g, "")
     .replace(/--+/g, "-")
     .replace(/^-+/, "")
     .replace(/-+$/, "");
+};
 
 interface Heading {
   id: string;
@@ -231,7 +249,7 @@ const PostDetailsPage = () => {
       <Header />
       <main className="flex-grow">
         <div className="relative h-96 md:h-[500px] bg-black">
-          {post.featuredMediaType === "video" ? (
+          {post.featuredMediaType === "video" && post.featuredMediaUrl ? (
             <video
               src={post.featuredMediaUrl}
               className="absolute inset-0 w-full h-full object-cover"
@@ -243,7 +261,10 @@ const PostDetailsPage = () => {
             />
           ) : (
             <img
-              src={post.featuredMediaUrl}
+              src={
+                post.featuredMediaUrl ||
+                "https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2000"
+              }
               alt={post.featuredMediaAlt || post.title}
               className="absolute inset-0 w-full h-full object-cover"
             />

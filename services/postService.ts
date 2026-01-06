@@ -9,15 +9,34 @@ export interface PaginatedPostsResponse {
   totalCount: number;
 }
 
-const slugify = (text: string) =>
-  text
+const slugify = (text: string) => {
+  const turkishMap: { [key: string]: string } = {
+    ı: "i",
+    ğ: "g",
+    ü: "u",
+    ş: "s",
+    ö: "o",
+    ç: "c",
+    I: "i",
+    Ğ: "g",
+    Ü: "u",
+    Ş: "s",
+    Ö: "o",
+    Ç: "c",
+  };
+  return text
     .toString()
     .toLowerCase()
+    .trim()
+    .split("")
+    .map((char) => turkishMap[char] || char)
+    .join("")
     .replace(/\s+/g, "-")
-    .replace(/[^\w\-]+/g, "")
-    .replace(/\-\-+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-")
     .replace(/^-+/, "")
     .replace(/-+$/, "");
+};
 
 const mapStatusToSupabase = (status: PostStatus): string => {
   switch (status) {
