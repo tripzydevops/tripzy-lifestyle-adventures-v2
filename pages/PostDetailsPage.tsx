@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Post, User as UserType } from "../types";
+import { Post } from "../types";
 import { postService } from "../services/postService";
-import { userService } from "../services/userService";
-import { aiService, decodeBase64 } from "../services/aiService";
+import { aiService } from "../services/aiService";
 import { useTripzy } from "../hooks/useTripzy";
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
@@ -11,13 +10,8 @@ import Spinner from "../components/common/Spinner";
 import SEO from "../components/common/SEO";
 import {
   Calendar,
-  User,
   Tag,
   Folder,
-  Volume2,
-  LoaderCircle,
-  Pause,
-  Play,
   MapPin,
   ExternalLink,
   Sparkles,
@@ -47,7 +41,6 @@ interface Heading {
 const PostDetailsPage = () => {
   const { postId: postSlug } = useParams<{ postId: string }>();
   const [post, setPost] = useState<Post | null>(null);
-  const [author, setAuthor] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Initialize Tripzy SDK (Essentials Layer)
@@ -56,12 +49,6 @@ const PostDetailsPage = () => {
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [contentWithIds, setContentWithIds] = useState("");
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
-
-  // Audio State
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   // Local Discoveries State
   const [attractions, setAttractions] = useState<{
@@ -78,10 +65,6 @@ const PostDetailsPage = () => {
         const fetchedPost = await postService.getPostBySlug(postSlug);
         if (fetchedPost) {
           setPost(fetchedPost);
-          const fetchedAuthor = await userService.getUserById(
-            fetchedPost.authorId
-          );
-          setAuthor(fetchedAuthor || null);
 
           // Track View using Tripzy SDK
           if (tripzy && fetchedPost) {
@@ -105,18 +88,7 @@ const PostDetailsPage = () => {
       }
     };
     fetchPostData();
-
-    return () => {
-      stopAudio();
-    };
-  }, [postSlug]);
-
-  const stopAudio = () => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-    setIsPlaying(false);
-  };
+  }, [postSlug, tripzy]);
 
   const fetchAttractions = async (query: string) => {
     setLoadingAttractions(true);
@@ -209,64 +181,6 @@ const PostDetailsPage = () => {
     }
   }, [post]);
 
-  /**
-   * Correct Raw PCM Decoding for Gemini TTS
-   */
-  async function decodeAudioData(
-    data: Uint8Array,
-    ctx: AudioContext,
-    sampleRate: number,
-    numChannels: number
-  ): Promise<AudioBuffer> {
-    const dataInt16 = new Int16Array(data.buffer);
-    const frameCount = dataInt16.length / numChannels;
-    const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
-
-    for (let channel = 0; channel < numChannels; channel++) {
-      const channelData = buffer.getChannelData(channel);
-      for (let i = 0; i < frameCount; i++) {
-        channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-      }
-    }
-    return buffer;
-  }
-
-  const handleToggleAudio = async () => {
-    if (isPlaying) {
-      stopAudio();
-      return;
-    }
-
-    if (!post) return;
-    setIsGeneratingAudio(true);
-    try {
-      // Clean text for better speech
-      const rawText = post.content
-        .replace(/<[^>]*>?/gm, "")
-        .replace(/&nbsp;/g, " ")
-        .replace(/&amp;/g, "and");
-
-      // The service now handles the actual speaking via Web Speech API
-      const result = await aiService.generateAudio(rawText);
-
-      if (result === "WEB_SPEECH_API_ACTIVE") {
-        setIsPlaying(true);
-
-        // Poll for end of speech since we can't easily pass the 'onend' callback through the Promise
-        const checkInterval = setInterval(() => {
-          if (!window.speechSynthesis.speaking) {
-            setIsPlaying(false);
-            clearInterval(checkInterval);
-          }
-        }, 1000);
-      }
-    } catch (e) {
-      console.error("Audio generation failed:", e);
-    } finally {
-      setIsGeneratingAudio(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen bg-navy-950">
@@ -357,38 +271,6 @@ const PostDetailsPage = () => {
                   {post.category}
                 </Link>
               </div>
-              {author && (
-                <div className="flex items-center">
-                  <User size={16} className="mr-2" />
-                  <Link
-                    to={`/author/${author.slug}`}
-                    className="hover:underline"
-                  >
-                    By {author.name}
-                  </Link>
-                </div>
-              )}
-
-              <button
-                onClick={handleToggleAudio}
-                disabled={isGeneratingAudio}
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full border border-white/20 transition-all group"
-              >
-                {isGeneratingAudio ? (
-                  <LoaderCircle size={16} className="animate-spin" />
-                ) : isPlaying ? (
-                  <Pause size={16} fill="currentColor" />
-                ) : (
-                  <Play size={16} fill="currentColor" />
-                )}
-                <span className="font-semibold">
-                  {isGeneratingAudio
-                    ? "Generating..."
-                    : isPlaying
-                    ? "Stop Reader"
-                    : "Listen to Post"}
-                </span>
-              </button>
             </div>
           </div>
         </div>
