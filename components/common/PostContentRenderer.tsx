@@ -1,4 +1,6 @@
 import React, { useMemo } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import ImageGallery from "./ImageGallery";
 
 interface PostContentRendererProps {
@@ -34,6 +36,22 @@ const PostContentRenderer: React.FC<PostContentRendererProps> = ({
       .replace(/<p>\s*<\/p>/g, "")
       .replace(/<p>\s*<br\s*\/?>\s*<\/p>/g, "");
 
+    // Check if content is primarily Markdown (start with # or contains Markdown features)
+    // AI content is mostly Markdown. Legacy content might be HTML.
+    const isMarkdown =
+      !sanitizedContent.includes("</p>") &&
+      !sanitizedContent.includes("</div>");
+
+    if (isMarkdown) {
+      return (
+        <div className="markdown-content prose prose-invert lg:prose-xl max-w-none text-gray-300">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {sanitizedContent}
+          </ReactMarkdown>
+        </div>
+      );
+    }
+
     const parts = sanitizedContent.split(galleryRegex);
 
     return parts.map((part, index) => {
@@ -52,8 +70,12 @@ const PostContentRenderer: React.FC<PostContentRendererProps> = ({
 
         return <ImageGallery key={index} images={images} />;
       } else {
-        // Even indexes are the regular HTML content
-        return <div key={index} dangerouslySetInnerHTML={{ __html: part }} />;
+        // Even indexes are the regular HTML content OR Markdown
+        return (
+          <div key={index} className="markdown-content">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{part}</ReactMarkdown>
+          </div>
+        );
       }
     });
   }, [content, galleryRegex, imgRegex]);
