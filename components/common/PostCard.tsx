@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Post } from "../../types";
 import { Calendar, Tag, PlayCircle, ArrowRight } from "lucide-react";
 import { useSignalTracker } from "../../hooks/useSignalTracker";
+import { unsplashService } from "../../services/unsplashService";
 
 interface PostCardProps {
   post: Post;
@@ -10,6 +11,31 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { trackClick } = useSignalTracker();
+  const [displayImg, setDisplayImg] = React.useState(post.featuredMediaUrl);
+
+  React.useEffect(() => {
+    // If no image or it's a placeholder, try to find a relevant one
+    const checkImage = async () => {
+      if (
+        !post.featuredMediaUrl ||
+        post.featuredMediaUrl.includes("placeholder")
+      ) {
+        try {
+          const { results } = await unsplashService.searchPhotos(
+            post.title,
+            1,
+            1
+          );
+          if (results.length > 0) {
+            setDisplayImg(results[0].url);
+          }
+        } catch (err) {
+          console.warn("PostCard photo fetch failed", err);
+        }
+      }
+    };
+    checkImage();
+  }, [post.featuredMediaUrl, post.title]);
 
   const handlePostClick = () => {
     trackClick("post", post.slug, {
@@ -43,11 +69,18 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               </div>
             </div>
           ) : (
-            <div className="relative w-full h-56">
+            <div className="relative w-full h-56 bg-navy-800">
               <img
-                src={post.featuredMediaUrl}
+                src={
+                  displayImg ||
+                  "https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=1000&auto=format&fit=crop"
+                }
                 alt={post.featuredMediaAlt || post.title}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=1000&auto=format&fit=crop";
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-navy-950/60 to-transparent" />
             </div>
