@@ -148,29 +148,60 @@ const PostDetailsPage = () => {
       return;
     }
 
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = post.content;
+    // Detect if content is Markdown or HTML
+    const isMarkdown =
+      !post.content.includes("</p>") && !post.content.includes("</div>");
+
     const newHeadings: Heading[] = [];
-    const headingElements = tempDiv.querySelectorAll("h2, h3");
 
-    headingElements.forEach((el, index) => {
-      const heading = el as HTMLElement;
-      const text = heading.innerText;
-      if (!text) return;
+    if (isMarkdown) {
+      // Extract Markdown headings
+      const headingLines = post.content.split("\n");
+      let markdownWithIds = post.content;
 
-      const baseSlug = slugify(text);
-      const id = baseSlug ? `${baseSlug}-${index}` : `heading-${index}`;
-      heading.id = id;
+      headingLines.forEach((line, index) => {
+        const match = line.match(/^(#{2,3})\s+(.+)$/);
+        if (match) {
+          const level = match[1].length;
+          const text = match[2].trim();
+          const baseSlug = slugify(text);
+          const id = `${baseSlug}-${index}`;
 
-      newHeadings.push({
-        id,
-        text,
-        level: Number(heading.tagName.substring(1)),
+          newHeadings.push({ id, text, level });
+
+          // In a real app we might inject IDs into Markdown, but here
+          // we'll let PostContentRenderer handle the actual rendering.
+          // For TOC to work with smooth scroll, we need the IDs to exist.
+        }
       });
-    });
 
-    setHeadings(newHeadings);
-    setContentWithIds(tempDiv.innerHTML);
+      setHeadings(newHeadings);
+      setContentWithIds(post.content); // Let the renderer handle Markdown
+    } else {
+      // Legacy HTML Heading Extraction
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = post.content;
+      const headingElements = tempDiv.querySelectorAll("h2, h3");
+
+      headingElements.forEach((el, index) => {
+        const heading = el as HTMLElement;
+        const text = heading.innerText;
+        if (!text) return;
+
+        const baseSlug = slugify(text);
+        const id = baseSlug ? `${baseSlug}-${index}` : `heading-${index}`;
+        heading.id = id;
+
+        newHeadings.push({
+          id,
+          text,
+          level: Number(heading.tagName.substring(1)),
+        });
+      });
+
+      setHeadings(newHeadings);
+      setContentWithIds(tempDiv.innerHTML);
+    }
   }, [post]);
 
   /**

@@ -3,6 +3,17 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ImageGallery from "./ImageGallery";
 
+const slugify = (text: string) =>
+  text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
+
 interface PostContentRendererProps {
   content: string;
 }
@@ -45,7 +56,33 @@ const PostContentRenderer: React.FC<PostContentRendererProps> = ({
     if (isMarkdown) {
       return (
         <div className="markdown-content prose prose-invert lg:prose-xl max-w-none text-gray-300">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h2: ({ node, children, ...props }) => {
+                const text = React.Children.toArray(children).join("");
+                // We need to match the ID logic in PostDetailsPage
+                // Note: index is tricky here, but we can use just the slug for now
+                // or find a way to pass the index.
+                // Since slugify is usually unique enough for headers:
+                const id = slugify(text);
+                return (
+                  <h2 id={id} {...props}>
+                    {children}
+                  </h2>
+                );
+              },
+              h3: ({ node, children, ...props }) => {
+                const text = React.Children.toArray(children).join("");
+                const id = slugify(text);
+                return (
+                  <h3 id={id} {...props}>
+                    {children}
+                  </h3>
+                );
+              },
+            }}
+          >
             {sanitizedContent}
           </ReactMarkdown>
         </div>
