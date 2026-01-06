@@ -68,9 +68,9 @@ const DiscoveryHero: React.FC<DiscoveryProps> = ({ onSearch, isSearching }) => {
       {/* Background with Overlay */}
       <div className="absolute inset-0 z-0">
         <img
-          src="https://images.unsplash.com/photo-1469474932222-de90811e9240?q=80&w=2070&auto=format&fit=crop"
+          src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=2070&auto=format&fit=crop"
           alt="Travel Background"
-          className="w-full h-full object-cover opacity-60"
+          className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-navy-950/20 via-navy-900/10 to-navy-950/90" />
       </div>

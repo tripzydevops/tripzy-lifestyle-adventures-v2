@@ -23,9 +23,12 @@ const DynamicUnsplashImage: React.FC<DynamicUnsplashImageProps> = ({
     const fetchImage = async () => {
       try {
         const cleanQuery = query.replace("unsplash:", "").trim();
-        // Heuristic: First word of title is usually the location (e.g. "Paris", "Bali")
-        const locationContext = postContext ? postContext.split(" ")[0] : "";
-        const searchQuery = `${cleanQuery} ${locationContext} travel aesthetic`;
+        // Heuristic: First word of title (e.g. "Paris") cleaned of punctuation
+        const locationContext = postContext
+          ? postContext.split(" ")[0].replace(/[^a-zA-Z0-9]/g, "")
+          : "";
+        // Search: Location + Term (e.g. "Paris Eyfel Kulesi") - Removed "travel aesthetic" to avoid generic fallback noise
+        const searchQuery = `${locationContext} ${cleanQuery}`;
         const { results } = await unsplashService.searchPhotos(
           searchQuery,
           1,
