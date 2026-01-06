@@ -66,13 +66,13 @@ const DiscoveryHero: React.FC<DiscoveryProps> = ({ onSearch, isSearching }) => {
   return (
     <div className="relative w-full h-[500px] flex items-center justify-center overflow-hidden bg-navy-950">
       {/* Background with Overlay */}
-      <div className="absolute inset-0 z-0">
-        <img
-          src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=2070&auto=format&fit=crop"
-          alt="Travel Background"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-navy-950/20 via-navy-900/10 to-navy-950/90" />
+      <div
+        className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1469474932222-de90811e9240?q=80&w=2070&auto=format&fit=crop')`,
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-navy-950/70 via-navy-900/40 to-navy-950/90" />
       </div>
 
       <div className="relative z-10 container mx-auto px-4 text-center max-w-4xl">

@@ -23,12 +23,37 @@ const DynamicUnsplashImage: React.FC<DynamicUnsplashImageProps> = ({
     const fetchImage = async () => {
       try {
         const cleanQuery = query.replace("unsplash:", "").trim();
+
+        // Translation Shim: Map Turkish travel terms to English for better Unsplash results
+        const translationMap: { [key: string]: string } = {
+          "eyfel kulesi": "Eiffel Tower",
+          "gece ışıkları": "night lights",
+          merdivenleri: "stairs",
+          "piknik alanı": "picnic area",
+          nehri: "river",
+          sokakları: "streets",
+          kafeleri: "cafes",
+          "gün batımı": "sunset",
+          manzarası: "view",
+          kahvaltı: "breakfast",
+          "akşam yemeği": "dinner",
+        };
+
+        let translatedTerm = cleanQuery;
+        Object.entries(translationMap).forEach(([tr, en]) => {
+          const regex = new RegExp(tr, "gi");
+          translatedTerm = translatedTerm.replace(regex, en);
+        });
+
         // Heuristic: First word of title (e.g. "Paris") cleaned of punctuation
         const locationContext = postContext
           ? postContext.split(" ")[0].replace(/[^a-zA-Z0-9]/g, "")
           : "";
-        // Search: Location + Term (e.g. "Paris Eyfel Kulesi") - Removed "travel aesthetic" to avoid generic fallback noise
-        const searchQuery = `${locationContext} ${cleanQuery}`;
+
+        // Search: [Translated Term] + [Location] + "travel"
+        const searchQuery =
+          `${translatedTerm} ${locationContext} travel`.trim();
+
         const { results } = await unsplashService.searchPhotos(
           searchQuery,
           1,
