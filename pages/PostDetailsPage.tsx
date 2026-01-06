@@ -162,7 +162,8 @@ const PostDetailsPage = () => {
       // Strip internal sections before extracting headings
       const filteredContent = post.content
         .replace(/## 🛠 TRIPZY INTELLIGENCE DATA[\s\S]*?(?=##|$)/gi, "")
-        .replace(/## The Multi-Agent Perspective[\s\S]*?(?=##|$)/gi, "");
+        .replace(/## (The )?Multi-Agent Perspective[\s\S]*?(?=##|$)/gi, "")
+        .replace(/## (The )?Agent Approach[\s\S]*?(?=##|$)/gi, "");
 
       // Extract Markdown headings
       const headingLines = filteredContent.split("\n");

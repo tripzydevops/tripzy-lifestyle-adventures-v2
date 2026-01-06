@@ -34,7 +34,8 @@ const PostContentRenderer: React.FC<PostContentRendererProps> = ({
     // 1. STRIP INTERNAL SECTIONS (Agent Approach, Intelligence Data)
     let processedContent = content
       .replace(/## 🛠 TRIPZY INTELLIGENCE DATA[\s\S]*?(?=##|$)/gi, "")
-      .replace(/## The Multi-Agent Perspective[\s\S]*?(?=##|$)/gi, "")
+      .replace(/## (The )?Multi-Agent Perspective[\s\S]*?(?=##|$)/gi, "")
+      .replace(/## (The )?Agent Approach[\s\S]*?(?=##|$)/gi, "")
       .replace(/\[IMAGE:\s*[^\]]*\]/g, "")
       .replace(
         /<div class="magazine-image-placeholder"[^>]*>[\s\S]*?<\/div>/g,
