@@ -57,8 +57,22 @@ const PostContentRenderer: React.FC<PostContentRendererProps> = ({
       .replace(/## 🛠 TRIPZY INTELLIGENCE DATA[\s\S]*?(?=##|$)/gi, "")
       .replace(/## (The )?Multi-Agent Perspective[\s\S]*?(?=##|$)/gi, "")
       .replace(/## (The )?Agent Approach[\s\S]*?(?=##|$)/gi, "")
+      // STRIP INLINE CITATIONS: [1], [1][2], [web:10], [1, 2]
+      .replace(/\[\d+(,\s*\d+)*\]/g, "")
+      .replace(/\[web:\d+\]/g, "")
+      // STRIP CITATION LISTS AT BOTTOM (e.g. [1](url)...) - Handle trailing spaces
+      .replace(/^\s*\[\d+\]\(http.*?\).*\s*$/gm, "")
+      // STRIP H1 HEADERS (Page already has a title)
+      .replace(/^#\s+.*$/gm, "")
+      // STRIP SEPARATORS (***)
+      .replace(/^\s*\*\*\*\s*$/gm, "")
+      // STRIP COMMON PROMPT META-HEADERS (If user pastes full AI response)
+      .replace(
+        /^(Title|Short Summary \/ Excerpt|Main Content \(HTML or Markdown\))\s*$/gim,
+        ""
+      )
       // Turn [IMAGE: description] into ![description](unsplash:description) for dynamic processing
-      .replace(/\[IMAGE:\s*([^\]]+)\]/g, "![ $1 ](unsplash:$1)")
+      .replace(/\[IMAGE:\s*([^\]]+)\]/gi, "![ $1 ](unsplash:$1)")
       // .replace(/\[IMAGE:\s*[^\]]*\]/g, "") // OLD STRIPPING LOGIC
       .replace(
         /<div class="magazine-image-placeholder"[^>]*>[\s\S]*?<\/div>/g,
