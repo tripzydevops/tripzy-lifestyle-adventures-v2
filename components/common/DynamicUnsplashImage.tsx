@@ -5,12 +5,14 @@ import { Image } from "lucide-react";
 interface DynamicUnsplashImageProps {
   query: string;
   alt: string;
+  postContext?: string; // e.g., "Paris" to make searches more relevant
   className?: string;
 }
 
 const DynamicUnsplashImage: React.FC<DynamicUnsplashImageProps> = ({
   query,
   alt,
+  postContext,
   className,
 }) => {
   const [imgUrl, setImgUrl] = useState<string | null>(null);
@@ -21,8 +23,12 @@ const DynamicUnsplashImage: React.FC<DynamicUnsplashImageProps> = ({
     const fetchImage = async () => {
       try {
         const cleanQuery = query.replace("unsplash:", "").trim();
+        // Add post context to make search more relevant
+        const searchQuery = postContext
+          ? `${postContext} ${cleanQuery}`
+          : cleanQuery;
         const { results } = await unsplashService.searchPhotos(
-          cleanQuery,
+          searchQuery,
           1,
           1
         );

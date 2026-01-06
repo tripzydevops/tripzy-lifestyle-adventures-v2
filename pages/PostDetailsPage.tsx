@@ -428,7 +428,10 @@ const PostDetailsPage = () => {
               }
             >
               <div className="prose prose-invert lg:prose-xl max-w-none text-gray-300">
-                <PostContentRenderer content={contentWithIds || post.content} />
+                <PostContentRenderer
+                  content={contentWithIds || post.content}
+                  postContext={post.title}
+                />
               </div>
 
               {attractions && (

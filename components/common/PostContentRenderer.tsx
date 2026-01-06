@@ -36,10 +36,12 @@ const slugify = (text: string) => {
 
 interface PostContentRendererProps {
   content: string;
+  postContext?: string; // e.g., post title for image search relevance
 }
 
 const PostContentRenderer: React.FC<PostContentRendererProps> = ({
   content,
+  postContext,
 }) => {
   const galleryRegex = useMemo(
     () => /<div data-gallery="true">([\s\S]*?)<\/div>/g,
@@ -157,6 +159,7 @@ const PostContentRenderer: React.FC<PostContentRendererProps> = ({
                   <DynamicUnsplashImage
                     query={src}
                     alt={alt || "Tripzy AI Image"}
+                    postContext={postContext}
                     {...props}
                   />
                 );
