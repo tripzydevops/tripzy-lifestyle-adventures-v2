@@ -165,7 +165,7 @@ const PostDetailsPage = () => {
           const level = match[1].length;
           const text = match[2].trim();
           const baseSlug = slugify(text);
-          const id = `${baseSlug}-${index}`;
+          const id = baseSlug;
 
           newHeadings.push({ id, text, level });
 
