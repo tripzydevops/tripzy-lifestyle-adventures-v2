@@ -148,16 +148,24 @@ const PostDetailsPage = () => {
       return;
     }
 
-    // Detect if content is Markdown or HTML
-    const isMarkdown =
-      !post.content.includes("</p>") && !post.content.includes("</div>");
+    // Detect if content is Markdown or HTML (Matching logic in PostContentRenderer)
+    const hasHtmlTags = /<p>|<div|<article|<span|<br/i.test(post.content);
+    const isLegacyHtml =
+      hasHtmlTags &&
+      (post.content.includes("<article") ||
+        (post.content.match(/<p>/g) || []).length > 2);
+    const isMarkdown = !isLegacyHtml;
 
     const newHeadings: Heading[] = [];
 
     if (isMarkdown) {
+      // Strip internal sections before extracting headings
+      const filteredContent = post.content
+        .replace(/## 🛠 TRIPZY INTELLIGENCE DATA[\s\S]*?(?=##|$)/gi, "")
+        .replace(/## The Multi-Agent Perspective[\s\S]*?(?=##|$)/gi, "");
+
       // Extract Markdown headings
-      const headingLines = post.content.split("\n");
-      let markdownWithIds = post.content;
+      const headingLines = filteredContent.split("\n");
 
       headingLines.forEach((line, index) => {
         const match = line.match(/^(#{2,3})\s+(.+)$/);
@@ -168,15 +176,11 @@ const PostDetailsPage = () => {
           const id = baseSlug;
 
           newHeadings.push({ id, text, level });
-
-          // In a real app we might inject IDs into Markdown, but here
-          // we'll let PostContentRenderer handle the actual rendering.
-          // For TOC to work with smooth scroll, we need the IDs to exist.
         }
       });
 
       setHeadings(newHeadings);
-      setContentWithIds(post.content); // Let the renderer handle Markdown
+      setContentWithIds(post.content); // Let the renderer handle filtering/Markdown
     } else {
       // Legacy HTML Heading Extraction
       const tempDiv = document.createElement("div");

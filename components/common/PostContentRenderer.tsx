@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import ImageGallery from "./ImageGallery";
 
 const slugify = (text: string) =>
@@ -30,92 +31,133 @@ const PostContentRenderer: React.FC<PostContentRendererProps> = ({
   const renderedContent = useMemo(() => {
     if (!content) return null;
 
-    // Sanitize content: Remove [IMAGE: ...] markers and placeholder elements
-    let sanitizedContent = content
-      // Remove [IMAGE: description] markers
+    // 1. STRIP INTERNAL SECTIONS (Agent Approach, Intelligence Data)
+    let processedContent = content
+      .replace(/## 🛠 TRIPZY INTELLIGENCE DATA[\s\S]*?(?=##|$)/gi, "")
+      .replace(/## The Multi-Agent Perspective[\s\S]*?(?=##|$)/gi, "")
       .replace(/\[IMAGE:\s*[^\]]*\]/g, "")
-      // Remove magazine-image-placeholder divs
       .replace(
         /<div class="magazine-image-placeholder"[^>]*>[\s\S]*?<\/div>/g,
         ""
       )
-      // Remove data-placeholder-id divs (editor placeholders)
       .replace(/<div data-placeholder-id="[^"]*"[^>]*>[\s\S]*?<\/div>/g, "")
-      // Clean up multiple consecutive line breaks
       .replace(/(<br\s*\/?>\s*){3,}/gi, "<br><br>")
-      // Clean up empty paragraphs
       .replace(/<p>\s*<\/p>/g, "")
       .replace(/<p>\s*<br\s*\/?>\s*<\/p>/g, "");
 
-    // Check if content is primarily Markdown (start with # or contains Markdown features)
-    // AI content is mostly Markdown. Legacy content might be HTML.
-    const isMarkdown =
-      !sanitizedContent.includes("</p>") &&
-      !sanitizedContent.includes("</div>");
+    // 2. ROBUST FORMAT DETECTION
+    const hasHtmlTags = /<p>|<div|<article|<span|<br/i.test(processedContent);
+    const isLegacyHtml =
+      hasHtmlTags &&
+      (processedContent.includes("<article") ||
+        (processedContent.match(/<p>/g) || []).length > 2);
 
-    if (isMarkdown) {
+    if (isLegacyHtml) {
       return (
-        <div className="markdown-content prose prose-invert lg:prose-xl max-w-none text-gray-300">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              h2: ({ node, children, ...props }) => {
-                const text = React.Children.toArray(children).join("");
-                // We need to match the ID logic in PostDetailsPage
-                // Note: index is tricky here, but we can use just the slug for now
-                // or find a way to pass the index.
-                // Since slugify is usually unique enough for headers:
-                const id = slugify(text);
-                return (
-                  <h2 id={id} {...props}>
-                    {children}
-                  </h2>
-                );
-              },
-              h3: ({ node, children, ...props }) => {
-                const text = React.Children.toArray(children).join("");
-                const id = slugify(text);
-                return (
-                  <h3 id={id} {...props}>
-                    {children}
-                  </h3>
-                );
-              },
-            }}
-          >
-            {sanitizedContent}
-          </ReactMarkdown>
-        </div>
+        <div
+          className="legacy-html-content prose prose-invert lg:prose-xl max-w-none text-gray-300"
+          dangerouslySetInnerHTML={{ __html: processedContent }}
+        />
       );
     }
 
-    const parts = sanitizedContent.split(galleryRegex);
-
-    return parts.map((part, index) => {
-      // Every odd index is the content of a gallery div
-      if (index % 2 === 1) {
-        const imageMatches = [...part.matchAll(imgRegex)];
-        if (imageMatches.length === 0) {
-          // Fallback for empty or invalid gallery div
-          return <div key={index} dangerouslySetInnerHTML={{ __html: part }} />;
-        }
-
-        const images = imageMatches.map((match) => ({
-          src: match[1],
-          alt: match[2] || "", // Ensure alt is always a string
-        }));
-
-        return <ImageGallery key={index} images={images} />;
-      } else {
-        // Even indexes are the regular HTML content OR Markdown
-        return (
-          <div key={index} className="markdown-content">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{part}</ReactMarkdown>
-          </div>
-        );
-      }
-    });
-  }, [content, galleryRegex, imgRegex]);
+    // 3. MARKDOWN RENDERING (for AI guides and clean Markdown)
+    return (
+      <div className="markdown-content prose prose-invert lg:prose-xl max-w-none text-gray-300">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
+          components={{
+            h2: ({ node, children, ...props }) => {
+              const text = React.Children.toArray(children).join("");
+              const id = slugify(text);
+              return (
+                <h2
+                  id={id}
+                  className="text-gold font-serif mt-12 mb-6"
+                  {...props}
+                >
+                  {children}
+                </h2>
+              );
+            },
+            h3: ({ node, children, ...props }) => {
+              const text = React.Children.toArray(children).join("");
+              const id = slugify(text);
+              return (
+                <h3
+                  id={id}
+                  className="text-white font-serif mt-8 mb-4 border-b border-white/10 pb-2"
+                  {...props}
+                >
+                  {children}
+                </h3>
+              );
+            },
+            table: ({ node, ...props }) => (
+              <div className="overflow-x-auto my-8 rounded-xl border border-white/10 bg-navy-950/50 p-1">
+                <table
+                  className="min-w-full divide-y divide-white/10 text-sm"
+                  {...props}
+                />
+              </div>
+            ),
+            thead: ({ node, ...props }) => (
+              <thead className="bg-navy-800" {...props} />
+            ),
+            th: ({ node, ...props }) => (
+              <th
+                className="px-4 py-3 text-left font-bold text-gold uppercase tracking-wider"
+                {...props}
+              />
+            ),
+            td: ({ node, ...props }) => (
+              <td
+                className="px-4 py-3 text-gray-300 whitespace-pre-wrap border-t border-white/5"
+                {...props}
+              />
+            ),
+            img: ({ node, src, alt, ...props }) => {
+              return (
+                <div className="my-10 relative group">
+                  <img
+                    src={src}
+                    alt={alt || "Tripzy Travel Story"}
+                    className="rounded-2xl shadow-2xl mx-auto block max-h-[600px] object-cover w-full scale-100 hover:scale-[1.02] transition-transform duration-500"
+                    onError={(e) => {
+                      (
+                        e.target as HTMLImageElement
+                      ).parentElement!.style.display = "none";
+                    }}
+                    {...props}
+                  />
+                  {alt && (
+                    <p className="text-center text-xs text-gray-500 mt-3 italic">
+                      {alt}
+                    </p>
+                  )}
+                </div>
+              );
+            },
+            p: ({ node, ...props }) => (
+              <p className="mb-6 leading-relaxed" {...props} />
+            ),
+            ul: ({ node, ...props }) => (
+              <ul
+                className="list-disc list-inside space-y-2 mb-6 text-gray-400"
+                {...props}
+              />
+            ),
+            li: ({ node, ...props }) => (
+              <li className="marker:text-gold" {...props} />
+            ),
+          }}
+        >
+          {processedContent}
+        </ReactMarkdown>
+      </div>
+    );
+  }, [content]);
 
   return <>{renderedContent}</>;
 };
