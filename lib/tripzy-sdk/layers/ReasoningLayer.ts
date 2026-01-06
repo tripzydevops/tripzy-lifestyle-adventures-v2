@@ -22,7 +22,9 @@ export class ReasoningLayer {
     }
   ) {
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    this.model = this.genAI.getGenerativeModel({
+      model: "gemini-1.5-flash-latest",
+    });
     this.embeddingModel = this.genAI.getGenerativeModel({
       model: "text-embedding-004",
     });
@@ -34,23 +36,32 @@ export class ReasoningLayer {
 
   public async analyze(query: string = "", userSignals: any[]) {
     try {
-      const mode = userSignals.length === 0 ? "COLD_START" : "CONTEXTUAL";
+      let analysis: any;
 
-      // Call Python Backend for Reasoning
-      const backendResponse = await this.callBackendReasoning(
-        query,
-        userSignals
-      );
+      try {
+        // Try Python Backend first
+        const backendResponse = await this.callBackendReasoning(
+          query,
+          userSignals
+        );
 
-      const analysis = {
-        intent: backendResponse.content, // Using recommendation content as intent summary for now
-        keywords: [], // Backend doesn't return keywords yet
-        lifestyleVibe: backendResponse.lifestyleVibe,
-        constraints: backendResponse.constraints,
-        reasoning: backendResponse.reasoning,
-        searchQuery: query,
-        confidence: backendResponse.confidence,
-      };
+        analysis = {
+          intent: backendResponse.content || backendResponse.intent,
+          keywords: backendResponse.keywords || [],
+          lifestyleVibe: backendResponse.lifestyleVibe,
+          constraints: backendResponse.constraints,
+          reasoning: backendResponse.reasoning,
+          searchQuery: query,
+          confidence: backendResponse.confidence || 0.8,
+        };
+      } catch (backendError) {
+        console.warn(
+          "Backend failed, falling back to local reasoning:",
+          backendError
+        );
+        // Local LLM Fallback
+        analysis = await this.executeLocalLLM(query, userSignals);
+      }
 
       const vector = await this.generateVector(analysis, query);
 
@@ -65,50 +76,80 @@ export class ReasoningLayer {
   }
 
   private async callBackendReasoning(query: string, signals: any[]) {
-    try {
-      // Use local backend or env var
-      const API_URL =
-        import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+    // Force lowercase for better matching
+    const API_URL = import.meta.env.VITE_BACKEND_URL;
 
-      const response = await fetch(`${API_URL}/recommend`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          session_id: "client-" + Date.now(), // Generate prompt session
-          query: query,
-          user_context: { signals: signals },
-        }),
-      });
+    // If no backend URL configured, skip the fetch attempt to avoid noise
+    if (!API_URL || API_URL.includes("localhost")) {
+      throw new Error("No remote backend available");
+    }
 
-      if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`);
+    const response = await fetch(`${API_URL}/recommend`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        session_id: "client-" + Date.now(),
+        query: query,
+        user_context: { signals: signals },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Performs reasoning directly in-browser using Gemini
+   * This ensures the app works even if the Python backend is not deployed.
+   */
+  private async executeLocalLLM(query: string, signals: any[]) {
+    const prompt = `
+      System: You are the Tripzy Reasoning Engine (Local Mode).
+      Goal: Extract intent, vibes, and constraints from the user query and history.
+      
+      User Query: "${query}"
+      User Recent Activity: ${JSON.stringify(signals.slice(-5))}
+      
+      Instructions:
+      1. Infer the "Lifestyle Vibe" (e.g., Adventure, Luxury, Budget, Culture).
+      2. Detect Constraints (e.g., Family, Solo, Fast-paced).
+      3. Summarize the intent.
+      
+      Return ONLY valid JSON in this format:
+      {
+        "intent": "string",
+        "lifestyleVibe": "string",
+        "constraints": ["string"],
+        "reasoning": "string",
+        "confidence": 0.9
       }
+    `;
 
-      return await response.json();
+    const result = await this.model.generateContent(prompt);
+    const text = result.response.text();
+
+    try {
+      // Clean markdown code blocks if any
+      const cleaned = text.replace(/```json|```/g, "").trim();
+      return JSON.parse(cleaned);
     } catch (e) {
-      console.error("Failed to call backend:", e);
-      // Fallback local execution if backend fails?
-      // For now, let's throw to trigger the fallback response.
+      console.error("Failed to parse local LLM response:", text);
       throw e;
     }
   }
 
-  // Legacy local prompt builder - kept for reference or hybrid mode if needed
-  private buildPrompt(mode: string, query: string, signals: any[]): string {
-    return "";
-  }
-
-  private async executeLLM(prompt: string): Promise<any> {
-    // Deprecated in favor of callBackendReasoning
-    return {};
-  }
-
   private async generateVector(analysis: any, originalQuery: string) {
     const text =
-      analysis.searchQuery ||
-      `${analysis.intent} ${analysis.keywords.join(" ")}`;
+      analysis.intent +
+      " " +
+      (analysis.lifestyleVibe || "") +
+      " " +
+      originalQuery;
     const result = await this.embeddingModel.embedContent(text);
     return result.embedding.values;
   }

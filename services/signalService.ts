@@ -65,7 +65,6 @@ const flushSignals = async () => {
     }));
 
     const { error } = await supabase
-      .schema("blog")
       .from("user_signals")
       .insert(preparedSignals);
 
@@ -114,7 +113,6 @@ export const signalService = {
 
         // Fallback: Manually aggregate last 7 days from raw signals
         const { data: rawData, error: rawError } = await supabase
-          .schema("blog")
           .from("user_signals")
           .select("created_at, signal_type")
           .gte(
