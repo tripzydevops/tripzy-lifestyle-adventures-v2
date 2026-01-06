@@ -200,6 +200,10 @@ export interface Translations {
       publishing: string;
       publishedAt: string;
       metaKeywords: string;
+      primaryConstraint: string;
+      uiDirective: string;
+      intelligenceMetadata: string;
+      vibePersona: string;
     };
     placeholder: {
       title: string;
@@ -220,6 +224,7 @@ export interface Translations {
       seoDiscovery: string;
       aiExcerptLabel: string;
       aiKeywordsLabel: string;
+      reasoningSignals: string;
     };
 
     // New Media Library Keys
@@ -615,6 +620,10 @@ export const translations: Record<Language, Translations> = {
         publishing: "Publishing Settings",
         publishedAt: "Publication Date",
         metaKeywords: "Meta Keywords",
+        primaryConstraint: "Primary Constraint",
+        uiDirective: "UI Directive",
+        intelligenceMetadata: "Intelligence Metadata",
+        vibePersona: "Vibe / Persona",
       },
       settings: {
         title: "System Configuration",
@@ -785,6 +794,7 @@ export const translations: Record<Language, Translations> = {
         seoDiscovery: "SEO & Discovery Configuration",
         aiExcerptLabel: "AI Excerpt",
         aiKeywordsLabel: "AI Keywords",
+        reasoningSignals: "Reasoning Signals",
       },
       maps: {
         title: "Interactive Maps",
@@ -1024,6 +1034,10 @@ export const translations: Record<Language, Translations> = {
         publishing: "Yayınlama Ayarları",
         publishedAt: "Yayınlanma Tarihi",
         metaKeywords: "Meta Anahtar Kelimeler",
+        primaryConstraint: "Temel Kısıtlama",
+        uiDirective: "UI Yönergesi",
+        intelligenceMetadata: "Zeka Metaverisi",
+        vibePersona: "Vibe / Persona",
       },
       settings: {
         title: "Sistem Yapılandırması",
@@ -1115,6 +1129,7 @@ export const translations: Record<Language, Translations> = {
         seoDiscovery: "SEO ve Keşif Yapılandırması",
         aiExcerptLabel: "AI Özet",
         aiKeywordsLabel: "AI Anahtar Kelimeler",
+        reasoningSignals: "Muhakeme Sinyalleri",
       },
       comments: {
         title: "Yorum Moderasyonu",

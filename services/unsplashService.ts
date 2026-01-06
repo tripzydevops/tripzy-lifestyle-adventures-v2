@@ -6,15 +6,31 @@ import { createApi } from "unsplash-js";
 let unsplash: ReturnType<typeof createApi> | null = null;
 
 const getUnsplashKey = () => {
-  return import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
+  return (
+    import.meta.env.VITE_UNSPLASH_ACCESS_KEY ||
+    (process.env as any).VITE_UNSPLASH_ACCESS_KEY
+  );
 };
 
+// Access key at module level for absolute certainty
+const UNSPLASH_KEY = getUnsplashKey();
+console.log(
+  "Unsplash Module Load - Key status:",
+  UNSPLASH_KEY ? `PRESENT (length: ${UNSPLASH_KEY.length})` : "MISSING"
+);
+
 export const initUnsplash = () => {
-  const key = getUnsplashKey();
-  if (key) {
-    unsplash = createApi({
-      accessKey: key,
-    });
+  const key = UNSPLASH_KEY;
+  if (key && !unsplash) {
+    console.log("Initializing Unsplash instance...");
+    try {
+      unsplash = createApi({
+        accessKey: key,
+      });
+      console.log("Unsplash instance created successfully.");
+    } catch (e) {
+      console.error("Failed to create Unsplash API instance:", e);
+    }
   }
 };
 
