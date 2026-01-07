@@ -215,13 +215,22 @@ export const seoService = {
           .update(updates)
           .eq("id", post.id);
 
-        return !updateError;
+        if (updateError) {
+          return {
+            success: false,
+            message: `DB Update Failed: ${updateError.message}`,
+          };
+        }
+        return { success: true };
       }
 
-      return false;
-    } catch (err) {
+      return { success: false, message: "No updates were generated" };
+    } catch (err: any) {
       console.error("Auto-fix failed", err);
-      return false;
+      return {
+        success: false,
+        message: `Unknown Error: ${err.message || err}`,
+      };
     }
   },
 };
