@@ -319,14 +319,30 @@ async def fix_images_main():
         # 1. Check Featured Image
         if "pollinations" in (post.get('featured_image') or ""):
             print(f"[{post['title']}] Fixing Featured Image...")
-            unsplash_feat = await fetch_unsplash_image(post['title'].replace(' ', '+') + "+travel")
+            
+            # Smart Fallback Search Strategy
+            queries = [
+                post['title'] + " travel",
+                post['title'],
+                " ".join(post['title'].split(" ")[:2]), # First 2 words
+                "Travel" # Last resort
+            ]
+            
+            unsplash_feat = None
+            for q in queries:
+                if not q: continue
+                cleaned_q = q.replace(' ', '+')
+                print(f"   -> Trying Unsplash: {q}")
+                unsplash_feat = await fetch_unsplash_image(cleaned_q)
+                if unsplash_feat:
+                    break
+            
             if unsplash_feat:
                 updates['featured_image'] = unsplash_feat['url']
-                # If we had a column for featured_media_alt, we'd update it too
-                # For now, just URL
                 is_updated = True
+                print(f"   ✅ Found replacement: {unsplash_feat['url'][:30]}...")
             else:
-                print("   -> Failed to get Unsplash alternative.")
+                print("   ❌ Failed to get Unsplash alternative (all queries failed).")
         
         # 2. Check Content Images
         if "pollinations" in (post.get('content') or ""):
