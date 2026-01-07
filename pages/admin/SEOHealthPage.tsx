@@ -207,8 +207,12 @@ const SEOHealthPage = () => {
                 <button
                   onClick={async () => {
                     addToast(`Fixing: ${issue.postTitle}...`, "info");
-                    const success = await seoService.fixIssue(issue);
-                    if (success) {
+                    const result = await seoService.fixIssue(issue);
+                    // Handle both boolean (old) and object (new) return types
+                    const isSuccess =
+                      typeof result === "boolean" ? result : result.success;
+
+                    if (isSuccess) {
                       addToast("Fixed successfully!", "success");
                       // Refresh
                       setIssues((prev) =>
@@ -221,7 +225,11 @@ const SEOHealthPage = () => {
                         )
                       );
                     } else {
-                      addToast("Failed to auto-fix. Try manual edit.", "error");
+                      const msg =
+                        typeof result === "object" && result?.message
+                          ? result.message
+                          : "Failed to auto-fix.";
+                      addToast(`${msg} Try manual edit.`, "error");
                       navigate(`/admin/posts/edit/${issue.postId}`);
                     }
                   }}

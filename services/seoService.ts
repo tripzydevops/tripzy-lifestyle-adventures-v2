@@ -114,7 +114,9 @@ export const seoService = {
     return Math.max(0, Math.round(score));
   },
 
-  async fixIssue(issue: SEOIssue): Promise<boolean> {
+  async fixIssue(
+    issue: SEOIssue
+  ): Promise<{ success: boolean; message?: string }> {
     try {
       // 1. Fetch Post
       const { data: post, error } = await supabase
@@ -124,29 +126,36 @@ export const seoService = {
         .eq("id", issue.postId)
         .single();
 
-      if (error || !post) return false;
+      if (error || !post)
+        return { success: false, message: "Post not found or DB error" };
 
       const updates: any = {};
       let fixed = false;
 
       // 2. Fix based on type
       if (issue.type === "image") {
-        // Import unsplash service dynamically or assume it's available?
-        // For stricter types, assume we need to fetch an image
-        // We can use a simple Unsplash fetch here to avoid circular dependencies if unsplashService imports this
-        const { createApi } = await import("unsplash-js");
-        const unsplash = createApi({
-          accessKey: import.meta.env.VITE_UNSPLASH_ACCESS_KEY,
-        });
-        const result = await unsplash.search.getPhotos({
-          query: post.title,
-          perPage: 1,
-          orientation: "landscape",
-        });
+        try {
+          const { createApi } = await import("unsplash-js");
+          const unsplash = createApi({
+            accessKey: import.meta.env.VITE_UNSPLASH_ACCESS_KEY,
+          });
+          const result = await unsplash.search.getPhotos({
+            query: post.title,
+            perPage: 1,
+            orientation: "landscape",
+          });
 
-        if (result.response?.results.length > 0) {
-          updates.featured_image = result.response.results[0].urls.regular;
-          fixed = true;
+          if (result.response?.results.length > 0) {
+            updates.featured_image = result.response.results[0].urls.regular;
+            fixed = true;
+          } else {
+            return {
+              success: false,
+              message: "No relevant image found on Unsplash",
+            };
+          }
+        } catch (e: any) {
+          return { success: false, message: `Unsplash Error: ${e.message}` };
         }
       } else if (issue.type === "meta" || issue.type === "content") {
         // Fix Metadata using AI
