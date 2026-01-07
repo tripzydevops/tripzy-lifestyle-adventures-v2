@@ -110,6 +110,50 @@ async def post_process_images_in_content(content, post_title=""):
 
     return new_content
 
+    import urllib.parse
+    
+    # 3. Replace Existing Pollinations URLs (Rate Limit or Old Images)
+    # Match: https://image.pollinations.ai/prompt/SomeText?params...
+    # We capture up to the next quote, param start, or whitespace
+    poll_pattern = r'https://image\.pollinations\.ai/prompt/([^"\'\s\?\)]+)'
+    
+    poll_matches = list(set(re.findall(poll_pattern, new_content))) # Unique matches
+    
+    for encoded_prompt in poll_matches:
+        original_url_stub = f"https://image.pollinations.ai/prompt/{encoded_prompt}"
+        prompt = urllib.parse.unquote(encoded_prompt)
+        
+        print(f"   🖼️  Found Pollinations Image: {prompt}")
+        
+        # Smart Fallback Search Strategy for Content Images
+        # 1. Try exact prompt
+        internal_url = await fetch_featured_image(prompt)
+        
+        # 2. Try first word (Location usually) + "Travel" if exact fails
+        if not internal_url:
+            short_query = prompt.split()[0]
+            if len(short_query) > 3:
+                print(f"      Trying fallback: {short_query}")
+                internal_url = await fetch_featured_image(short_query)
+        
+        # 3. Generic Fallback
+        if not internal_url:
+             internal_url = await fetch_featured_image("Travel")
+
+        if internal_url:
+            # Replace ALL instances of this URL (ignoring params by using regex sub if needed, but simple replace might work for the stub)
+            # Actually, the src might have params. simple string replace of the stub might miss the params part if we don't include them in 'matches'
+            # But 'original_url_stub' is just the base. The actual HTML usually has src="...stub?width=..."
+            # So we should regex replace the whole URL starting with stub until a quote/space.
+            
+            replace_pattern = re.escape(original_url_stub) + r'[^"\'\s\)]*'
+            new_content = re.sub(replace_pattern, internal_url, new_content)
+            print(f"      ✅ Replaced with: {internal_url}")
+        else:
+             print("      ❌ Could not replace.")
+
+    return new_content
+
 model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
 POSTS_TO_GENERATE = [
