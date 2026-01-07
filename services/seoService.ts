@@ -25,9 +25,15 @@ export const seoService = {
       return [];
     }
 
-    posts.forEach((post: Post) => {
+    posts.forEach((post: any) => {
       // 1. Check Meta Tags
-      if (!post.metaTitle || post.metaTitle.length < 10) {
+      // Supabase returns snake_case keys by default
+      const title = post.meta_title || post.metaTitle;
+      const desc = post.meta_description || post.metaDescription;
+      const image = post.featured_image || post.featuredMediaUrl;
+      const keywords = post.meta_keywords || post.metaKeywords;
+
+      if (!title || title.length < 10) {
         issues.push({
           id: `meta-title-${post.id}`,
           postId: post.id,
@@ -38,7 +44,7 @@ export const seoService = {
         });
       }
 
-      if (!post.metaDescription || post.metaDescription.length < 50) {
+      if (!desc || desc.length < 50) {
         issues.push({
           id: `meta-desc-${post.id}`,
           postId: post.id,
@@ -51,7 +57,7 @@ export const seoService = {
       }
 
       // 2. Check Content
-      const wordCount = post.content.split(/\s+/).length;
+      const wordCount = (post.content || "").split(/\s+/).length;
       if (wordCount < 300) {
         issues.push({
           id: `content-len-${post.id}`,
@@ -64,7 +70,7 @@ export const seoService = {
       }
 
       // 3. Check Images
-      if (!post.featuredMediaUrl) {
+      if (!image) {
         issues.push({
           id: `img-missing-${post.id}`,
           postId: post.id,
@@ -76,7 +82,7 @@ export const seoService = {
       }
 
       // 4. Check Keywords (Basic)
-      if (!post.metaKeywords) {
+      if (!keywords) {
         issues.push({
           id: `kw-missing-${post.id}`,
           postId: post.id,
