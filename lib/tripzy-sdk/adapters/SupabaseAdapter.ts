@@ -37,8 +37,14 @@ export class SupabaseMemoryAdapter implements IMemoryAdapter {
       created_at: s.timestamp,
     }));
 
+    // Handle Schema Selection (e.g. "blog.user_signals" -> schema("blog").from("user_signals"))
+    const [schema, table] = this.config.signalsTable.includes(".")
+      ? this.config.signalsTable.split(".")
+      : ["public", this.config.signalsTable];
+
     const { error } = await this.supabase
-      .from(this.config.signalsTable)
+      .schema(schema)
+      .from(table)
       .insert(formattedSignals);
 
     if (error) {
@@ -69,8 +75,13 @@ export class SupabaseMemoryAdapter implements IMemoryAdapter {
   async getContentByIds(ids: string[]): Promise<any[]> {
     if (ids.length === 0) return [];
 
+    const [schema, table] = this.config.contentTable.includes(".")
+      ? this.config.contentTable.split(".")
+      : ["public", this.config.contentTable];
+
     const { data, error } = await this.supabase
-      .from(this.config.contentTable)
+      .schema(schema)
+      .from(table)
       .select("*")
       .in("id", ids);
 
