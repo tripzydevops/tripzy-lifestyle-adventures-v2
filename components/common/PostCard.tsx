@@ -103,11 +103,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <div className="flex items-center">
             <Calendar size={14} className="mr-2" />
             <span>
-              {new Date(post.publishedAt!).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+              {new Date(post.publishedAt || post.createdAt).toLocaleDateString(
+                "en-US",
+                {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }
+              )}
             </span>
           </div>
 

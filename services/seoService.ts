@@ -113,4 +113,106 @@ export const seoService = {
 
     return Math.max(0, Math.round(score));
   },
+
+  async fixIssue(issue: SEOIssue): Promise<boolean> {
+    try {
+      // 1. Fetch Post
+      const { data: post, error } = await supabase
+        .schema("blog")
+        .from("posts")
+        .select("*")
+        .eq("id", issue.postId)
+        .single();
+
+      if (error || !post) return false;
+
+      const updates: any = {};
+      let fixed = false;
+
+      // 2. Fix based on type
+      if (issue.type === "image") {
+        // Import unsplash service dynamically or assume it's available?
+        // For stricter types, assume we need to fetch an image
+        // We can use a simple Unsplash fetch here to avoid circular dependencies if unsplashService imports this
+        const { createApi } = await import("unsplash-js");
+        const unsplash = createApi({
+          accessKey: import.meta.env.VITE_UNSPLASH_ACCESS_KEY,
+        });
+        const result = await unsplash.search.getPhotos({
+          query: post.title,
+          perPage: 1,
+          orientation: "landscape",
+        });
+
+        if (result.response?.results.length > 0) {
+          updates.featured_image = result.response.results[0].urls.regular;
+          fixed = true;
+        }
+      } else if (issue.type === "meta" || issue.type === "content") {
+        // Fix Metadata using AI
+        const { GoogleGenerativeAI } = await import("@google/generative-ai");
+        const genAI = new GoogleGenerativeAI(
+          import.meta.env.VITE_GEMINI_API_KEY
+        );
+        const model = genAI.getGenerativeModel({
+          model: "gemini-2.0-flash-exp",
+        });
+
+        const prompt = `
+         Generate SEO metadata for this blog post.
+         Title: ${post.title}
+         Excerpt: ${post.excerpt || post.content.substring(0, 200)}
+         
+         Return JSON:
+         {
+           "metaTitle": "SEO optimized title > 40 chars",
+           "metaDescription": "Engaging summary 130-160 chars",
+           "metaKeywords": "5-8 comma separated keywords"
+         }
+         `;
+
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        // Clean json
+        const jsonStr = text
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+        const data = JSON.parse(jsonStr);
+
+        if (data) {
+          if (issue.message.includes("Title"))
+            updates.meta_title = data.metaTitle;
+          if (issue.message.includes("Description"))
+            updates.meta_description = data.metaDescription;
+          if (issue.message.includes("keywords"))
+            updates.meta_keywords = data.metaKeywords;
+
+          // If we are running AI, might as well update all empty fields
+          if (!post.meta_title) updates.meta_title = data.metaTitle;
+          if (!post.meta_description)
+            updates.meta_description = data.metaDescription;
+          if (!post.meta_keywords) updates.meta_keywords = data.metaKeywords;
+
+          fixed = true;
+        }
+      }
+
+      // 3. Update Post
+      if (fixed && Object.keys(updates).length > 0) {
+        const { error: updateError } = await supabase
+          .schema("blog")
+          .from("posts")
+          .update(updates)
+          .eq("id", post.id);
+
+        return !updateError;
+      }
+
+      return false;
+    } catch (err) {
+      console.error("Auto-fix failed", err);
+      return false;
+    }
+  },
 };

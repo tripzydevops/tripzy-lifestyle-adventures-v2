@@ -63,5 +63,17 @@ async def get_recommendation(request: RecommendationRequest):
         "lifestyleVibe": analysis.get("lifestyleVibe", "Unknown")
     }
 
+from backend.utils.seo_fixer import fix_post
+
+@app.post("/fix-seo/{post_id}")
+async def fix_seo_endpoint(post_id: str):
+    try:
+        result = await fix_post(post_id)
+        if not result["success"]:
+             raise HTTPException(status_code=500, detail=result.get("message", "Unknown error"))
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
