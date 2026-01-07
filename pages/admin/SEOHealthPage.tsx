@@ -191,6 +191,17 @@ const SEOHealthPage = () => {
                     <AlertTriangle className="text-yellow-400" />
                   )}
                 </div>
+                <div className="flex-grow">
+                  <h4 className="text-white font-bold text-sm mb-1">
+                    {issue.message}
+                  </h4>
+                  <div className="text-xs text-gray-500 flex items-center gap-2">
+                    <span className="bg-white/5 px-2 py-0.5 rounded text-gray-300">
+                      Post: {issue.postTitle}
+                    </span>
+                    <span className="uppercase tracking-wider">
+                      {issue.type}
+                    </span>
                   </div>
                 </div>
                 <button
@@ -198,13 +209,20 @@ const SEOHealthPage = () => {
                     addToast(`Fixing: ${issue.postTitle}...`, "info");
                     const success = await seoService.fixIssue(issue);
                     if (success) {
-                        addToast("Fixed successfully!", "success");
-                        // Refresh
-                        setIssues(prev => prev.filter(i => i.id !== issue.id));
-                        setScore(seoService.calculateHealthScore(issues.filter(i => i.id !== issue.id), totalPosts));
+                      addToast("Fixed successfully!", "success");
+                      // Refresh
+                      setIssues((prev) =>
+                        prev.filter((i) => i.id !== issue.id)
+                      );
+                      setScore(
+                        seoService.calculateHealthScore(
+                          issues.filter((i) => i.id !== issue.id),
+                          totalPosts
+                        )
+                      );
                     } else {
-                        addToast("Failed to auto-fix. Try manual edit.", "error");
-                        navigate(`/admin/posts/edit/${issue.postId}`);
+                      addToast("Failed to auto-fix. Try manual edit.", "error");
+                      navigate(`/admin/posts/edit/${issue.postId}`);
                     }
                   }}
                   className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold transition-colors"
