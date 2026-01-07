@@ -139,19 +139,47 @@ export const seoService = {
           const unsplash = createApi({
             accessKey: import.meta.env.VITE_UNSPLASH_ACCESS_KEY,
           });
-          const result = await unsplash.search.getPhotos({
-            query: post.title,
-            perPage: 1,
-            orientation: "landscape",
-          });
 
-          if (result.response?.results.length > 0) {
-            updates.featured_image = result.response.results[0].urls.regular;
+          // Search Strategy: Exact Title -> Tags -> Generic "Travel"
+          // We sanitize the title slightly to remove punctuation that might confuse search
+          const cleanTitle = post.title
+            .replace(/[^\w\s\u00C0-\u017F]/g, "")
+            .trim();
+          const queries = [
+            post.title,
+            // Extract first meaningful word or two
+            cleanTitle.split(" ").slice(0, 2).join(" "),
+            "Travel",
+          ];
+
+          let foundImage = null;
+
+          for (const query of queries) {
+            if (!query || query.length < 3) continue;
+            try {
+              console.log(`Trying Unsplash search: ${query}`);
+              const result = await unsplash.search.getPhotos({
+                query: query,
+                perPage: 1,
+                orientation: "landscape",
+              });
+              if (result.response?.results.length > 0) {
+                foundImage = result.response.results[0].urls.regular;
+                break; // Found one!
+              }
+            } catch (ign) {
+              continue;
+            }
+          }
+
+          if (foundImage) {
+            updates.featured_image = foundImage;
             fixed = true;
           } else {
             return {
               success: false,
-              message: "No relevant image found on Unsplash",
+              message:
+                "No relevant image found on Unsplash (tried title & generic terms)",
             };
           }
         } catch (e: any) {
@@ -159,51 +187,69 @@ export const seoService = {
         }
       } else if (issue.type === "meta" || issue.type === "content") {
         // Fix Metadata using AI
-        const { GoogleGenerativeAI } = await import("@google/generative-ai");
-        const genAI = new GoogleGenerativeAI(
-          import.meta.env.VITE_GEMINI_API_KEY
-        );
-        const model = genAI.getGenerativeModel({
-          model: "gemini-pro",
-        });
+        try {
+          const { GoogleGenerativeAI } = await import("@google/generative-ai");
+          const genAI = new GoogleGenerativeAI(
+            import.meta.env.VITE_GEMINI_API_KEY
+          );
+          // Revert to backend-aligned model which is known to work with this key
+          const model = genAI.getGenerativeModel({
+            model: "gemini-2.0-flash-exp",
+          });
 
-        const prompt = `
-         Generate SEO metadata for this blog post.
-         Title: ${post.title}
-         Excerpt: ${post.excerpt || post.content.substring(0, 200)}
-         
-         Return JSON:
-         {
-           "metaTitle": "SEO optimized title > 40 chars",
-           "metaDescription": "Engaging summary 130-160 chars",
-           "metaKeywords": "5-8 comma separated keywords"
-         }
-         `;
+          const prompt = `
+            Generate SEO metadata for this blog post.
+            Title: ${post.title}
+            Excerpt: ${post.excerpt || post.content.substring(0, 200)}
+            
+            Return JSON:
+            {
+              "metaTitle": "SEO optimized title > 40 chars",
+              "metaDescription": "Engaging summary 130-160 chars",
+              "metaKeywords": "5-8 comma separated keywords"
+            }
+            `;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
-        // Clean json
-        const jsonStr = text
-          .replace(/```json/g, "")
-          .replace(/```/g, "")
-          .trim();
-        const data = JSON.parse(jsonStr);
+          const result = await model.generateContent(prompt);
+          const text = result.response.text();
+          // Clean json
+          const jsonStr = text
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
 
-        if (data) {
-          if (issue.message.includes("Title"))
-            updates.meta_title = data.metaTitle;
-          if (issue.message.includes("Description"))
-            updates.meta_description = data.metaDescription;
-          if (issue.message.includes("keywords"))
-            updates.meta_keywords = data.metaKeywords;
+          let data;
+          try {
+            data = JSON.parse(jsonStr);
+          } catch (jsonErr) {
+            return {
+              success: false,
+              message: "AI response was not valid JSON",
+            };
+          }
 
-          // If we are running AI, might as well update all empty fields
-          if (!post.meta_title) updates.meta_title = data.metaTitle;
-          if (!post.meta_description)
-            updates.meta_description = data.metaDescription;
-          if (!post.meta_keywords) updates.meta_keywords = data.metaKeywords;
+          if (data) {
+            if (issue.message.includes("Title"))
+              updates.meta_title = data.metaTitle;
+            if (issue.message.includes("Description"))
+              updates.meta_description = data.metaDescription;
+            if (issue.message.includes("keywords"))
+              updates.meta_keywords = data.metaKeywords;
 
-          fixed = true;
+            // If we are running AI, might as well update all empty fields
+            if (!post.meta_title) updates.meta_title = data.metaTitle;
+            if (!post.meta_description)
+              updates.meta_description = data.metaDescription;
+            if (!post.meta_keywords) updates.meta_keywords = data.metaKeywords;
+
+            fixed = true;
+          }
+        } catch (aiErr: any) {
+          console.error("AI Error:", aiErr);
+          return {
+            success: false,
+            message: `AI Error: ${aiErr.message || aiErr}`,
+          };
         }
       }
 
