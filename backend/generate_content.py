@@ -317,8 +317,10 @@ async def fix_images_main():
         updates = {}
         
         # 1. Check Featured Image
-        if "pollinations" in (post.get('featured_image') or ""):
-            print(f"[{post['title']}] Fixing Featured Image...")
+        feat_img = post.get('featured_image') or ""
+        
+        if "pollinations" in feat_img or "image.pollinations.ai" in feat_img:
+            print(f"[{post['title']}] Fixing Featured Image (Current: {feat_img[:20]}...)")
             
             # Smart Fallback Search Strategy
             # Extract potential location name (first word is often the key in Turkish titles like "Bodrum...", "Antalya...")
