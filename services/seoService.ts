@@ -212,16 +212,19 @@ export const seoService = {
 
           const result = await model.generateContent(prompt);
           const text = result.response.text();
-          // Clean json
-          const jsonStr = text
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .trim();
+
+          // Robust JSON extraction
+          let jsonStr = text;
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            jsonStr = jsonMatch[0];
+          }
 
           let data;
           try {
             data = JSON.parse(jsonStr);
           } catch (jsonErr) {
+            console.error("JSON Parse Error:", jsonErr, "Raw Text:", text);
             return {
               success: false,
               message: "AI response was not valid JSON",
