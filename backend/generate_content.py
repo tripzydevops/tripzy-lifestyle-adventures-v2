@@ -385,6 +385,11 @@ async def generate_post_content(item):
     3. IMPORTANT: Even if the post is in Turkish, the image keywords MUST be in English for search compatibility.
     4. Use a mix of informative and storytelling tones.
     5. Apply HTML classes like 'magazine-section', 'magazine-h2', 'magazine-body' for premium styling.
+    6. MAP DATA IS MANDATORY. You MUST generate 'map_data' with valid coordinates and at least 3 points of interest. 
+    7. SEO MANDATORY: 
+       - 'meta_description' MUST be between 130 and 160 characters. Do not make it short.
+       - 'meta_title' must be catchy and include keywords.
+       - 'meta_keywords' field (in intelligent_metadata or root) is required.
     """
     
     try:
@@ -441,6 +446,7 @@ async def process_post(item, author_id):
         "published_at": datetime.now().isoformat(),
         "meta_title": content_data['meta_title'],
         "meta_description": content_data['meta_description'],
+        "meta_keywords": content_data.get('meta_keywords') or content_data.get('intelligence_metadata', {}).get('meta_keywords'),
         "embedding": embedding,
         "metadata": content_data.get('intelligence_metadata', {}),
         "lang": item['lang']
