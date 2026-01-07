@@ -55,9 +55,11 @@ const EditPostPage = () => {
     metaKeywords: "",
     publishedAt: null,
     intelligenceMetadata: {
-      vibe_persona: "",
-      primary_constraint: "",
-      ui_directive: "utility",
+      intent: "",
+      lifestyleVibe: "",
+      constraints: [],
+      reasoning: "",
+      confidence: 0,
     },
   });
 
@@ -147,9 +149,11 @@ const EditPostPage = () => {
       tags: generatedPost.suggestedTags || prev.tags,
       metaKeywords: generatedPost.metaKeywords,
       intelligenceMetadata: generatedPost.intelligenceMetadata || {
-        vibe_persona: "",
-        primary_constraint: "",
-        ui_directive: "utility",
+        intent: "",
+        lifestyleVibe: "",
+        constraints: [],
+        reasoning: "",
+        confidence: 0,
       },
     }));
     setIsDirty(true);
@@ -639,80 +643,136 @@ const EditPostPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="intent"
+                    className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
+                  >
+                    {t("admin.form.intent") || "User Intent"}
+                  </label>
+                  <input
+                    type="text"
+                    id="intent"
+                    value={post.intelligenceMetadata?.intent || ""}
+                    onChange={(e) =>
+                      setPost((prev) => ({
+                        ...prev,
+                        intelligenceMetadata: {
+                          ...prev.intelligenceMetadata,
+                          intent: e.target.value,
+                        },
+                      }))
+                    }
+                    className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
+                    placeholder="e.g. Family Cultural Trip"
+                  />
+                </div>
                 <div className="space-y-2">
                   <label
                     htmlFor="vibe"
                     className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
                   >
-                    {t("admin.form.vibePersona") || "Inferred Vibe"}
+                    {t("admin.form.vibePersona") || "Lifestyle Vibe"}
                   </label>
                   <input
                     type="text"
                     id="vibe"
-                    value={post.intelligenceMetadata?.vibe_persona || ""}
+                    value={post.intelligenceMetadata?.lifestyleVibe || ""}
                     onChange={(e) =>
                       setPost((prev) => ({
                         ...prev,
                         intelligenceMetadata: {
                           ...prev.intelligenceMetadata,
-                          vibe_persona: e.target.value,
+                          lifestyleVibe: e.target.value,
                         },
                       }))
                     }
                     className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
-                    placeholder="e.g., Urban Rebel"
+                    placeholder="e.g. Luxury, Adventure..."
                   />
                 </div>
-                <div className="space-y-2">
+
+                <div className="space-y-2 md:col-span-2">
                   <label
-                    htmlFor="constraint"
+                    htmlFor="reasoning"
                     className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
                   >
-                    {t("admin.form.primaryConstraint") || "Primary Constraint"}
+                    {t("admin.form.reasoning") || "Agent Reasoning"}
+                  </label>
+                  <textarea
+                    id="reasoning"
+                    rows={3}
+                    value={post.intelligenceMetadata?.reasoning || ""}
+                    onChange={(e) =>
+                      setPost((prev) => ({
+                        ...prev,
+                        intelligenceMetadata: {
+                          ...prev.intelligenceMetadata,
+                          reasoning: e.target.value,
+                        },
+                      }))
+                    }
+                    className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
+                    placeholder="Why this recommendation?"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="constraints"
+                    className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
+                  >
+                    {t("admin.form.primaryConstraint") ||
+                      "Constraints (Comma separated)"}
                   </label>
                   <input
                     type="text"
-                    id="constraint"
-                    value={post.intelligenceMetadata?.primary_constraint || ""}
+                    id="constraints"
+                    value={
+                      post.intelligenceMetadata?.constraints?.join(", ") || ""
+                    }
                     onChange={(e) =>
                       setPost((prev) => ({
                         ...prev,
                         intelligenceMetadata: {
                           ...prev.intelligenceMetadata,
-                          primary_constraint: e.target.value,
+                          constraints: e.target.value
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean),
                         },
                       }))
                     }
                     className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
-                    placeholder="e.g., Crowd Density"
+                    placeholder="Budget, Kids..."
                   />
                 </div>
                 <div className="space-y-2">
                   <label
-                    htmlFor="directive"
+                    htmlFor="confidence"
                     className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
                   >
-                    {t("admin.form.uiDirective") || "UI Directive"}
+                    {t("admin.form.confidence") || "Confidence Score"}
                   </label>
-                  <select
-                    id="directive"
-                    value={post.intelligenceMetadata?.ui_directive || "utility"}
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    id="confidence"
+                    value={post.intelligenceMetadata?.confidence || 0}
                     onChange={(e) =>
                       setPost((prev) => ({
                         ...prev,
                         intelligenceMetadata: {
                           ...prev.intelligenceMetadata,
-                          ui_directive: e.target.value as any,
+                          confidence: parseFloat(e.target.value),
                         },
                       }))
                     }
-                    className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30 appearance-none cursor-pointer"
-                  >
-                    <option value="utility">Utility (Standard)</option>
-                    <option value="immersion">Immersion (Deep Read)</option>
-                    <option value="high_energy">High Energy (Active)</option>
-                  </select>
+                    className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
+                  />
                 </div>
               </div>
             </div>

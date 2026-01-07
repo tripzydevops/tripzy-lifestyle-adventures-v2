@@ -24,9 +24,11 @@ export enum PostStatus {
 }
 
 export interface IntelligenceMetadata {
-  vibe_persona?: string;
-  primary_constraint?: string;
-  ui_directive?: "immersion" | "high_energy" | "utility";
+  intent?: string;
+  lifestyleVibe?: string;
+  constraints?: string[];
+  reasoning?: string;
+  confidence?: number;
 }
 
 export interface Post {

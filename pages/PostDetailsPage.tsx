@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Post } from "../types";
+import { Post, MapItem } from "../types";
 import { postService } from "../services/postService";
 import { aiService } from "../services/aiService";
 import { unsplashService } from "../services/unsplashService";
+import { mapService } from "../services/mapService";
 import { useTripzy } from "../hooks/useTripzy";
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
@@ -21,6 +22,9 @@ import SocialShareButtons from "../components/common/SocialShareButtons";
 import RelatedPosts from "../components/common/RelatedPosts";
 import CommentsSection from "../components/common/CommentsSection";
 import PostContentRenderer from "../components/common/PostContentRenderer";
+
+import MapViewer from "../components/common/MapViewer";
+import { useLanguage } from "../localization/LanguageContext"; // Added import
 
 const slugify = (text: string) => {
   const turkishMap: { [key: string]: string } = {
@@ -58,16 +62,18 @@ interface Heading {
 }
 
 const PostDetailsPage = () => {
+  const { t } = useLanguage(); // Initialize t
   const { postId: postSlug } = useParams<{ postId: string }>();
+
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Initialize Tripzy SDK (Essentials Layer)
-  const tripzy = useTripzy();
-
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [contentWithIds, setContentWithIds] = useState("");
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
+  const [maps, setMaps] = useState<MapItem[]>([]);
+
+  // Initialize Tripzy SDK (Essentials Layer)
+  const tripzy = useTripzy();
 
   // Local Discoveries State
   const [attractions, setAttractions] = useState<{
@@ -93,6 +99,14 @@ const PostDetailsPage = () => {
               tags: fetchedPost.tags,
               slug: fetchedPost.slug,
             });
+          }
+
+          // Fetch Maps (Layer 3)
+          try {
+            const postMaps = await mapService.getMapsByPostId(fetchedPost.id);
+            setMaps(postMaps);
+          } catch (e) {
+            console.error("Failed to fetch maps", e);
           }
 
           fetchAttractions(fetchedPost.title);
@@ -429,6 +443,17 @@ const PostDetailsPage = () => {
                   : "lg:col-span-12 max-w-4xl mx-auto"
               }
             >
+              {/* Contextual Map Section - Layer 1 & 3 */}
+              {maps.length > 0 && (
+                <div className="mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                  <h3 className="flex items-center gap-2 text-2xl font-serif font-bold text-white mb-6">
+                    <MapPin size={24} className="text-gold" />
+                    {t("post.interactiveMap") || "Interactive Map"}
+                  </h3>
+                  <MapViewer mapData={maps[0]} postTitle={post?.title} />
+                </div>
+              )}
+
               <div className="prose prose-invert lg:prose-xl max-w-none text-gray-300">
                 <PostContentRenderer
                   content={contentWithIds || post.content}

@@ -46,8 +46,8 @@
   --glass-border: rgba(255, 255, 255, 0.1);
 
   /* Fonts */
-  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-serif: 'Lora', Georgia, serif;
+  --font-primary: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: "Lora", Georgia, serif;
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -68,7 +68,11 @@ body {
   margin: 0;
   padding: 0;
   font-family: var(--font-primary);
-  background: linear-gradient(135deg, var(--color-navy-950) 0%, var(--color-navy-900) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-navy-950) 0%,
+    var(--color-navy-900) 100%
+  );
   color: var(--color-text-primary);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -111,7 +115,6 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(251, 191, 36, 0.3);
 }
-
 
 /* Selection */
 ::selection {
@@ -191,7 +194,12 @@ ol {
 
 /* Gradient Text */
 .gradient-text {
-  background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-light) 50%, var(--color-primary-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-gold) 0%,
+    var(--color-gold-light) 50%,
+    var(--color-primary-light) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -221,7 +229,11 @@ ol {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-primary-dark) 100%
+  );
   color: white;
 }
 
@@ -231,7 +243,11 @@ ol {
 }
 
 .btn-gold {
-  background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-gold) 0%,
+    var(--color-gold-dark) 100%
+  );
   color: var(--color-navy-950);
 }
 
@@ -345,7 +361,8 @@ textarea::placeholder {
 
 .legacy-html-content img {
   border-radius: 1rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3),
+    0 10px 10px -5px rgba(0, 0, 0, 0.2);
   margin-top: 2.5rem;
   margin-bottom: 2.5rem;
   width: 100%;
@@ -408,7 +425,6 @@ textarea::placeholder {
 }
 
 @keyframes pulse-glow {
-
   0%,
   100% {
     box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
@@ -471,16 +487,23 @@ textarea::placeholder {
 /* Section Divider */
 .section-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--color-navy-600), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-navy-600),
+    transparent
+  );
   margin: 40px 0;
 }
 
 /* Hero Section */
 .hero-overlay {
-  background: linear-gradient(180deg,
-      rgba(2, 6, 23, 0.3) 0%,
-      rgba(2, 6, 23, 0.6) 50%,
-      rgba(2, 6, 23, 0.9) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(2, 6, 23, 0.3) 0%,
+    rgba(2, 6, 23, 0.6) 50%,
+    rgba(2, 6, 23, 0.9) 100%
+  );
 }
 
 /* YouTube Embed Container */
@@ -523,7 +546,11 @@ textarea::placeholder {
 
 /* Cross-link CTA */
 .cta-tripzy {
-  background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-accent) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-gold) 0%,
+    var(--color-accent) 100%
+  );
   color: var(--color-navy-950);
   font-weight: 700;
   padding: 16px 32px;
@@ -581,11 +608,16 @@ textarea::placeholder {
   margin: 3rem 0;
   padding: 2rem 2.5rem;
   border-left: 4px solid var(--color-gold);
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.95) 0%,
+    rgba(15, 23, 42, 0.98) 100%
+  );
   border-radius: 0 24px 24px 0;
   position: relative;
   backdrop-filter: blur(10px);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .magazine-pullquote p {
@@ -613,7 +645,11 @@ textarea::placeholder {
 .magazine-pro-tip {
   margin: 3rem 0;
   padding: 2rem;
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.9) 0%,
+    rgba(15, 23, 42, 0.9) 100%
+  );
   border: 1px solid rgba(251, 191, 36, 0.3);
   border-radius: 24px;
   display: flex;
@@ -663,7 +699,7 @@ textarea::placeholder {
 }
 
 .magazine-highlights li::before {
-  content: '→';
+  content: "→";
   position: absolute;
   left: 0;
   color: var(--color-gold);
@@ -689,6 +725,13 @@ textarea::placeholder {
 
   to {
     opacity: 1;
+
     transform: translateY(0);
   }
+}
+
+/* Hide Image Captions */
+figcaption,
+.magazine-figure figcaption {
+  display: none !important;
 }
