@@ -443,9 +443,16 @@ const PostDetailsPage = () => {
                   : "lg:col-span-12 max-w-4xl mx-auto"
               }
             >
+              <div className="prose prose-invert lg:prose-xl max-w-none text-gray-300">
+                <PostContentRenderer
+                  content={contentWithIds || post.content}
+                  postContext={post.title}
+                />
+              </div>
+
               {/* Contextual Map Section - Layer 1 & 3 */}
               {maps.length > 0 && (
-                <div className="mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="mt-16 mb-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
                   <h3 className="flex items-center gap-2 text-2xl font-serif font-bold text-white mb-6">
                     <MapPin size={24} className="text-gold" />
                     {t("post.interactiveMap") || "Interactive Map"}
@@ -453,13 +460,6 @@ const PostDetailsPage = () => {
                   <MapViewer mapData={maps[0]} postTitle={post?.title} />
                 </div>
               )}
-
-              <div className="prose prose-invert lg:prose-xl max-w-none text-gray-300">
-                <PostContentRenderer
-                  content={contentWithIds || post.content}
-                  postContext={post.title}
-                />
-              </div>
 
               {attractions && (
                 <div className="mt-16 p-8 bg-navy-800/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl">
