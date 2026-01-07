@@ -735,3 +735,6 @@ figcaption,
 .magazine-figure figcaption {
   display: none !important;
 }
+
+/* Aggressively hide all image overlays and captions */
+.magazine-figure > div, .magazine-figure figcaption, .magazine-figure span { display: none !important; }

@@ -8,6 +8,7 @@ import aiohttp
 import google.generativeai as genai
 from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
+from utils.visual_memory import VisualMemory
 
 # Load Env
 load_dotenv(find_dotenv())
@@ -23,11 +24,92 @@ if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
     print("❌ Missing API Keys in environment")
     exit(1)
 
-if not os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
-    print("⚠️ WARNING: No SUPABASE_SERVICE_ROLE_KEY found. Using anon key - may fail due to RLS.")
+# Initialize Visual Memory
+visual_memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY)
 
 # Initialize Gemini
 genai.configure(api_key=GEMINI_KEY)
+# ... [Start of Config/Posts List remains same] ...
+
+# ... [SupabaseClient Class remains same] ...
+
+async def fetch_featured_image(query):
+    """
+    Fetches image from Unsplash AND ingests it into Visual Memory.
+    Returns the INTERNAL Supabase URL.
+    """
+    if not UNSPLASH_KEY:
+        return None
+    
+    print(f"   🔍 Searching Unsplash for: {query}")
+    url = f"https://api.unsplash.com/search/photos?query={query}&per_page=1&client_id={UNSPLASH_KEY}"
+    
+    unsplash_url = None
+    unsplash_credit = ""
+    unsplash_alt = ""
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    if data['results']:
+                        img = data['results'][0]
+                        unsplash_url = img['urls']['regular']
+                        unsplash_alt = img['alt_description'] or query
+                        unsplash_credit = f"Photo by {img['user']['name']} on Unsplash"
+                elif resp.status in [403, 429]:
+                     print("      ⚠️ Unsplash Limit. Waiting 5s...")
+                     time.sleep(5)
+                     # Retry once logic could go here
+    except Exception as e:
+        print(f"      ⚠️ Fetch failed: {e}")
+
+    if unsplash_url:
+        # INGESTION HOOK
+        # We use the query as the title/alt base if needed
+        internal_url = await visual_memory.ingest_image(unsplash_url, query, tags=[query, "featured"])
+        return internal_url
+        
+    return None
+
+async def post_process_images_in_content(content, post_title=""):
+    import re
+    # 1. Replace Placeholders [IMAGE: ...]
+    # 2. Ingest found images
+    
+    img_pattern = r'\[IMAGE:\s*(.*?)\]'
+    matches = re.findall(img_pattern, content, flags=re.IGNORECASE)
+    
+    new_content = content
+    
+    for keyword in matches:
+        print(f"   🖼️  Processing Placeholder: {keyword}")
+        # Search & Ingest
+        internal_url = await fetch_featured_image(keyword)
+        
+        if internal_url:
+            # Create HTML
+            html = f"""
+            <figure class="magazine-figure" style="margin: 3.5rem 0; clear: both; position: relative; overflow: hidden; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+                <img src="{internal_url}" alt="{keyword}" style="width: 100%; height: auto; display: block;" />
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); padding: 2rem 1.5rem 1rem;">
+                    <figcaption style="text-align: left; font-size: 0.95rem; color: #ffffff; font-weight: 500; font-family: 'Outfit', 'Inter', sans-serif;">
+                        {keyword}
+                    </figcaption>
+                </div>
+            </figure>
+            """
+            # Replace ONE instance
+            pattern = rf'\[IMAGE:\s*{re.escape(keyword)}\s*\]'
+            new_content = re.sub(pattern, html, new_content, count=1, flags=re.IGNORECASE)
+        else:
+            # Remove failed placeholder
+             pattern = rf'\[IMAGE:\s*{re.escape(keyword)}\s*\]'
+             new_content = re.sub(pattern, "", new_content, count=1, flags=re.IGNORECASE)
+
+    return new_content
+
 model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
 POSTS_TO_GENERATE = [

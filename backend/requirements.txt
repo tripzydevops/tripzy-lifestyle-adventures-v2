@@ -1,5 +1,9 @@
 fastapi
 uvicorn
 python-dotenv
+
 aiohttp
 google-generativeai
+Pillow
+supabase
+
