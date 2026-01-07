@@ -86,6 +86,8 @@ const HomePage = () => {
       setLoading(true);
 
       // 1. Try to get Personalized Recommendations from Tripzy SDK
+      // DISABLED: User prefers standard feed for "Latest Stories".
+      /*
       if (tripzy) {
         try {
           // If first page, ask the Brain
@@ -106,7 +108,8 @@ const HomePage = () => {
             err
           );
         }
-      }
+      } 
+      */
 
       // 2. Fallback: Standard Chronological Feed
       const { posts: fetchedPosts, totalPages: fetchedTotalPages } =
