@@ -321,10 +321,14 @@ async def fix_images_main():
             print(f"[{post['title']}] Fixing Featured Image...")
             
             # Smart Fallback Search Strategy
+            # Extract potential location name (first word is often the key in Turkish titles like "Bodrum...", "Antalya...")
+            first_word = post['title'].split(" ")[0]
+            
             queries = [
                 post['title'] + " travel",
                 post['title'],
-                " ".join(post['title'].split(" ")[:2]), # First 2 words
+                f"{first_word} Turkey travel", # Try adding country context
+                first_word, # Just the location name
                 "Travel" # Last resort
             ]
             

@@ -455,7 +455,7 @@ const PostDetailsPage = () => {
                 <div className="mt-16 mb-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
                   <h3 className="flex items-center gap-2 text-2xl font-serif font-bold text-white mb-6">
                     <MapPin size={24} className="text-gold" />
-                    {t("post.interactiveMap") || "Interactive Map"}
+                    {t("post.interactiveMap") || "Tripzy Interactive Map"}
                   </h3>
                   <MapViewer mapData={maps[0]} postTitle={post?.title} />
                 </div>
