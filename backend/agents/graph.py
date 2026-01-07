@@ -113,17 +113,17 @@ async def supabase_retrieve_context(query_text: str, vibe_filter: str):
                 post_url = f"{SUPABASE_URL}/rest/v1/posts"
                 post_params = {
                     "id": f"in.({','.join(ids)})",
-                    "select": "title,excerpt,url" # url might not exist in schema, schema has slug
+                    "select": "title,excerpt,slug" 
                 }
-                # headers["Accept-Profile"] = "blog" # Ensure we read from blog schema
                 
-                # We need to set Profile header to read from blog schema?
+                # We need to set Profile header to read from blog schema
                 read_headers = headers.copy()
                 read_headers["Accept-Profile"] = "blog" 
                 
                 async with session.get(post_url, headers=read_headers, params=post_params) as detail_r:
                     posts = await detail_r.json()
                     return posts
+
 
         except Exception as e:
             print(f"Retrieval Error: {e}")

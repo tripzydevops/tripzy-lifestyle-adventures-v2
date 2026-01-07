@@ -76,7 +76,7 @@ supabase = SupabaseClient(SUPABASE_URL, SUPABASE_KEY)
 
 async def generate_embedding(text):
     try:
-        result = embed_model.embed_content(
+        result = genai.embed_content(
             model="models/text-embedding-004",
             content=text,
             task_type="retrieval_document",
