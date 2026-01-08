@@ -111,12 +111,8 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url={
-              mapData.mapStyle === "satellite"
-                ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            }
+            attribution="Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012"
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
           />
 
           {mapData.data?.map((point: any, idx: number) => (
@@ -179,14 +175,18 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
         </MapContainer>
       </div>
 
-      <div className="bg-navy-900 p-4 border-t border-white/5 flex flex-wrap gap-2">
+      <div className="bg-navy-900 p-4 border-t border-white/5 flex flex-wrap gap-3">
         {mapData.data?.map((point: any, idx: number) => (
           <button
             key={idx}
-            className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+            onClick={() => {
+              // Logic to focus map on this point could be added here
+              setActiveMarker(point.title);
+            }}
+            className={`text-sm px-4 py-2 rounded-lg border transition-all shadow-sm ${
               activeMarker === point.title
-                ? "bg-gold text-navy-950 border-gold font-bold"
-                : "bg-navy-800 text-gray-400 border-white/5 hover:bg-white/5"
+                ? "bg-gold text-navy-950 border-gold font-bold shadow-gold/20"
+                : "bg-navy-800 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white"
             }`}
           >
             {point.title}

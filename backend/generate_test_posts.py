@@ -29,9 +29,25 @@ genai.configure(api_key=GEMINI_KEY)
 model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
 TEST_POSTS = [
-    {"title": "Amman: The White City", "lang": "en", "category": "History", "tags": ["Amman", "Jordan", "Middle East", "Ruins"]},
-    {"title": "Seul: Gelenek ve Gelecek", "lang": "tr", "category": "Technology", "tags": ["Seul", "Güney Kore", "Asya", "Teknoloji"]}
+    {"title": "Dubai: The City of the Future", "lang": "en", "category": "Luxury", "tags": ["Dubai", "UAE", "Luxury", "Architecture"]},
+    {"title": "Barselona: Gaudi'nin Rüyası ve Katalan Ruhu", "lang": "tr", "category": "Art", "tags": ["Barselona", "İspanya", "Gaudi", "Sanat"]}
 ]
+
+async def check_duplicate(title):
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+         "Accept-Profile": "blog",
+        "Content-Profile": "blog"
+    }
+    async with aiohttp.ClientSession() as session:
+        safe_title = title.split(':')[0]
+        url = f"{SUPABASE_URL}/rest/v1/posts?title=ilike.{safe_title}%&select=id"
+        async with session.get(url, headers=headers) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return len(data) > 0
+            return False
 
 async def fetch_featured_image(query):
     """Search Unsplash and Ingest."""
@@ -60,33 +76,59 @@ async def generate_content_ai(post):
     print(f"\n🧠 Generating content for: {post['title']}...")
     
     prompt = f"""
-    Write a premium magazine-style travel blog post about "{post['title']}".
+    You are an expert investigative travel journalist for a premium lifestyle magazine (like Condé Nast Traveler).
+    Write a DEEP, COMPREHENSIVE, LONG-FORM blog post about "{post['title']}".
     Language: {post['lang']}
+    Target Audience: High-net-worth individuals, adventure seekers, and culture enthusiasts.
+    Length: Minimum 1500 words.
     
-    REQUIRED JSON FORMAT:
+    REQUIRED JSON DATA (Strictly follow this structure):
     {{
         "title": "{post['title']}",
-        "excerpt": "Short engaging summary...",
-        "content": "<h1>Title</h1><p>Intro...</p><h2>Section 1</h2><p>Content... [IMAGE: {post['tags'][0]} | Caption] ...</p><h2>Section 2</h2><p>... [IMAGE: {post['tags'][3]} | Caption] ...</p>",
+        "excerpt": "A captivating, SEO-optimized summary (150-160 chars) that hooks the reader instantly.",
+        "meta_title": "SEO Title | Brand",
+        "meta_description": "SEO Description",
+        "meta_keywords": ["keyword1", "keyword2", "keyword3"],
+        "content": "HTML_CONTENT_HERE",
         "tags": {post['tags']},
         "category": "{post['category']}",
         "map_data": [
-            {{"name": "POI 1 Name", "lat": 0.0, "lng": 0.0, "category": "history"}},
-            {{"name": "POI 2 Name", "lat": 0.0, "lng": 0.0, "category": "food"}}
+            {{"name": "Specific Landmark 1", "lat": 0.0, "lng": 0.0, "category": "history", "description": "Short reasoning why to visit."}},
+            {{"name": "Hidden Gem 2", "lat": 0.0, "lng": 0.0, "category": "food", "description": "Best dish to order."}},
+            {{"name": "Nature Spot 3", "lat": 0.0, "lng": 0.0, "category": "nature", "description": "Best time to go."}},
+             {{"name": "Luxury Stay 4", "lat": 0.0, "lng": 0.0, "category": "activity", "description": "Why it is unique."}}
         ]
     }}
     
-    Ensure 2 distinct [IMAGE: query | caption] placeholders are included in the content HTML.
-    Ensure 'map_data' contains REAL coordinates for 3-4 top spots in this location.
-    Return ONLY JSON.
+    CONTENT REQUIREMENTS:
+    1.  **HTML Format**: Use <h1>, <h2>, <h3>, <p>, <blockquote>, <ul>/<li>.
+    2.  **Structure**:
+        -   **Introduction**: Set the scene, emotional hook.
+        -   **History/Context**: Deep dive into the past.
+        -   **3-4 Main Sections**: Detailed exploration of areas/themes.
+        -   **Practical Guide**: When to go, where to stay.
+        -   **Conclusion**: Final thought.
+    3.  **Imagery**: You MUST include exactly **5** `[IMAGE: specific query | detailed caption]` placeholders distributed evenly.
+        -   Example: `[IMAGE: sunset over Burj Khalifa | The breathtaking view from the observation deck]`
+    4.  **Tone**: Sophisticated, knowledgeable, inspiring.
+    5.  **Map Data**: Provide 4-6 REAL, accurate coordinates.
+    
+    Return ONLY valid JSON.
     """
     
-    response = model.generate_content(prompt)
-    txt = response.text.strip()
-    # Clean code blocks
-    if txt.startswith("```json"): txt = txt[7:]
-    if txt.endswith("```"): txt = txt[:-3]
-    return json.loads(txt.strip())
+    try:
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json"
+            )
+        )
+        txt = response.text.strip()
+        return json.loads(txt)
+    except Exception as e:
+        print(f"🔥 AI Generation Error: {e}")
+        print(f"Raw Output start: {response.text[:100]}...")
+        raise e
 
 async def post_process_content(content):
     print("   🎨 Processing Images...")
@@ -124,7 +166,10 @@ async def save_to_supabase(post_data, featured_image):
         "category": post_data['category'],
         "featured_image": featured_image,
         "author_id": "d0d8c19c-8808-4903-b8aa-66de731e8470", 
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.utcnow().isoformat(),
+        "meta_title": post_data.get('meta_title', post_data['title']),
+        "meta_description": post_data.get('meta_description', post_data['excerpt']),
+        "meta_keywords": post_data.get('meta_keywords', [])
     }
     
     headers = {
@@ -214,10 +259,16 @@ async def save_to_supabase(post_data, featured_image):
     print(f"   ✅ Published: {post_data['title']}")
 
 async def main():
-    print("🚀 Starting Test Generation...")
+    print("🚀 Starting Test Generation (High Quality Mode)...")
     for p in TEST_POSTS:
         try:
+            # 0. Check Duplicate
+            if await check_duplicate(p['title']):
+                print(f"⏩ Skipping {p['title']} (Already exists)")
+                continue
+
             # 1. Generate Text & Map Data
+           # ... rest of logic
             data = await generate_content_ai(p)
             data['lang'] = p['lang'] # Ensure lang is preserved
             
