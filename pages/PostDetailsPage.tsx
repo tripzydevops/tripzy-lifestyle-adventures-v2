@@ -118,6 +118,8 @@ const PostDetailsPage = () => {
         setPost(null);
       } finally {
         setLoading(false);
+        // Ensure page starts at top when post content loads
+        window.scrollTo(0, 0);
       }
     };
     fetchPostData();

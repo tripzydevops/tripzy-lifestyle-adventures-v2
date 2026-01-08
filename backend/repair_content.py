@@ -74,11 +74,11 @@ async def fetch_featured_image(query):
     # Fallback if no Unsplash result or error
     if not unsplash_url:
         fallbacks = [
-            "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1",
-            "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800",
-            "https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
-            "https://images.unsplash.com/photo-1530789253388-582c481c54b0", 
-            "https://images.unsplash.com/photo-1528127269322-539801943592"
+            "https://images.unsplash.com/photo-1501785888041-af3ef285b470", # Nature Landscape
+            "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800", # Roadtrip
+            "https://images.unsplash.com/photo-1500835556837-99ac94a94552", # Travel General
+            "https://images.unsplash.com/photo-1488646953014-85cb44e25828", # Mapping
+            "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1"  # Mountains
         ]
         unsplash_url = random.choice(fallbacks)
 
@@ -115,7 +115,7 @@ async def generate_high_quality_content(post):
     REQUIREMENTS:
     1.  **Length**: Minimum 1500 words.
     2.  **Images**: Include exactly **5** `[IMAGE: query | caption]` placeholders.
-    3.  **Map Data**: Include 4-6 specific POIs.
+    3.  **Map Data**: Include 4-6 specific POIs. **EACH POI MUST HAVE A 'description'**.
     4.  **Format**: Return JSON.
     
     REQUIRED JSON STRUCTURE:
@@ -123,7 +123,7 @@ async def generate_high_quality_content(post):
         "title": "{post['title']}",
         "excerpt": "SEO optimized summary...",
         "content": "HTML with placeholders...",
-        "map_data": [ {{ "name": "...", "lat": 0.0, "lng": 0.0, "category": "..." }} ],
+        "map_data": [ {{ "name": "...", "lat": 0.0, "lng": 0.0, "category": "...", "description": "Short reasoning..." }} ],
         "tags": ["tag1"],
         "meta_title": "...",
         "meta_description": "..."
