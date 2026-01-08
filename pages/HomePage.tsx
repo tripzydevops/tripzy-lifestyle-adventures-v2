@@ -120,7 +120,11 @@ const HomePage = () => {
       setTotalPages(fetchedTotalPages);
       setAiIntent(null);
       setLoading(false);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      setLoading(false);
+      // Scroll to the stories section, not the top of the page (Hero)
+      document
+        .getElementById("latest-stories")
+        ?.scrollIntoView({ behavior: "smooth" });
     };
 
     fetchContent();
