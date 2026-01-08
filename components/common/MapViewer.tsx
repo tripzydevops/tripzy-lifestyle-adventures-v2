@@ -167,9 +167,9 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
                     href={`https://www.google.com/maps/dir/?api=1&destination=${point.lat},${point.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors"
+                    className="flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold py-2.5 px-3 rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
                   >
-                    <Navigation size={14} />
+                    <Navigation size={14} className="text-black" />
                     Get Directions
                   </a>
                 </div>
