@@ -23,6 +23,15 @@ async def main():
             for p in posts:
                 print(f"- {p['title']} ({p['lang']}) - {p['status']}")
                 print(f"  Image: {p.get('featured_image', 'N/A')[:50]}...")
+                content = p.get('content', '')
+                if '<img' in content:
+                    import re
+                    matches = re.findall(r'<img[^>]+>', content)
+                    print(f"  Content Images Found: {len(matches)}")
+                    for m in matches[:2]:
+                        print(f"    - {m[:100]}...")
+                else:
+                    print("  No <img> tags in content.")
 
 if __name__ == "__main__":
     asyncio.run(main())
