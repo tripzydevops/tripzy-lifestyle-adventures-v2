@@ -71,16 +71,10 @@ async def fetch_featured_image(query):
     except Exception as e:
         print(f"⚠️ Fetch failed: {e}")
 
-    # Fallback if no Unsplash result or error
+    # If no Unsplash result or error, return None
     if not unsplash_url:
-        fallbacks = [
-            "https://images.unsplash.com/photo-1501785888041-af3ef285b470", # Nature Landscape
-            "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800", # Roadtrip
-            "https://images.unsplash.com/photo-1500835556837-99ac94a94552", # Travel General
-            "https://images.unsplash.com/photo-1488646953014-85cb44e25828", # Mapping
-            "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1"  # Mountains
-        ]
-        unsplash_url = random.choice(fallbacks)
+        print(f"      ⚠️ No relevant image found for '{query}'. Leaving placeholder and flagging for review.")
+        return None  # Signal that we failed to find an image
 
     # Ingest using visual memory (downloads + embeds + uploads to supabase)
     return await visual_memory.ingest_image(unsplash_url, query, tags=[query, "repair-gen"])
@@ -91,6 +85,8 @@ async def post_process_content(content):
     matches = re.findall(img_pattern, content, flags=re.IGNORECASE)
     
     new_content = content
+    missing_images = False
+    
     for match_str in matches:
         parts = match_str.split('|')
         query = parts[0].strip()
@@ -101,8 +97,10 @@ async def post_process_content(content):
             html = f'<figure class="my-8"><img src="{img_url}" alt="{caption}" class="rounded-xl shadow-lg w-full" /><figcaption class="text-center text-sm text-gray-500 mt-2 italic">{caption}</figcaption></figure>'
             pattern = rf'\[IMAGE:\s*{re.escape(match_str)}\s*\]'
             new_content = re.sub(pattern, html, new_content, count=1, flags=re.IGNORECASE)
+        else:
+            missing_images = True
     
-    return new_content
+    return new_content, missing_images
 
 async def generate_high_quality_content(post):
     print(f"\n🧠 Re-Generating: {post['title']}...")
@@ -142,8 +140,13 @@ async def generate_high_quality_content(post):
         print(f"🔥 AI Gen Error: {e}")
         return None
 
-async def update_post(post_id, data, map_data):
+async def update_post(post_id, data, map_data, missing_images=False):
     print(f"   💾 Updating Post {post_id}...")
+    
+    # Determined Status
+    new_status = 'draft' if missing_images else 'published'
+    if missing_images:
+        print("      ⚠️ Post has missing images. Downgrading to DRAFT.")
     
     # 1. Update Post Content
     post_payload = {
@@ -151,6 +154,7 @@ async def update_post(post_id, data, map_data):
         "excerpt": data.get('excerpt'),
         "meta_title": data.get('meta_title'),
         "meta_description": data.get('meta_description'),
+        "status": new_status,
         "updated_at": datetime.utcnow().isoformat()
     }
     
@@ -195,39 +199,32 @@ async def main():
                  new_data = await generate_high_quality_content(post)
                  if new_data:
                      # Process newly generated placeholders
-                     new_data['content'] = await post_process_content(new_data['content'])
-                     await update_post(post['id'], new_data, new_data.get('map_data'))
+                     final_content, missing_images = await post_process_content(new_data['content'])
+                     new_data['content'] = final_content
+                     await update_post(post['id'], new_data, new_data.get('map_data'), missing_images=missing_images)
                      print("   ✅ REGEN COMPLETE.")
             
             elif has_placeholders:
                  print(f"🔧 Image Fix Only: {post['title']} (Converting Placeholders)")
                  # Process existing content placeholders
-                 final_content = await post_process_content(content)
+                 final_content, missing_images = await post_process_content(content)
                  
                  # Prepare partial update payload (just content)
-                 # We construct a synthetic 'data' object for update_post, but we ONLY want content update.
-                 # Actually update_post expects 'data' dict.
-                 
                  partial_data = {
                      'content': final_content,
                      'excerpt': post.get('excerpt'), # Preserve
                      'title': post.get('title') # for logging/map name
                  }
                  
-                 # NOTE: map_data is not available if we don't regen. 
-                 # But usually if we just fix images, map is already there or we don't touch it.
-                 # Let's pass None for map_data to skip map update?
-                 # Yes, update_post handles map_data if truthy.
-                 
-                 await update_post(post['id'], partial_data, None)
+                 await update_post(post['id'], partial_data, None, missing_images=missing_images)
                  print("   ✅ IMAGES FIXED.")
                  
             elif not has_img_tags:
                  print(f"🔧 Full Regen: {post['title']} (Missing Visuals)")
                  new_data = await generate_high_quality_content(post)
                  if new_data:
-                     new_data['content'] = await post_process_content(new_data['content'])
-                     await update_post(post['id'], new_data, new_data.get('map_data'))
+                     new_data['content'], missing_images = await post_process_content(new_data['content'])
+                     await update_post(post['id'], new_data, new_data.get('map_data'), missing_images=missing_images)
                      print("   ✅ REGEN COMPLETE.")
             
             else:

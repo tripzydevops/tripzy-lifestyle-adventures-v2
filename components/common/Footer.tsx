@@ -15,9 +15,12 @@ import { newsletterService } from "../../services/newsletterService";
 const TRIPZY_APP_URL =
   import.meta.env.VITE_TRIPZY_APP_URL || "https://tripzy.travel";
 
+import { useToast } from "../../hooks/useToast";
+
 const Footer = () => {
   const [email, setEmail] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const { addToast } = useToast();
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,11 +30,10 @@ const Footer = () => {
       await newsletterService.subscribe(email);
       setIsSubscribed(true);
       setEmail("");
+      addToast("Subscribed successfully!", "success");
     } catch (error) {
       console.error("Subscription failed:", error);
-      // Ideally show a toast here, but we'll stick to the existing UI flow for now
-      // or set an error state if needed.
-      alert("Failed to subscribe. Please try again.");
+      addToast("Failed to subscribe. Please try again.", "error");
     }
   };
 

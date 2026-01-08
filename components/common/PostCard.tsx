@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Post } from "../../types";
-import { Calendar, Tag, PlayCircle, ArrowRight } from "lucide-react";
+import { Calendar, Tag, PlayCircle, Clock, ArrowRight } from "lucide-react";
 import { useSignalTracker } from "../../hooks/useSignalTracker";
 import { unsplashService } from "../../services/unsplashService";
 
@@ -12,6 +12,15 @@ interface PostCardProps {
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { trackClick } = useSignalTracker();
   const [displayImg, setDisplayImg] = React.useState(post.featuredMediaUrl);
+
+  // Calculate Read Time (Avg 200 wpm)
+  const readTime = React.useMemo(() => {
+    const wordCount = post.content
+      ? post.content.replace(/<[^>]+>/g, "").split(" ").length
+      : 0;
+    const minutes = Math.ceil(wordCount / 200);
+    return `${minutes} min read`;
+  }, [post.content]);
 
   React.useEffect(() => {
     // If no image or it's a placeholder, try to find a relevant one
@@ -86,6 +95,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </div>
           )}
         </Link>
+
+        {/* Read Time Badge */}
+        <div className="absolute top-4 right-4 bg-navy-950/80 backdrop-blur-sm text-slate-300 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg border border-white/10">
+          <Clock size={12} className="text-gold" />
+          {readTime}
+        </div>
 
         {/* Category Badge */}
         <Link

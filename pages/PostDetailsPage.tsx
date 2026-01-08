@@ -17,6 +17,7 @@ import {
   MapPin,
   ExternalLink,
   Sparkles,
+  ChevronRight, // Added
 } from "lucide-react";
 import SocialShareButtons from "../components/common/SocialShareButtons";
 import RelatedPosts from "../components/common/RelatedPosts";
@@ -326,6 +327,27 @@ const PostDetailsPage = () => {
           )}
           <div className="absolute inset-0 bg-black/60"></div>
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative h-full flex flex-col justify-end pb-12 text-white">
+            {/* Breadcrumbs */}
+            <div className="flex items-center gap-2 text-sm text-slate-300 mb-4 font-medium uppercase tracking-wider animate-fade-in-down">
+              <Link
+                to="/"
+                className="hover:text-gold transition-colors flex items-center gap-1"
+              >
+                Home
+              </Link>
+              <ChevronRight size={14} className="opacity-50" />
+              <Link
+                to={`/category/${post.category}`}
+                className="hover:text-gold transition-colors"
+              >
+                {post.category}
+              </Link>
+              <ChevronRight size={14} className="opacity-50" />
+              <span className="text-white opacity-75 line-clamp-1 border-l border-white/20 pl-2">
+                {post.title}
+              </span>
+            </div>
+
             <h1 className="text-4xl md:text-6xl font-bold font-serif">
               {post.title}
             </h1>

@@ -12,6 +12,7 @@ import { useLanguage } from "../localization/LanguageContext";
 
 import { useTripzy } from "../hooks/useTripzy";
 import DiscoveryHero from "../components/home/DiscoveryHero";
+import SkeletonPostCard from "../components/common/SkeletonPostCard";
 
 const TRIPZY_APP_URL =
   import.meta.env.VITE_TRIPZY_APP_URL || "https://tripzy.travel";
@@ -254,49 +255,49 @@ const HomePage = () => {
               </button>
             </div>
 
-            {loading ? (
-              <div className="flex justify-center py-20">
-                <Spinner />
-              </div>
-            ) : posts.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {posts.map((post, index) => (
-                    <div
-                      key={post.id}
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                      className="animate-fade-in"
-                    >
-                      <PostCard post={post} />
-                    </div>
-                  ))}
+            {/* Posts Grid */}
+            <div
+              id="latest-stories"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            >
+              {loading ? (
+                // Skeleton Loading State
+                Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonPostCard key={i} />
+                ))
+              ) : posts.length > 0 ? (
+                posts.map((post, index) => (
+                  <div
+                    key={post.id}
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                    className="animate-fade-in"
+                  >
+                    <PostCard post={post} />
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-20 bg-navy-800/50 rounded-2xl border border-white/5">
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-navy-800 flex items-center justify-center">
+                    <Sparkles className="w-10 h-10 text-gold" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">
+                    {t("homepage.noPostsFound")}
+                  </h3>
+                  <p className="text-slate-400">
+                    Try adjusting your search or filters.
+                  </p>
                 </div>
+              )}
+            </div>
+
+            {/* Pagination - Only show if posts exist and we are not loading */}
+            {!loading && posts.length > 0 && (
+              <div className="mt-12">
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
                   onPageChange={setCurrentPage}
                 />
-              </>
-            ) : (
-              <div className="text-center py-20">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-navy-800 flex items-center justify-center">
-                  <Sparkles className="w-10 h-10 text-gold" />
-                </div>
-                <h3 className="text-2xl font-semibold text-white mb-2">
-                  Coming Soon
-                </h3>
-                <p className="text-slate-400 mb-8">
-                  We're working on amazing travel stories. Check back soon!
-                </p>
-                <a
-                  href={TRIPZY_APP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-gradient-to-r from-gold to-gold-dark text-navy-950 px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-gold/30 transition-all"
-                >
-                  <MapPin className="w-5 h-5" />
-                  Explore Deals on Tripzy
-                </a>
               </div>
             )}
           </div>
