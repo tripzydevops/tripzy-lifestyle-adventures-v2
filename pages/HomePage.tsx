@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
 import PostCard from "../components/common/PostCard";
@@ -30,6 +30,7 @@ const HomePage = () => {
   const [videos, setVideos] = useState<YoutubeVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedLang, setSelectedLang] = useState<string>("all");
+  const isFirstRender = useRef(true);
 
   // Hybrid Search Logic
   const handleSearch = async (term: string, vibes: string[]) => {
@@ -122,10 +123,15 @@ const HomePage = () => {
       setAiIntent(null);
       setLoading(false);
       setLoading(false);
-      // Scroll to the stories section, not the top of the page (Hero)
-      document
-        .getElementById("latest-stories")
-        ?.scrollIntoView({ behavior: "smooth" });
+
+      // Scroll to the stories section ONLY if it's not the initial mount
+      if (!isFirstRender.current) {
+        document
+          .getElementById("latest-stories")
+          ?.scrollIntoView({ behavior: "smooth" });
+      } else {
+        isFirstRender.current = false;
+      }
     };
 
     fetchContent();
