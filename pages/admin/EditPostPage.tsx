@@ -633,12 +633,10 @@ const EditPostPage = () => {
                 <div>
                   <h3 className="text-xl font-serif font-bold text-white flex items-center gap-2">
                     <Bot size={20} className="text-gold" />
-                    {t("admin.form.intelligenceMetadata") ||
-                      "Intelligence Intelligence"}
+                    {t("admin.form.intelligenceMetadata")}
                   </h3>
                   <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold">
-                    {t("admin.ai.reasoningSignals") ||
-                      "Autonomous Reasoning Signals"}
+                    {t("admin.ai.reasoningSignals")}
                   </p>
                 </div>
               </div>
@@ -649,7 +647,7 @@ const EditPostPage = () => {
                     htmlFor="intent"
                     className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
                   >
-                    {t("admin.form.intent") || "User Intent"}
+                    {t("admin.form.intent")}
                   </label>
                   <input
                     type="text"
@@ -665,7 +663,7 @@ const EditPostPage = () => {
                       }))
                     }
                     className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
-                    placeholder="e.g. Family Cultural Trip"
+                    placeholder={t("admin.placeholder.intent")}
                   />
                 </div>
                 <div className="space-y-2">
@@ -673,7 +671,7 @@ const EditPostPage = () => {
                     htmlFor="vibe"
                     className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
                   >
-                    {t("admin.form.vibePersona") || "Lifestyle Vibe"}
+                    {t("admin.form.vibePersona")}
                   </label>
                   <input
                     type="text"
@@ -689,7 +687,7 @@ const EditPostPage = () => {
                       }))
                     }
                     className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
-                    placeholder="e.g. Luxury, Adventure..."
+                    placeholder={t("admin.placeholder.vibe")}
                   />
                 </div>
 
@@ -698,7 +696,7 @@ const EditPostPage = () => {
                     htmlFor="reasoning"
                     className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
                   >
-                    {t("admin.form.reasoning") || "Agent Reasoning"}
+                    {t("admin.form.reasoning")}
                   </label>
                   <textarea
                     id="reasoning"
@@ -714,7 +712,7 @@ const EditPostPage = () => {
                       }))
                     }
                     className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
-                    placeholder="Why this recommendation?"
+                    placeholder={t("admin.placeholder.reasoning")}
                   />
                 </div>
 
@@ -723,8 +721,7 @@ const EditPostPage = () => {
                     htmlFor="constraints"
                     className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
                   >
-                    {t("admin.form.primaryConstraint") ||
-                      "Constraints (Comma separated)"}
+                    {t("admin.form.constraints")}
                   </label>
                   <input
                     type="text"
@@ -745,7 +742,7 @@ const EditPostPage = () => {
                       }))
                     }
                     className="w-full bg-navy-800/30 border border-white/5 rounded-2xl px-5 py-3 text-gray-300 focus:outline-none focus:border-gold/30"
-                    placeholder="Budget, Kids..."
+                    placeholder={t("admin.placeholder.constraints")}
                   />
                 </div>
                 <div className="space-y-2">
@@ -753,7 +750,7 @@ const EditPostPage = () => {
                     htmlFor="confidence"
                     className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1"
                   >
-                    {t("admin.form.confidence") || "Confidence Score"}
+                    {t("admin.form.confidence")}
                   </label>
                   <input
                     type="number"

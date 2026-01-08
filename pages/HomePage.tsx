@@ -28,6 +28,7 @@ const HomePage = () => {
   const [aiIntent, setAiIntent] = useState<string | null>(null);
   const [videos, setVideos] = useState<YoutubeVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedLang, setSelectedLang] = useState<string>("all");
 
   // Hybrid Search Logic
   const handleSearch = async (term: string, vibes: string[]) => {
@@ -61,8 +62,9 @@ const HomePage = () => {
         }
       } else {
         // Fallback if no SDK or no query
+        // Fallback if no SDK or no query
         const { posts: fetchedPosts, totalPages: fetchedTotalPages } =
-          await postService.getPublishedPosts(1); // Reset to page 1
+          await postService.getPublishedPosts(1, 10, selectedLang); // Reset to page 1
         setPosts(fetchedPosts);
       }
     } catch (e) {
@@ -209,6 +211,43 @@ const HomePage = () => {
               <p className="text-slate-400 max-w-2xl mx-auto">
                 {t("homepage.heroSubtitle")}
               </p>
+            </div>
+
+            {/* Language Filter */}
+            <div
+              className="flex flex-wrap gap-2 mb-8 justify-center animate-fade-in"
+              style={{ animationDelay: "0.1s" }}
+            >
+              <button
+                onClick={() => setSelectedLang("all")}
+                className={`px-6 py-2 rounded-full text-sm font-bold transition-all border ${
+                  selectedLang === "all"
+                    ? "bg-gold text-navy-950 border-gold shadow-[0_0_15px_rgba(250,189,0,0.3)] scale-105"
+                    : "bg-navy-800/50 text-slate-300 border-white/10 hover:border-gold/50 hover:text-white"
+                }`}
+              >
+                All Stories
+              </button>
+              <button
+                onClick={() => setSelectedLang("en")}
+                className={`px-6 py-2 rounded-full text-sm font-bold transition-all border ${
+                  selectedLang === "en"
+                    ? "bg-gold text-navy-950 border-gold shadow-[0_0_15px_rgba(250,189,0,0.3)] scale-105"
+                    : "bg-navy-800/50 text-slate-300 border-white/10 hover:border-gold/50 hover:text-white"
+                }`}
+              >
+                English
+              </button>
+              <button
+                onClick={() => setSelectedLang("tr")}
+                className={`px-6 py-2 rounded-full text-sm font-bold transition-all border ${
+                  selectedLang === "tr"
+                    ? "bg-gold text-navy-950 border-gold shadow-[0_0_15px_rgba(250,189,0,0.3)] scale-105"
+                    : "bg-navy-800/50 text-slate-300 border-white/10 hover:border-gold/50 hover:text-white"
+                }`}
+              >
+                Türkçe
+              </button>
             </div>
 
             {loading ? (

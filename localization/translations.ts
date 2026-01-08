@@ -204,11 +204,19 @@ export interface Translations {
       uiDirective: string;
       intelligenceMetadata: string;
       vibePersona: string;
+      intent: string; // New
+      reasoning: string; // New
+      constraints: string; // New
+      confidence: string; // New
     };
     placeholder: {
       title: string;
       excerpt: string;
       metaKeywords: string;
+      intent: string; // New
+      vibe: string; // New
+      reasoning: string; // New
+      constraints: string; // New
     };
     ai: {
       generating: string;
@@ -624,6 +632,10 @@ export const translations: Record<Language, Translations> = {
         uiDirective: "UI Directive",
         intelligenceMetadata: "Intelligence Metadata",
         vibePersona: "Vibe / Persona",
+        intent: "User Intent",
+        reasoning: "Agent Reasoning",
+        constraints: "Constraints (Comma separated)",
+        confidence: "Confidence Score",
       },
       settings: {
         title: "System Configuration",
@@ -778,6 +790,10 @@ export const translations: Record<Language, Translations> = {
         title: "Enter a captivating headline...",
         excerpt: "A short, catchy summary for travel lists...",
         metaKeywords: "adventure, city guide, hidden gem",
+        intent: "e.g. Family Cultural Trip", // New
+        vibe: "e.g. Luxury, Adventure...", // New
+        reasoning: "Why this recommendation?", // New
+        constraints: "Budget, Kids...", // New
       },
       ai: {
         generating: "Generate with AI",
@@ -858,7 +874,7 @@ export const translations: Record<Language, Translations> = {
       badge: "Yapay Zeka Destekli Planlama",
       title: "Bir sonraki",
       subtitle:
-        "Yapay zeka seyahat danışmanımız, sizin için mükemmel günlük program oluşturmak üzere Google'ın gerçek zamanlı verilerini kullanır.",
+        "Yapay zeka seyahat danışmanımız, sizin için mükemmel günlük programı oluşturmak üzere Google'ın gerçek zamanlı verilerini kullanır.",
       destinationPlaceholder: "örn., Tokyo, Japonya",
       duration: "Süre",
       days: "Gün",
@@ -1038,6 +1054,10 @@ export const translations: Record<Language, Translations> = {
         uiDirective: "UI Yönergesi",
         intelligenceMetadata: "Zeka Metaverisi",
         vibePersona: "Vibe / Persona",
+        intent: "Kullanıcı Niyeti", // New
+        reasoning: "Ajan Muhakemesi", // New
+        constraints: "Kısıtlamalar (Virgülle ayırın)", // New
+        confidence: "Güven Skoru", // New
       },
       settings: {
         title: "Sistem Yapılandırması",
@@ -1113,6 +1133,10 @@ export const translations: Record<Language, Translations> = {
         title: "Etkileyici bir başlık girin...",
         excerpt: "Seyahat listeleri için kısa, akılda kalıcı bir özet...",
         metaKeywords: "macera, şehir rehberi, gizli mücevher",
+        intent: "örn. Aile Kültür Gezisi", // New
+        vibe: "örn. Lüks, Macera...", // New
+        reasoning: "Neden bu öneri?", // New
+        constraints: "Bütçe, Çocuk...", // New
       },
       ai: {
         generating: "Yapay Zeka ile Oluştur",

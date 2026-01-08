@@ -12,12 +12,13 @@ load_dotenv()
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 UNSPLASH_KEY = os.getenv("VITE_UNSPLASH_ACCESS_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not all([SUPABASE_URL, SUPABASE_KEY, UNSPLASH_KEY]):
     print("❌ Missing Credentials (Supabase or Unsplash)")
     exit(1)
 
-visual_memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY)
+visual_memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY)
 
 # Specific headers for Logic
 HEADERS = {

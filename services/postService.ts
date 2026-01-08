@@ -117,7 +117,8 @@ export const postService = {
   async getAdminPosts(
     page: number = 1,
     limit: number = 20,
-    searchQuery: string = ""
+    searchQuery: string = "",
+    lang?: string
   ): Promise<PaginatedPostsResponse> {
     let query = supabase
       .schema("blog")
@@ -128,6 +129,10 @@ export const postService = {
       query = query.or(
         `title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`
       );
+    }
+
+    if (lang && lang !== "all") {
+      query = query.eq("lang", lang);
     }
 
     const { data, count, error } = await query
@@ -220,31 +225,46 @@ export const postService = {
 
   async getPublishedPosts(
     page: number = 1,
-    limit: number = POSTS_PER_PAGE
+    limit: number = POSTS_PER_PAGE,
+    lang?: string
   ): Promise<PaginatedPostsResponse> {
     const now = new Date().toISOString();
 
     // Count first
-    const { count, error: countError } = await supabase
+    let countQuery = supabase
       .schema("blog")
       .from("posts")
       .select("*", { count: "exact", head: true })
       .eq("status", "published")
       .lte("published_at", now);
 
+    if (lang && lang !== "all") {
+      countQuery = countQuery.eq("lang", lang);
+    }
+
+    const { count, error: countError } = await countQuery;
+
     if (countError) {
       console.error("Supabase Error (getPublishedPosts - count):", countError);
       return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .schema("blog")
       .from("posts")
       .select("*")
       .eq("status", "published")
       .lte("published_at", now)
-      .order("published_at", { ascending: false })
-      .range((page - 1) * limit, page * limit - 1);
+      .order("published_at", { ascending: false });
+
+    if (lang && lang !== "all") {
+      query = query.eq("lang", lang);
+    }
+
+    const { data, error } = await query.range(
+      (page - 1) * limit,
+      page * limit - 1
+    );
 
     if (error) {
       console.error("Supabase Error (getPublishedPosts):", error);
@@ -346,11 +366,12 @@ export const postService = {
   async getPostsByCategory(
     category: string,
     page: number = 1,
-    limit: number = POSTS_PER_PAGE
+    limit: number = POSTS_PER_PAGE,
+    lang?: string
   ): Promise<PaginatedPostsResponse> {
     const now = new Date().toISOString();
 
-    const { count, error: countError } = await supabase
+    let countQuery = supabase
       .schema("blog")
       .from("posts")
       .select("*", { count: "exact", head: true })
@@ -358,20 +379,34 @@ export const postService = {
       .eq("status", "published")
       .lte("published_at", now);
 
+    if (lang && lang !== "all") {
+      countQuery = countQuery.eq("lang", lang);
+    }
+
+    const { count, error: countError } = await countQuery;
+
     if (countError) {
       console.error("Supabase Error (getPostsByCategory - count):", countError);
       return { posts: [], totalPages: 0, totalCount: 0 };
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .schema("blog")
       .from("posts")
       .select("*")
       .eq("category", category)
       .eq("status", "published")
       .lte("published_at", now)
-      .order("published_at", { ascending: false })
-      .range((page - 1) * limit, page * limit - 1);
+      .order("published_at", { ascending: false });
+
+    if (lang && lang !== "all") {
+      query = query.eq("lang", lang);
+    }
+
+    const { data, error } = await query.range(
+      (page - 1) * limit,
+      page * limit - 1
+    );
 
     if (error) {
       console.error("Supabase Error (getPostsByCategory):", error);

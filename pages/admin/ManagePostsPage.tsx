@@ -26,6 +26,7 @@ const ManagePostsPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLang, setSelectedLang] = useState<string>("all");
   const POSTS_PER_PAGE = 20;
 
   const fetchData = useCallback(async () => {
@@ -35,7 +36,14 @@ const ManagePostsPage = () => {
       // Ideally, users should also be paginated or fetched by ID,
       // but users list is generally smaller than posts list.
       const [fetchedData, fetchedUsers] = await Promise.all([
-        postService.getAdminPosts(currentPage, POSTS_PER_PAGE, searchQuery),
+        postService.getAdminPosts(
+          currentPage,
+          POSTS_PER_PAGE,
+          searchQuery,
+          selectedLang
+        ),
+        userService.getAllUsers(),
+      ]);
         userService.getAllUsers(),
       ]);
       setPosts(fetchedData.posts);
@@ -46,7 +54,7 @@ const ManagePostsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchQuery, addToast, t]);
+  }, [currentPage, searchQuery, selectedLang, addToast, t]);
 
   useEffect(() => {
     // Debounce search
@@ -127,6 +135,15 @@ const ManagePostsPage = () => {
           <Filter size={14} />
           Filters
         </div>
+        <select
+          value={selectedLang}
+          onChange={(e) => setSelectedLang(e.target.value)}
+          className="bg-navy-800/50 border border-white/5 rounded-xl py-2.5 px-4 text-white focus:outline-none focus:border-gold/50 transition-colors"
+        >
+          <option value="all">All Languages</option>
+          <option value="en">English (EN)</option>
+          <option value="tr">Turkish (TR)</option>
+        </select>
       </div>
 
       <div className="bg-navy-900/50 backdrop-blur-xl rounded-3xl border border-white/5 shadow-2xl overflow-hidden">
