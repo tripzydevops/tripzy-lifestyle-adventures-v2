@@ -112,7 +112,7 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
 
           {mapData.data?.map((point: any, idx: number) => (
@@ -175,7 +175,7 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
         </MapContainer>
       </div>
 
-      <div className="bg-navy-900 p-4 border-t border-white/5 flex flex-wrap gap-3">
+      <div className="bg-navy-900 p-6 border-t border-white/5 flex flex-wrap gap-4">
         {mapData.data?.map((point: any, idx: number) => (
           <button
             key={idx}
@@ -183,10 +183,10 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
               // Logic to focus map on this point could be added here
               setActiveMarker(point.title);
             }}
-            className={`text-sm px-4 py-2 rounded-lg border transition-all shadow-sm ${
+            className={`text-base font-semibold px-6 py-3 rounded-xl border transition-all shadow-md ${
               activeMarker === point.title
-                ? "bg-gold text-navy-950 border-gold font-bold shadow-gold/20"
-                : "bg-white/10 text-white border-white/20 hover:bg-white/20 hover:border-gold/50 hover:text-gold"
+                ? "bg-gold text-navy-950 border-gold shadow-gold/20 scale-105"
+                : "bg-white/5 text-white/90 border-white/10 hover:bg-white/10 hover:border-gold/50 hover:text-gold"
             }`}
           >
             {point.title}
