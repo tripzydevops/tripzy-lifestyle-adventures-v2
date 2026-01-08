@@ -44,8 +44,7 @@ const ManagePostsPage = () => {
         ),
         userService.getAllUsers(),
       ]);
-        userService.getAllUsers(),
-      ]);
+
       setPosts(fetchedData.posts);
       setTotalPages(fetchedData.totalPages);
       setUsers(fetchedUsers);
