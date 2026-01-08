@@ -129,7 +129,7 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
               }}
             >
               <Popup className="custom-popup rounded-xl overflow-hidden shadow-xl border-none">
-                <div className="p-1 min-w-[200px]">
+                <div className="p-3 min-w-[200px] bg-white text-left">
                   <div className="flex items-center gap-2 mb-2">
                     <span
                       className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded text-white ${
@@ -151,7 +151,7 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
                       {point.category || "POI"}
                     </span>
                   </div>
-                  <h4 className="font-bold text-navy-950 text-base mb-1">
+                  <h4 className="font-bold text-black text-base mb-1">
                     {point.title}
                   </h4>
                   {point.description && (
