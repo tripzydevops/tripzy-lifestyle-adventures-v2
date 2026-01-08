@@ -163,6 +163,7 @@ async def post_process_images_in_content(content, post_title=""):
 model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
 POSTS_TO_GENERATE = [
+POSTS_TO_GENERATE = [
     # English Posts
     {"title": "The Ultimate Guide to Exploring Paris", "lang": "en", "category": "Destinations", "tags": ["Paris", "France", "Europe", "City Guide"]},
     {"title": "Biking Through Amsterdam", "lang": "en", "category": "Adventure", "tags": ["Amsterdam", "Netherlands", "Cycling", "Active Travel"]},
@@ -454,8 +455,8 @@ async def generate_post_content(item):
     
     CRITICAL INSTRUCTIONS:
     1. The content MUST be at least 1500 words for "The Brain" to process effectively.
-    2. Embed exactly 3-4 image placeholders using the format: [IMAGE: English keyword for search | Short descriptive caption for the user]
-    3. IMPORTANT: Even if the post is in Turkish, the image keywords MUST be in English for search compatibility. The caption can be in the target language.
+    2. Embed 5-7 image placeholders using the format: [IMAGE: English keyword for the image | User Friendly Caption]
+    3. IMPORTANT: Even if the post is in Turkish, the image keywords MUST be in English for search compatibility. The CAPTION should be in the language of the post (Turkish or English). The caption can be in the target language.
     4. Use a mix of informative and storytelling tones.
     5. Apply HTML classes like 'magazine-section', 'magazine-h2', 'magazine-body' for premium styling.
     6. MAP DATA IS MANDATORY. You MUST generate 'map_data' with valid coordinates and EXACTLY 7 to 10 points of interest (not just 1 or 2). Ensure they are geographically distinct. 
