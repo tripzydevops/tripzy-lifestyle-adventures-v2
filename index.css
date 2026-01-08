@@ -737,4 +737,28 @@ figcaption,
 }
 
 /* Aggressively hide all image overlays and captions */
-.magazine-figure > div, .magazine-figure figcaption, .magazine-figure span { display: none !important; }
+.magazine-figure > div,
+.magazine-figure figcaption,
+.magazine-figure span {
+  display: none !important;
+}
+
+/* Map Popup Overrides - FORCE LIGHT MODE */
+.custom-popup .leaflet-popup-content-wrapper,
+.custom-popup .leaflet-popup-tip {
+  background: white !important;
+  color: black !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+}
+
+.custom-popup h4,
+.custom-popup h3 {
+  color: #000000 !important;
+  text-shadow: none !important;
+  margin-top: 0.5rem !important;
+  font-family: var(--font-primary) !important;
+}
+
+.custom-popup p {
+  color: #374151 !important; /* gray-700 */
+}
