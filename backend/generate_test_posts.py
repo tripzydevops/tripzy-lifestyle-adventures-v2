@@ -218,6 +218,55 @@ async def save_to_supabase(post_data, featured_image):
 
         row["author_id"] = author_id
 
+        # --- IMAGE REPLACEMENT LOGIC START ---
+        # NOTE: This replaces [IMAGE: query] with <img> tags using Unsplash
+        import re
+        import random
+        
+        content = row.get("content", "")
+        # Find all [IMAGE: ...] placeholders
+        placeholders = re.findall(r'\[IMAGE:\s*(.*?)\]', content)
+        
+        if placeholders:
+            print(f"      🖼️ Found {len(placeholders)} image placeholders. Fetching from Unsplash...")
+            
+            UNSPLASH_ACCESS_KEY = os.getenv("VITE_UNSPLASH_ACCESS_KEY")
+            
+            for query in placeholders:
+                # Clean query
+                clean_query = query.strip()
+                # Unsplash URL
+                u_url = f"https://api.unsplash.com/search/photos?page=1&query={clean_query}&client_id={UNSPLASH_ACCESS_KEY}&per_page=1"
+                
+                img_url = "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1" # Fallback
+                
+                try:
+                    async with session.get(u_url) as u_resp:
+                        if u_resp.status == 200:
+                            u_data = await u_resp.json()
+                            if u_data['results']:
+                                img_url = u_data['results'][0]['urls']['regular']
+                except Exception as e:
+                    print(f"      ⚠️ Unsplash Error: {e}")
+
+                # Replace ONE instance of the placeholder with an HTML img tag
+                # Using a visually pleasing style compatible with the dark theme
+                # Also include caption
+                img_html = (
+                    f'<figure class="my-8">'
+                    f'<img src="{img_url}" alt="{clean_query}" class="w-full rounded-xl shadow-2xl hover:scale-[1.01] transition-transform duration-500" />'
+                    f'<figcaption class="mt-3 text-center text-sm text-gray-400 italic">Exploring: {clean_query}</figcaption>'
+                    f'</figure>'
+                )
+                
+                # Replace the exact string `[IMAGE: query]`
+                # Escape the brackets for regex replacement or just use str.replace with count=1
+                placeholder_tag = f"[IMAGE: {query}]"
+                content = content.replace(placeholder_tag, img_html, 1)
+        
+        row["content"] = content
+        # --- IMAGE REPLACEMENT LOGIC END ---
+
         # POST /rest/v1/posts
         async with session.post(f"{SUPABASE_URL}/rest/v1/posts", headers=headers, json=row) as resp:
             if resp.status >= 300:

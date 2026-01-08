@@ -115,7 +115,7 @@ const HomePage = () => {
 
       // 2. Fallback: Standard Chronological Feed
       const { posts: fetchedPosts, totalPages: fetchedTotalPages } =
-        await postService.getPublishedPosts(currentPage);
+        await postService.getPublishedPosts(currentPage, 10, selectedLang);
       setPosts(fetchedPosts);
       setTotalPages(fetchedTotalPages);
       setAiIntent(null);
@@ -124,7 +124,7 @@ const HomePage = () => {
     };
 
     fetchContent();
-  }, [currentPage, tripzy]);
+  }, [currentPage, tripzy, selectedLang]);
 
   return (
     <div className="flex flex-col min-h-screen bg-navy-900">
