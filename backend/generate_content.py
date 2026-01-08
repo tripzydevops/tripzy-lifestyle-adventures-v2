@@ -444,6 +444,7 @@ async def generate_post_content(item):
             - lat: latitude
             - lng: longitude
             - description: 1 sentence description
+            - category: One of ["History", "Food", "Nature", "View", "Activity"]
     
     CRITICAL INSTRUCTIONS:
     1. The content MUST be at least 1500 words for "The Brain" to process effectively.
@@ -582,7 +583,8 @@ async def process_post(item, author_id):
                              "lat": p['lat'], 
                              "lng": p['lng'], 
                              "title": p['name'], 
-                             "description": p.get('description', '')
+                             "description": p.get('description', ''),
+                             "category": p.get('category', 'View')
                          } for p in map_data['points']
                      ]
                  }

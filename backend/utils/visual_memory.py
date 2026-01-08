@@ -84,7 +84,7 @@ class VisualMemory:
         if not await self._upload_to_storage(file_path, webp_data):
             return url
         
-        public_url = f"{self.supabase_url}/storage/v1/object/public/tripzy-assets/{file_path}"
+        public_url = f"{self.supabase_url}/storage/v1/object/public/images/{file_path}"
 
         # 6. Index in DB
         await self._index_in_db(public_url, file_path, post_title, tags, width, height, len(webp_data), url, ai_description, embedding)
@@ -99,7 +99,7 @@ class VisualMemory:
         return f"generated/images/{timestamp.year}/{timestamp.month:02d}/{slug_title}-{unique_id}.webp"
 
     async def _upload_to_storage(self, path: str, data: bytes) -> bool:
-        url = f"{self.supabase_url}/storage/v1/object/tripzy-assets/{path}"
+        url = f"{self.supabase_url}/storage/v1/object/images/{path}"
         headers = self.headers.copy()
         headers["Content-Type"] = "image/webp"
         

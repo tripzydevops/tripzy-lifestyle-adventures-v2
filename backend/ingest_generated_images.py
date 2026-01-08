@@ -65,19 +65,12 @@ async def main():
         
         # 1. Handle Featured Image
         f_img = post.get('featured_image')
-        if f_img and "supabase.co" not in f_img:
-            print(f"\n[{post['title']}] Checking Featured Image...")
+        # Only ingest if it's an external URL (Unsplash, Pollinations, etc) and NOT already Supabase
+        if f_img and f_img.startswith("http") and "supabase" not in f_img:
+            print(f"\n[{post['title']}] Ingesting Featured Image...")
             
-            # HEALER LOGIC
-            target_url = f_img
-            if "pollinations" in f_img or "image.pollinations.ai" in f_img:
-                 # Extract prompt or use title
-                 replacement = await fetch_unsplash_replacement(post['title'])
-                 if replacement:
-                     target_url = replacement
-
-            # INGEST LOGIC (VisualMemory handles download/optimize/upload/index)
-            new_url = await visual_memory.ingest_image(target_url, post['title'], post.get('tags', []))
+            # INGEST LOGIC
+            new_url = await visual_memory.ingest_image(f_img, post['title'], post.get('tags', []))
             
             if new_url != f_img:
                 updates['featured_image'] = new_url
@@ -85,25 +78,17 @@ async def main():
 
         # 2. Handle Content Images
         content = post.get('content') or ""
+        # Find all src="..." that are NOT supabase
         matches = re.findall(r'src="(https?://[^"]+)"', content)
-        external_matches = [m for m in matches if "supabase.co" not in m]
+        external_matches = [m for m in matches if "supabase" not in m]
         
         if external_matches:
             print(f"\n[{post['title']}] Processing {len(external_matches)} Content Images...")
             new_content = content
             for img_url in set(external_matches):
                 
-                target_url = img_url
-                if "pollinations" in img_url:
-                     # Extract keyword from url
-                     # format: .../prompt/Keyword%20Here
-                     keyword_match = re.search(r'prompt/([^?]+)', img_url)
-                     keyword = keyword_match.group(1) if keyword_match else post['title']
-                     replacement = await fetch_unsplash_replacement(keyword)
-                     if replacement:
-                         target_url = replacement
-
-                new_img_url = await visual_memory.ingest_image(target_url, post['title'], post.get('tags', []))
+                # INGEST
+                new_img_url = await visual_memory.ingest_image(img_url, post['title'], post.get('tags', []))
                 
                 if new_img_url != img_url:
                     new_content = new_content.replace(img_url, new_img_url)
