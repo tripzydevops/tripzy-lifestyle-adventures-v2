@@ -314,6 +314,12 @@ const PostDetailsPage = () => {
               }
               alt={post.featuredMediaAlt || post.title}
               className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.onerror = null; // Prevent infinite loop
+                target.src =
+                  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2000";
+              }}
             />
           )}
           <div className="absolute inset-0 bg-black/60"></div>

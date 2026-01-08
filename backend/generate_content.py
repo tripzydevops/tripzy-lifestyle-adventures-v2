@@ -83,29 +83,35 @@ async def post_process_images_in_content(content, post_title=""):
     
     new_content = content
     
-    for keyword in matches:
-        print(f"   🖼️  Processing Placeholder: {keyword}")
-        # Search & Ingest
-        internal_url = await fetch_featured_image(keyword)
+    for match_str in matches:
+        print(f"   🖼️  Processing Placeholder: {match_str}")
+        
+        # Parse "Term | Caption" or just "Term"
+        parts = match_str.split('|')
+        search_term = parts[0].strip()
+        caption_text = parts[1].strip() if len(parts) > 1 else search_term
+
+        # Search & Ingest using the search term
+        internal_url = await fetch_featured_image(search_term)
         
         if internal_url:
-            # Create HTML
+            # Create HTML with fancy caption
             html = f"""
             <figure class="magazine-figure" style="margin: 3.5rem 0; clear: both; position: relative; overflow: hidden; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
-                <img src="{internal_url}" alt="{keyword}" style="width: 100%; height: auto; display: block;" />
-                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); padding: 2rem 1.5rem 1rem;">
-                    <figcaption style="text-align: left; font-size: 0.95rem; color: #ffffff; font-weight: 500; font-family: 'Outfit', 'Inter', sans-serif;">
-                        {keyword}
+                <img src="{internal_url}" alt="{caption_text}" style="width: 100%; height: auto; display: block;" />
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 2rem 1.5rem 1rem;">
+                    <figcaption style="text-align: left; font-size: 1rem; color: #ffffff; font-weight: 600; font-family: 'Outfit', 'Inter', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                        {caption_text}
                     </figcaption>
                 </div>
             </figure>
             """
             # Replace ONE instance
-            pattern = rf'\[IMAGE:\s*{re.escape(keyword)}\s*\]'
+            pattern = rf'\[IMAGE:\s*{re.escape(match_str)}\s*\]'
             new_content = re.sub(pattern, html, new_content, count=1, flags=re.IGNORECASE)
         else:
             # Remove failed placeholder
-             pattern = rf'\[IMAGE:\s*{re.escape(keyword)}\s*\]'
+             pattern = rf'\[IMAGE:\s*{re.escape(match_str)}\s*\]'
              new_content = re.sub(pattern, "", new_content, count=1, flags=re.IGNORECASE)
 
     return new_content
@@ -448,11 +454,11 @@ async def generate_post_content(item):
     
     CRITICAL INSTRUCTIONS:
     1. The content MUST be at least 1500 words for "The Brain" to process effectively.
-    2. Embed exactly 3 image placeholders using the format: [IMAGE: English keyword for the image]
-    3. IMPORTANT: Even if the post is in Turkish, the image keywords MUST be in English for search compatibility.
+    2. Embed exactly 3-4 image placeholders using the format: [IMAGE: English keyword for search | Short descriptive caption for the user]
+    3. IMPORTANT: Even if the post is in Turkish, the image keywords MUST be in English for search compatibility. The caption can be in the target language.
     4. Use a mix of informative and storytelling tones.
     5. Apply HTML classes like 'magazine-section', 'magazine-h2', 'magazine-body' for premium styling.
-    6. MAP DATA IS MANDATORY. You MUST generate 'map_data' with valid coordinates and at least 3 points of interest. 
+    6. MAP DATA IS MANDATORY. You MUST generate 'map_data' with valid coordinates and EXACTLY 7 to 10 points of interest (not just 1 or 2). Ensure they are geographically distinct. 
     7. SEO MANDATORY: 
        - 'meta_description' MUST be between 130 and 160 characters. Do not make it short.
        - 'meta_title' must be catchy and include keywords.
