@@ -115,12 +115,14 @@ export const uploadService = {
     // AI Metadata Generation for Images
     let altText = "";
     let caption = "";
+    let tags: string[] = [];
     if (mediaType === "image") {
       try {
         console.log("Analyzing image with Tripzy AI...");
         const analysis = await aiContentService.analyzeImageFromUrl(publicUrl);
         altText = analysis.altText;
         caption = analysis.caption;
+        tags = analysis.tags || [];
       } catch (aiErr) {
         console.warn("AI Analysis failed for upload, using defaults:", aiErr);
       }
@@ -133,6 +135,7 @@ export const uploadService = {
       mediaType: mediaType,
       altText,
       caption,
+      tags,
     });
 
     console.log(`File uploaded successfully. URL: ${publicUrl}`);

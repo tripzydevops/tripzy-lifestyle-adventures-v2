@@ -127,7 +127,36 @@ class VisualMemory:
             "ai_description": ai_desc,
             "embedding": embedding
         }
-        async with aiohttp.ClientSession() as session:
             async with session.post(db_url, headers=self.headers, json=payload) as resp:
                 if resp.status >= 300:
-                    print(f"         ⚠️ Indexing warning: {resp.status} - {await resp.text()}")
+                    print(f"         ⚠️ Indexing warning (media_library): {resp.status} - {await resp.text()}")
+
+        # 7. DUAL WRITE: Sync to 'blog.media' for Frontend Visibility
+        # The frontend (ManageMediaPage) reads from 'blog.media', so we must mirror the record there.
+        try:
+            blog_headers = self.headers.copy()
+            blog_headers["Content-Profile"] = "blog" # Target 'blog' schema
+            blog_headers["Prefer"] = "return=minimal"
+            
+            blog_url = f"{self.supabase_url}/rest/v1/media"
+            
+            blog_payload = {
+                "url": public_url,
+                "filename": f"{title}.webp", # Use title as filename
+                "mime_type": "image/webp",
+                "alt_text": title,
+                "caption": ai_desc,
+                "size_bytes": size,
+                "tags": tags
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(blog_url, headers=blog_headers, json=blog_payload) as resp:
+                    if resp.status >= 300:
+                         # It might fail if tables have different constraints, but we log and continue
+                        print(f"         ⚠️ Sync warning (blog.media): {resp.status} - {await resp.text()}")
+                    else:
+                        print("         ✅ Synced to Frontend Media Library (blog.media)")
+                        
+        except Exception as e:
+            print(f"         ⚠️ Sync failed: {e}")
