@@ -186,7 +186,7 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
             className={`text-sm px-4 py-2 rounded-lg border transition-all shadow-sm ${
               activeMarker === point.title
                 ? "bg-gold text-navy-950 border-gold font-bold shadow-gold/20"
-                : "bg-navy-800 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white"
+                : "bg-white/10 text-white border-white/20 hover:bg-white/20 hover:border-gold/50 hover:text-gold"
             }`}
           >
             {point.title}
