@@ -151,7 +151,10 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
                       {point.category || "POI"}
                     </span>
                   </div>
-                  <h4 className="font-bold text-black text-base mb-1">
+                  <h4
+                    className="font-bold text-base mb-1"
+                    style={{ color: "black", textShadow: "none" }}
+                  >
                     {point.title}
                   </h4>
                   {point.description && (
