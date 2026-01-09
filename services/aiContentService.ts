@@ -410,7 +410,12 @@ export const aiContentService = {
 
   async analyzeImageFromUrl(
     url: string
-  ): Promise<{ altText: string; caption: string; tags: string[] }> {
+  ): Promise<{
+    title?: string;
+    altText: string;
+    caption: string;
+    tags: string[];
+  }> {
     const apiKey = getGeminiApiKey();
     if (!apiKey) throw new Error("Gemini API key not configured.");
 
@@ -430,6 +435,7 @@ export const aiContentService = {
 
       // 2. Call Gemini Vision
       const prompt = `Analyze this travel image and provide a JSON response with:
+      - 'title': A short, punchy 3-5 word headline for this image (e.g. "Sunset in Santorini").
       - 'altText': A descriptive, SEO-friendly alt text (max 100 chars).
       - 'caption': A professional, engaging travel-style caption (max 200 chars).
       - 'tags': An array of 5-7 semantic tags (e.g. ['beach', 'sunset', 'luxury', 'calm']).
@@ -470,9 +476,12 @@ export const aiContentService = {
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) throw new Error("No analysis result from Gemini");
 
-      return parseJSON<{ altText: string; caption: string; tags: string[] }>(
-        text
-      );
+      return parseJSON<{
+        title?: string;
+        altText: string;
+        caption: string;
+        tags: string[];
+      }>(text);
     } catch (err) {
       console.error("AI Vision Error:", err);
       return {

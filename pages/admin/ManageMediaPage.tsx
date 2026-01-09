@@ -228,7 +228,10 @@ const ManageMediaPage = () => {
         caption: analysis.caption,
         tags: analysis.tags || [],
         fileName:
-          analysis.caption.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_") + ".webp", // Optional: rename based on content? Maybe too aggressive. Let's just keep filename or maybe update it if it's generic.
+          (analysis.title || analysis.caption.slice(0, 30)).replace(
+            /[^a-zA-Z0-9]/g,
+            "_"
+          ) + ".webp",
       });
 
       addToast(t("admin.media.analysisComplete"), "success");
