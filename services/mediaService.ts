@@ -1,6 +1,7 @@
 // services/mediaService.ts - v2.1.1
 import { MediaItem } from "../types";
 import { supabase } from "../lib/supabase";
+import { embeddingService } from "./embeddingService";
 
 const getMediaTypeFromMime = (
   mime: string | null,
@@ -45,6 +46,27 @@ export const mediaService = {
     return data.map(mapMediaFromSupabase);
   },
 
+  async findDuplicateMedia(
+    fileName: string,
+    sizeBytes: number
+  ): Promise<MediaItem | null> {
+    const { data, error } = await supabase
+      .schema("blog")
+      .from("media")
+      .select("*")
+      .eq("filename", fileName) // check filename matches
+      .eq("size_bytes", sizeBytes) // check exact size matches
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Supabase Error (findDuplicateMedia):", error);
+      return null;
+    }
+
+    return data ? mapMediaFromSupabase(data) : null;
+  },
+
   async addMedia(
     mediaData: Omit<MediaItem, "id" | "uploadedAt">
   ): Promise<MediaItem> {
@@ -52,8 +74,23 @@ export const mediaService = {
       url: mediaData.url,
       filename: mediaData.fileName, // Correct column name is 'filename' without underscore
       mime_type: mediaData.mediaType === "video" ? "video/mp4" : "image/jpeg",
+      size_bytes: mediaData.sizeBytes,
       tags: mediaData.tags || [],
+      embedding: null, // Initialize
     };
+
+    // Generate embedding
+    const textToEmbed = `${mediaData.fileName} ${mediaData.caption || ""} ${
+      mediaData.altText || ""
+    } ${(mediaData.tags || []).join(" ")}`;
+    try {
+      const embedding = await embeddingService.generateEmbedding(textToEmbed);
+      if (embedding) {
+        supabaseData.embedding = embedding;
+      }
+    } catch (e) {
+      console.warn("Failed to generate embedding for media:", e);
+    }
 
     const { data, error } = await supabase
       .schema("blog")
@@ -104,6 +141,48 @@ export const mediaService = {
     if (updates.sizeBytes !== undefined)
       supabaseUpdates.size_bytes = updates.sizeBytes;
     if (updates.tags !== undefined) supabaseUpdates.tags = updates.tags;
+
+    // Regenerate embedding if relevant fields change
+    if (
+      updates.fileName !== undefined ||
+      updates.altText !== undefined ||
+      updates.caption !== undefined ||
+      updates.tags !== undefined
+    ) {
+      try {
+        // Fetch current state to merge
+        const { data: current } = await supabase
+          .schema("blog")
+          .from("media")
+          .select("*")
+          .eq("id", id)
+          .single();
+        if (current) {
+          const merged = {
+            ...current,
+            ...updates,
+            tags: updates.tags || current.tags,
+          };
+          // Use updated fields or fallback to current
+          const fName = updates.fileName ?? current.filename;
+          const fCapt = updates.caption ?? current.caption;
+          const fAlt = updates.altText ?? current.alt_text;
+
+          const textToEmbed = `${fName} ${fCapt || ""} ${fAlt || ""} ${(
+            merged.tags || []
+          ).join(" ")}`;
+
+          const embedding = await embeddingService.generateEmbedding(
+            textToEmbed
+          );
+          if (embedding) {
+            supabaseUpdates.embedding = embedding;
+          }
+        }
+      } catch (e) {
+        console.warn("Update embedding failed:", e);
+      }
+    }
 
     const { data, error } = await supabase
       .schema("blog")

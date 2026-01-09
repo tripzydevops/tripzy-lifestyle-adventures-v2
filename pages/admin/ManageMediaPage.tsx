@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { MediaItem } from "../../types";
 import { mediaService } from "../../services/mediaService";
 import { uploadService } from "../../services/uploadService";
+import { aiContentService } from "../../services/aiContentService";
 import { useToast } from "../../hooks/useToast";
 import { useLanguage } from "../../localization/LanguageContext";
 import Spinner from "../../components/common/Spinner";
@@ -21,7 +22,15 @@ import {
   Search,
   Grid,
   List,
+  Sparkles,
+  Maximize2,
+  Minimize2,
+  Pencil,
+  FileSignature, // For renaming
+  Save, // For saving rename
+  X,
 } from "lucide-react";
+import MediaEditorModal from "../../components/admin/MediaEditorModal";
 
 const ManageMediaPage = () => {
   const { t } = useLanguage();
@@ -36,8 +45,17 @@ const ManageMediaPage = () => {
   const [filter, setFilter] = useState<"all" | "image" | "video">("all");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [objectFit, setObjectFit] = useState<"cover" | "contain">("cover");
   const [isDragging, setIsDragging] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Editor State
+  const [editingItem, setEditingItem] = useState<MediaItem | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+
+  // Rename State
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const { addToast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -118,6 +136,81 @@ const ManageMediaPage = () => {
       fetchMedia();
     } catch (error) {
       addToast(t("common.error"), "error");
+    }
+  };
+
+  const handleStartRename = (item: MediaItem) => {
+    setRenamingId(item.id);
+    setRenameValue(item.fileName);
+  };
+
+  const handleSaveRename = async (id: string) => {
+    if (!renameValue.trim()) return;
+
+    try {
+      await mediaService.updateMedia(id, { fileName: renameValue });
+      setRenamingId(null);
+      setRenameValue("");
+      addToast(t("admin.saveSuccess"), "success");
+      fetchMedia(); // Refresh list to show new name (and re-sort/filter if needed)
+    } catch (error) {
+      addToast(t("admin.media.updateError"), "error");
+    }
+  };
+
+  const handleCancelRename = () => {
+    setRenamingId(null);
+    setRenameValue("");
+  };
+
+  const handleEditMedia = (item: MediaItem) => {
+    if (item.mediaType !== "image") {
+      addToast("Only images can be edited.", "info");
+      return;
+    }
+    setEditingItem(item);
+    setIsEditorOpen(true);
+  };
+
+  const handleSaveEditedImage = async (file: File) => {
+    if (!editingItem) return;
+
+    try {
+      const newUrl = await uploadService.uploadFile(file);
+
+      await mediaService.updateMedia(editingItem.id, {
+        url: newUrl,
+        sizeBytes: file.size,
+      });
+
+      addToast("Image updated successfully", "success");
+      fetchMedia();
+      setIsEditorOpen(false);
+      setEditingItem(null);
+    } catch (error) {
+      console.error("Failed to save edited image", error);
+      addToast("Failed to save changes", "error");
+    }
+  };
+
+  const handleReanalyze = async (item: MediaItem) => {
+    try {
+      addToast(t("admin.media.analyzing"), "info");
+      const analysis = await aiContentService.analyzeImageFromUrl(item.url);
+
+      await mediaService.updateMedia(item.id, {
+        altText: analysis.altText,
+        caption: analysis.caption,
+        tags: analysis.tags || [],
+        fileName:
+          analysis.caption.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_") + ".webp", // Optional: rename based on content? Maybe too aggressive. Let's just keep filename or maybe update it if it's generic.
+      });
+
+      addToast(t("admin.media.analysisComplete"), "success");
+      fetchMedia();
+    } catch (error) {
+      console.error("Re-analyze error:", error);
+      addToast(t("admin.media.analysisFailed"), "error");
     }
   };
 
@@ -257,35 +350,74 @@ const ManageMediaPage = () => {
               <List size={20} />
             </button>
           </div>
+
+          <div className="flex items-center gap-2 bg-navy-950/50 p-1 rounded-2xl border border-white/5 ml-2">
+            <button
+              onClick={() =>
+                setObjectFit(objectFit === "cover" ? "contain" : "cover")
+              }
+              className="p-2 rounded-xl transition-all text-gray-500 hover:text-white"
+              title={
+                objectFit === "cover"
+                  ? t("admin.media.fitContain")
+                  : t("admin.media.fitCover")
+              }
+            >
+              {objectFit === "cover" ? (
+                <Minimize2 size={20} />
+              ) : (
+                <Maximize2 size={20} />
+              )}
+            </button>
+          </div>
         </div>
 
-        {/* Tags Quick Filter */}
+        {/* Tags Quick Filter - LIMITED TO TOP 20 */}
         {allTags.length > 0 && (
-          <div className="lg:col-span-12 flex flex-wrap gap-2 items-center px-2">
-            <Tag size={16} className="text-gold mr-2" />
-            <button
-              onClick={() => setSelectedTag(null)}
-              className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
-                !selectedTag
-                  ? "bg-gold text-navy-950"
-                  : "bg-white/5 text-gray-400 hover:text-white"
-              }`}
-            >
-              {t("admin.media.allTags")}
-            </button>
-            {allTags.map((tag) => (
+          <div className="lg:col-span-12 flex flex-col gap-2">
+            <h4 className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1 mb-1">
+              {t("admin.media.popularTags")}
+            </h4>
+            <div className="flex flex-wrap gap-2 items-center px-1">
               <button
-                key={tag}
-                onClick={() => setSelectedTag(tag)}
+                onClick={() => setSelectedTag(null)}
                 className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
-                  selectedTag === tag
+                  !selectedTag
                     ? "bg-gold text-navy-950"
                     : "bg-white/5 text-gray-400 hover:text-white"
                 }`}
               >
-                {tag}
+                {t("admin.media.allTags")}
               </button>
-            ))}
+
+              {/* Calculate Top Tags Logic - Inline for now or moved to memo */}
+              {(() => {
+                const tagCounts: { [key: string]: number } = {};
+                mediaItems.forEach((item) => {
+                  item.tags?.forEach((tag) => {
+                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                  });
+                });
+
+                return Object.entries(tagCounts)
+                  .sort(([, a], [, b]) => b - a)
+                  .slice(0, 20) // Show top 20 only
+                  .map(([tag, count]) => (
+                    <button
+                      key={tag}
+                      onClick={() => setSelectedTag(tag)}
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${
+                        selectedTag === tag
+                          ? "bg-gold text-navy-950"
+                          : "bg-white/5 text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      {tag}{" "}
+                      <span className="opacity-50 text-[8px]">({count})</span>
+                    </button>
+                  ));
+              })()}
+            </div>
           </div>
         )}
       </div>
@@ -318,19 +450,60 @@ const ManageMediaPage = () => {
                       src={item.url}
                       alt={item.fileName}
                       loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      className={`w-full h-full ${
+                        objectFit === "cover"
+                          ? "object-cover"
+                          : "object-contain bg-black/50"
+                      } transition-transform duration-700 group-hover:scale-105`}
                     />
                   )}
 
                   {/* Overlay Controls */}
                   <div className="absolute inset-0 bg-navy-950/90 translate-y-full group-hover:translate-y-0 transition-transform duration-300 p-4 flex flex-col justify-between">
                     <div>
-                      <p
-                        className="text-[10px] text-white font-bold truncate tracking-tight mb-2"
-                        title={item.fileName}
-                      >
-                        {item.fileName}
-                      </p>
+                      {renamingId === item.id ? (
+                        <div className="flex items-center gap-1 mb-2">
+                          <input
+                            type="text"
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            className="w-full bg-white/10 border border-white/20 rounded px-1 py-0.5 text-[10px] text-white focus:outline-none focus:border-gold"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <button
+                            onClick={() => handleSaveRename(item.id)}
+                            className="text-green-400 hover:text-green-300"
+                          >
+                            <Save size={12} />
+                          </button>
+                          <button
+                            onClick={handleCancelRename}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex justify-between items-start mb-2 group/title">
+                          <p
+                            className="text-[10px] text-white font-bold truncate tracking-tight flex-1"
+                            title={item.fileName}
+                          >
+                            {item.fileName}
+                          </p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartRename(item);
+                            }}
+                            className="text-gray-500 hover:text-gold opacity-0 group-hover/title:opacity-100 transition-opacity ml-1"
+                            title={t("admin.media.rename")}
+                          >
+                            <FileSignature size={10} />
+                          </button>
+                        </div>
+                      )}
                       <div className="flex flex-wrap gap-1">
                         {(item.tags || []).slice(0, 3).map((tag) => (
                           <span
@@ -356,6 +529,22 @@ const ManageMediaPage = () => {
                             <Copy size={14} />
                           )}
                         </button>
+                        <button
+                          onClick={() => handleReanalyze(item)}
+                          className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-purple-500 hover:text-white transition-all"
+                          title={t("admin.media.reanalyze")}
+                        >
+                          <Sparkles size={14} />
+                        </button>
+                        {item.mediaType === "image" && (
+                          <button
+                            onClick={() => handleEditMedia(item)}
+                            className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-gold hover:text-navy-950 transition-all"
+                            title={t("admin.media.edit")}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
                         <a
                           href={item.url}
                           target="_blank"
@@ -421,9 +610,42 @@ const ManageMediaPage = () => {
                         </div>
                       </td>
                       <td className="py-4">
-                        <div className="text-sm font-bold text-white truncate max-w-xs">
-                          {item.fileName}
-                        </div>
+                        {renamingId === item.id ? (
+                          <div className="flex items-center gap-2 max-w-xs">
+                            <input
+                              type="text"
+                              value={renameValue}
+                              onChange={(e) => setRenameValue(e.target.value)}
+                              className="w-full bg-navy-900 border border-white/20 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-gold"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleSaveRename(item.id)}
+                              className="p-1 bg-green-500/20 text-green-400 rounded hover:bg-green-500 hover:text-white"
+                            >
+                              <Check size={14} />
+                            </button>
+                            <button
+                              onClick={handleCancelRename}
+                              className="p-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500 hover:text-white"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="group/listitem flex items-center gap-2 max-w-xs">
+                            <div className="text-sm font-bold text-white truncate">
+                              {item.fileName}
+                            </div>
+                            <button
+                              onClick={() => handleStartRename(item)}
+                              className="p-1 text-gray-500 hover:text-gold opacity-0 group-hover/listitem:opacity-100 transition-opacity"
+                              title={t("admin.media.rename")}
+                            >
+                              <FileSignature size={12} />
+                            </button>
+                          </div>
+                        )}
                         <div className="text-[10px] text-gray-500 font-mono mt-1">
                           {item.url.substring(0, 30)}...
                         </div>
@@ -468,6 +690,13 @@ const ManageMediaPage = () => {
                           )}
                         </button>
                         <button
+                          onClick={() => handleReanalyze(item)}
+                          className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-purple-500 hover:text-white transition-all"
+                          title={t("admin.media.reanalyze")}
+                        >
+                          <Sparkles size={14} />
+                        </button>
+                        <button
                           onClick={() => handleDelete(item)}
                           className="p-2 bg-red-500/10 text-red-500/60 rounded-lg hover:bg-red-500 hover:text-white transition-all"
                         >
@@ -503,6 +732,15 @@ const ManageMediaPage = () => {
           </div>
         )}
       </div>
+
+      {editingItem && (
+        <MediaEditorModal
+          isOpen={isEditorOpen}
+          onClose={() => setIsEditorOpen(false)}
+          imageUrl={editingItem.url}
+          onSave={handleSaveEditedImage}
+        />
+      )}
     </div>
   );
 };

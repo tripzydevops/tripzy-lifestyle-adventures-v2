@@ -43,7 +43,6 @@ const HomePage = () => {
       if (!term && vibes.length > 0) {
         // TODO: Filter locally or via simple SQL query
         // For now, let's just use the tripzy hook if available, or simulate filtering
-        console.log("Searching by vibes:", vibes);
       }
 
       // Level 2 & 3: AI Search

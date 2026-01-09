@@ -349,7 +349,18 @@ export interface Translations {
         image: string;
         video: string;
       };
+      popularTags: string;
+      reanalyze: string;
+      analyzing: string;
+      analysisComplete: string;
+      analysisFailed: string;
+      fitCover: string;
+      fitContain: string;
+      rename: string;
+      updateError: string;
+      updateError: string;
     };
+    saveSuccess: string;
     users: {
       manageCommunity: string;
       communitySubtitle: string;
@@ -760,7 +771,18 @@ export const translations: Record<Language, Translations> = {
           image: "Image",
           video: "Video",
         },
+        popularTags: "Popular Tags",
+        reanalyze: "Re-analyze with AI",
+        analyzing: "Analyzing image...",
+        analysisComplete: "Analysis complete. Metadata updated.",
+        analysisFailed: "Analysis failed.",
+        fitCover: "Crop to Fill",
+        fitContain: "Show Full Image",
+        rename: "Rename",
+        updateError: "Failed to update",
+        updateError: "Failed to update",
       },
+      saveSuccess: "Saved successfully",
       users: {
         manageCommunity: "Manage Community",
         communitySubtitle:
@@ -1211,7 +1233,18 @@ export const translations: Record<Language, Translations> = {
           image: "Resim",
           video: "Video",
         },
+        popularTags: "Popüler Etiketler",
+        reanalyze: "Yapay Zeka ile Yeniden Analiz Et",
+        analyzing: "Görsel analiz ediliyor...",
+        analysisComplete: "Analiz tamamlandı.",
+        analysisFailed: "Analiz başarısız.",
+        fitCover: "Doldur",
+        fitContain: "Tamamını Göster",
+        rename: "Yeniden Adlandır",
+        updateError: "Güncelleme başarısız",
+        updateError: "Güncelleme başarısız",
       },
+      saveSuccess: "Başarıyla kaydedildi",
       users: {
         manageCommunity: "Topluluğu Yönet",
         communitySubtitle:

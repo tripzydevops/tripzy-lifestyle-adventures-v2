@@ -88,6 +88,18 @@ export const uploadService = {
       }
     }
 
+    // Check for duplicates before uploading
+    console.log("Checking for duplicates...");
+    const existingMedia = await mediaService.findDuplicateMedia(
+      fileToUpload.name,
+      fileToUpload.size
+    );
+
+    if (existingMedia) {
+      console.log(`Duplicate found! Using existing media: ${existingMedia.id}`);
+      return existingMedia.url;
+    }
+
     // Generate unique filename
     const uniqueFileName = generateUniqueFileName(fileToUpload.name);
 
@@ -136,6 +148,7 @@ export const uploadService = {
       altText,
       caption,
       tags,
+      sizeBytes: fileToUpload.size,
     });
 
     console.log(`File uploaded successfully. URL: ${publicUrl}`);
