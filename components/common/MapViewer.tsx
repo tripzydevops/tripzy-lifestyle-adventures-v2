@@ -148,10 +148,17 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
                     </span>
                   </div>
                   <h4
-                    className="font-bold text-base mb-1 map-popup-title"
-                    style={{ color: "black", textShadow: "none" }}
+                    className="font-bold text-base mb-1"
+                    style={{
+                      color: "#000000",
+                      fontWeight: "800",
+                      textShadow: "none",
+                      opacity: 1,
+                      display: "block",
+                      visibility: "visible",
+                    }}
                   >
-                    {point.title}
+                    {point.title || "Location"}
                   </h4>
                   {point.description && (
                     <p className="text-xs text-gray-600 mb-3 leading-relaxed">
@@ -183,9 +190,19 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
               // Logic to focus map on this point could be added here
               setActiveMarker(point.title);
             }}
+            style={
+              activeMarker === point.title
+                ? {
+                    backgroundColor: "#fbbf24",
+                    color: "#000000",
+                    borderColor: "#fbbf24",
+                    fontWeight: "800",
+                  }
+                : {}
+            }
             className={`text-base font-semibold px-6 py-3 rounded-xl border transition-all shadow-md ${
               activeMarker === point.title
-                ? "bg-gold text-black border-gold shadow-gold/20 scale-105 map-pin-btn-active"
+                ? "shadow-gold/20 scale-105"
                 : "bg-white/5 text-white/90 border-white/10 hover:bg-white/10 hover:border-gold/50 hover:text-gold"
             }`}
           >
