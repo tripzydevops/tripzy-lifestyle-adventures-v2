@@ -429,6 +429,14 @@ export const aiContentService = {
           console.log(
             `[Tripzy AI] Image fetched. Type: ${blob.type}, Size: ${blob.size}, Base64 Length: ${res.length}`
           );
+
+          if (blob.size < 5000) {
+            reject(
+              new Error("Image too small (<5KB). Likely an error placeholder.")
+            );
+            return;
+          }
+
           const base64 = res.split(",")[1];
           resolve(base64);
         };
@@ -549,9 +557,17 @@ export const aiContentService = {
       const data = await response.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       return parseJSON<{ isRelevant: boolean; detectedConcept: string }>(text);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Verification Error:", err);
-      // Fail safe: assume it is relevant to avoid false auto-replacements
+
+      // CRITICAL FIX: If the image was too small (corrupt/error placeholder),
+      // we MUST return false to force a regeneration.
+      // The error message "Image too small" comes from our check above.
+      if (err.message && err.message.includes("Image too small")) {
+        return { isRelevant: false, detectedConcept: "Corrupted/Broken Image" };
+      }
+
+      // Fail safe for other API errors: assume it is relevant to avoid infinite loops on valid images
       return { isRelevant: true, detectedConcept: expectedConcept };
     }
   },
