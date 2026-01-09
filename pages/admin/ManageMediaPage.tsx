@@ -41,6 +41,12 @@ const ManageMediaPage = () => {
     current: 0,
     total: 0,
   });
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "image" | "video">("all");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -63,14 +69,33 @@ const ManageMediaPage = () => {
   const fetchMedia = useCallback(async () => {
     setLoading(true);
     try {
-      const items = await mediaService.getAllMedia();
-      setMediaItems(items);
+      // Use Paginated Fetch
+      const { data, count } = await mediaService.getMedia(
+        page,
+        itemsPerPage,
+        searchQuery,
+        filter
+      );
+      setMediaItems(data);
+      setTotalItems(count);
     } catch (error) {
       addToast(t("admin.loadError"), "error");
     } finally {
       setLoading(false);
     }
-  }, [addToast, t]);
+  }, [addToast, t, page, itemsPerPage, searchQuery, filter]);
+
+  // Reset page when search/filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, filter]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= Math.ceil(totalItems / itemsPerPage)) {
+      setPage(newPage);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     fetchMedia();
@@ -732,6 +757,47 @@ const ManageMediaPage = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalItems > 0 && (
+        <div className="mt-8 flex items-center justify-between">
+          <p className="text-gray-400 text-sm">
+            Showing{" "}
+            <span className="text-white font-bold">{mediaItems.length}</span> of{" "}
+            <span className="text-white font-bold">{totalItems}</span> media
+            items
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page === 1}
+              className="px-4 py-2 bg-navy-900 border border-white/10 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gold hover:text-navy-950 transition-colors"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-1 px-2">
+              {Array.from({
+                length: Math.min(5, Math.ceil(totalItems / itemsPerPage)),
+              }).map((_, idx) => {
+                let p = idx + 1;
+                // Simple sliding window logic if needed, or just Basic 1,2,3
+                // For now, let's keep it simple: Prev / Next + Current Page Display
+                return null;
+              })}
+              <span className="text-gold font-bold bg-navy-950 px-3 py-1 rounded-lg border border-white/5">
+                Page {page} of {Math.ceil(totalItems / itemsPerPage)}
+              </span>
+            </div>
+            <button
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page >= Math.ceil(totalItems / itemsPerPage)}
+              className="px-4 py-2 bg-navy-900 border border-white/10 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gold hover:text-navy-950 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {editingItem && (
         <MediaEditorModal

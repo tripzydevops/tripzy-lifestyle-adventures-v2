@@ -31,19 +31,50 @@ const mapMediaFromSupabase = (data: any): MediaItem => ({
 });
 
 export const mediaService = {
-  async getAllMedia(): Promise<MediaItem[]> {
-    const { data, error } = await supabase
+  async getMedia(
+    page: number = 1,
+    limit: number = 20,
+    search?: string,
+    type: "all" | "image" | "video" = "all"
+  ): Promise<{ data: MediaItem[]; count: number }> {
+    let query = supabase
       .schema("blog")
       .from("media")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("*", { count: "exact" });
 
-    if (error) {
-      console.error("Supabase Error (getAllMedia):", error);
-      return [];
+    if (search) {
+      query = query.or(`filename.ilike.%${search}%,alt_text.ilike.%${search}%`);
     }
 
-    return data.map(mapMediaFromSupabase);
+    if (type !== "all") {
+      if (type === "video") {
+        query = query.ilike("mime_type", "video/%");
+      } else {
+        query = query.ilike("mime_type", "image/%");
+      }
+    }
+
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, error, count } = await query
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("Supabase Error (getMedia):", error);
+      return { data: [], count: 0 };
+    }
+
+    return {
+      data: data.map(mapMediaFromSupabase),
+      count: count || 0,
+    };
+  },
+
+  // Deprecated but kept for compatibility if needed elsewhere
+  async getAllMedia(): Promise<MediaItem[]> {
+    return (await this.getMedia(1, 1000)).data;
   },
 
   async findDuplicateMedia(
