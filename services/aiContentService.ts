@@ -608,6 +608,13 @@ export const aiContentService = {
     return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&seed=${seed}&model=flux-realism&nologo=true`;
   },
 
+  async generateFallbackImage(context: string): Promise<string> {
+    // FAILSAFE: Standard model, minimal prompt, no "8k/natgeo" keywords that might trigger filters
+    const seed = Math.floor(Math.random() * 1000000);
+    const simplePrompt = encodeURIComponent(context); // Just the raw concept
+    return `https://image.pollinations.ai/prompt/${simplePrompt}?width=1280&height=720&seed=${seed}&model=any-dark&nologo=true`;
+  },
+
   isConfigured(): boolean {
     return !!getGeminiApiKey();
   },

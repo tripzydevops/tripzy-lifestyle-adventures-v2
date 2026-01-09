@@ -300,19 +300,42 @@ const ManageMediaPage = () => {
 
             // VALIDATION: Ensure the NEW image is not also a placeholder
             if (newFile.size < 5000) {
-              throw new Error(
-                "Generated image is too small (<5KB). Aborting replacement."
+              console.warn(
+                "Primary generation failed (too small). Attempting fallback..."
               );
-            }
 
-            uploadedUrl = await uploadService.uploadFile(newFile);
-            newSize = newFile.size;
+              // RETRY LOGIC: Try the simpler fallback model
+              const fallbackUrl = await aiContentService.generateFallbackImage(
+                expectedConcept
+              );
+              const proxyFallback = `/api/proxy-image?url=${encodeURIComponent(
+                fallbackUrl
+              )}`;
+
+              const fbRes = await fetch(proxyFallback);
+              if (!fbRes.ok) throw new Error("Fallback generation failed");
+
+              const fbBlob = await fbRes.blob();
+              if (fbBlob.size < 5000) {
+                throw new Error("Fallback image also too small. Aborting.");
+              }
+
+              // If fallback succeeded, use IT.
+              uploadedUrl = await uploadService.uploadFile(
+                new File([fbBlob], item.fileName, { type: "image/jpeg" })
+              );
+              newSize = fbBlob.size;
+            } else {
+              // Primary succeeded
+              uploadedUrl = await uploadService.uploadFile(newFile);
+              newSize = newFile.size;
+            }
           } catch (fetchErr: any) {
-            // If the error was our size check, we must NOT fallback. We should stop.
+            // If the error was our size check (and fallback failed), we must NOT fallback to external URL.
             if (fetchErr.message && fetchErr.message.includes("too small")) {
               console.error("AI Generation failed:", fetchErr);
               addToast(
-                "AI Generation produced a broken image. Please try again.",
+                "Could not generate a valid image. Please try again later.",
                 "error"
               );
               return; // STOP HERE. Do not save.
