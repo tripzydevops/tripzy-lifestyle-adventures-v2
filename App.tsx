@@ -37,9 +37,12 @@ import NewsletterCampaignsPage from "./pages/admin/NewsletterCampaignsPage";
 import CampaignEditorPage from "./pages/admin/CampaignEditorPage";
 import SEOHealthPage from "./pages/admin/SEOHealthPage";
 
+import ScrollToTop from "./components/common/ScrollToTop";
+
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <LanguageProvider>
         <ToastProvider>
           <SettingsProvider>

@@ -123,8 +123,11 @@ const HomePage = () => {
       setLoading(false);
       setLoading(false);
 
-      // Scroll to the stories section ONLY if it's not the initial mount
-      if (!isFirstRender.current) {
+      // Scroll to the stories section ONLY if we are paginating or filtering, NOT on initial load
+      if (
+        !isFirstRender.current &&
+        (currentPage > 1 || selectedLang !== "all")
+      ) {
         document
           .getElementById("latest-stories")
           ?.scrollIntoView({ behavior: "smooth" });
