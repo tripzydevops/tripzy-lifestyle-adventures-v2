@@ -279,23 +279,27 @@ const ManageMediaPage = () => {
           let uploadedUrl = newImageUrl;
           let newSize = 0;
 
-          // Try to download and upload (Handle CORS)
-          try {
-            const imgRes = await fetch(newImageUrl);
-            if (!imgRes.ok) throw new Error("Fetch failed");
-            const imgBlob = await imgRes.blob();
-            const newFile = new File([imgBlob], item.fileName, {
-              type: "image/jpeg",
-            });
-            uploadedUrl = await uploadService.uploadFile(newFile);
-            newSize = newFile.size;
-          } catch (fetchErr) {
-            console.warn(
-              "CORS or Fetch error downloading generated image. Using direct URL.",
-              fetchErr
-            );
-            // Fallback: Use the direct Pollinations URL
-            // This is safe because uploadService.deleteFile handles external URLs gracefully.
+          // Try to upload to internal storage, but be smart about CORS
+          // If the URL is from pollinations.ai, we KNOW browser fetch will fail with CORS
+          // So we skip the fetch attempt to avoid the ugly red console error
+          const isPollinations = newImageUrl.includes("pollinations.ai");
+
+          if (!isPollinations) {
+            try {
+              const imgRes = await fetch(newImageUrl);
+              if (!imgRes.ok) throw new Error("Fetch failed");
+              const imgBlob = await imgRes.blob();
+              const newFile = new File([imgBlob], item.fileName, {
+                type: "image/jpeg",
+              });
+              uploadedUrl = await uploadService.uploadFile(newFile);
+              newSize = newFile.size;
+            } catch (fetchErr) {
+              // Silent fallback
+            }
+          } else {
+            // For Pollinations, we default directly to the URL to be cleaner
+            console.log("Using direct Pollinations URL (bypassing CORS fetch)");
           }
 
           // Update DB with NEW URL (Internal or External)
@@ -585,6 +589,18 @@ const ManageMediaPage = () => {
                     />
                   )}
 
+                  {/* Move Delete Button to Top Right for Visibility */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item);
+                    }}
+                    className="absolute top-2 right-2 text-white/40 hover:text-red-500 bg-black/50 hover:bg-black/80 rounded-full p-2 translate-x-full group-hover:translate-x-0 transition-transform duration-300 z-20"
+                    title={t("admin.media.delete")}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+
                   {/* Overlay Controls */}
                   <div className="absolute inset-0 bg-navy-950/90 translate-y-full group-hover:translate-y-0 transition-transform duration-300 p-4 flex flex-col justify-between">
                     <div>
@@ -643,11 +659,11 @@ const ManageMediaPage = () => {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap justify-between items-center gap-2 mt-4">
-                      <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-2 mt-4">
+                      <div className="flex gap-2 w-full justify-center">
                         <button
                           onClick={() => handleCopyUrl(item.url, item.id)}
-                          className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-gold hover:text-navy-950 transition-all"
+                          className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-gold hover:text-navy-950 transition-all flex-1 flex justify-center"
                           title={t("admin.media.copyUrl")}
                         >
                           {copiedId === item.id ? (
@@ -658,7 +674,7 @@ const ManageMediaPage = () => {
                         </button>
                         <button
                           onClick={() => handleReanalyze(item)}
-                          className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-purple-500 hover:text-white transition-all"
+                          className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-purple-500 hover:text-white transition-all flex-1 flex justify-center"
                           title={t("admin.media.reanalyze")}
                         >
                           <Sparkles size={14} />
@@ -666,7 +682,7 @@ const ManageMediaPage = () => {
                         {item.mediaType === "image" && (
                           <button
                             onClick={() => handleEditMedia(item)}
-                            className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-gold hover:text-navy-950 transition-all"
+                            className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-gold hover:text-navy-950 transition-all flex-1 flex justify-center"
                             title={t("admin.media.edit")}
                           >
                             <Pencil size={14} />
@@ -676,19 +692,12 @@ const ManageMediaPage = () => {
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-white/10 hover:text-white transition-all"
+                          className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-white/10 hover:text-white transition-all flex-1 flex justify-center"
                           title={t("admin.media.openOriginal")}
                         >
                           <ExternalLink size={14} />
                         </a>
                       </div>
-                      <button
-                        onClick={() => handleDelete(item)}
-                        className="p-2 bg-red-500/10 text-red-500/60 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                        title={t("admin.media.delete")}
-                      >
-                        <Trash2 size={14} />
-                      </button>
                     </div>
                   </div>
                 </div>
