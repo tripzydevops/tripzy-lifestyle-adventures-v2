@@ -206,10 +206,11 @@ const PostDetailsPage = () => {
         .replace(/## (The )?Agent Approach[\s\S]*?(?=##|$)/gi, "");
 
       // Extract Markdown headings
-      const headingLines = filteredContent.split("\n");
+      // Fix: Split by regex to handle both LF (\n) and CRLF (\r\n)
+      const headingLines = filteredContent.split(/\r?\n/);
 
       headingLines.forEach((line, index) => {
-        const match = line.match(/^(#{2,3})\s+(.+)$/);
+        const match = line.trim().match(/^(#{2,3})\s+(.+)$/);
         if (match) {
           const level = match[1].length;
           const text = match[2].trim();
