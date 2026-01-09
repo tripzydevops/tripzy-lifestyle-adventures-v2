@@ -51,12 +51,12 @@ Toskana, size lüksün sadece altın varaklı salonlarda değil, bir parça taze
 
 # Images Mapped to logical slots (provided in order)
 IMAGE_FILES = [
-    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_0_1767971518149.jpg", # 1. Castle/Tree Road
-    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_1_1767971518149.jpg", # 2. Bedroom
-    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_2_1767971518149.jpg", # 3. Wine Table
-    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_3_1767971518149.jpg", # 4. Florence/Duomo
-    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_4_1767971518149.png", # 5. Pasta/Truffle
-    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_1767971535668.png", # 6. Valley mist (extra)
+    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_1767987338456.jpg", # 1. NEW Castle/Tree Road
+    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_1767987373769.jpg", # 2. NEW Bedroom
+    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_1767987433508.png", # 3. NEW Wine Table
+    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_1767987457167.jpg", # 4. NEW Florence/Duomo
+    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_1767987487416.jpg", # 5. NEW Pasta/Truffle
+    r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_1767987502225.jpg", # 6. NEW Valley mist
 ]
 FEATURED_FILE = r"C:/Users/elif/.gemini/antigravity/brain/7c8a6c73-48de-4da2-a840-dc3d18f624cc/uploaded_image_1767986473993.jpg"
 
@@ -82,8 +82,34 @@ async def upload_image(session, file_path):
     async with session.post(url, headers=headers, data=file_data) as resp:
         if resp.status not in [200, 201]:
             print(f"      ❌ Upload failed: {await resp.text()}")
-            return None
-        return f"{SUPABASE_URL}/storage/v1/object/public/blog-media/{unique_name}"
+            return None, None, None, None
+        return f"{SUPABASE_URL}/storage/v1/object/public/blog-media/{unique_name}", mime_type, len(file_data), unique_name
+
+def generate_image_metadata(file_path):
+    """Uses Gemini Vision to generate tags and caption."""
+    print(f"      🧠 Analyzing {os.path.basename(file_path)}...")
+    try:
+        mime = mimetypes.guess_type(file_path)[0] or "image/jpeg"
+        with open(file_path, "rb") as f:
+            img_data = f.read()
+            
+        prompt = """
+        Analyze this image for a travel blog. 
+        Return a JSON object with:
+        1. "caption": A short, inspiring description (English).
+        2. "tags": A list of 5-8 relevant tags (English & Turkish mixed ok) like 'Luxury', 'Wine', 'Tuscany', 'Nature'.
+        """
+        
+        vision_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        response = vision_model.generate_content([
+            {'mime_type': mime, 'data': img_data},
+            prompt
+        ], generation_config=genai.types.GenerationConfig(response_mime_type="application/json"))
+        
+        return json.loads(response.text)
+    except Exception as e:
+        print(f"      ⚠️ AI Analysis Failed: {e}")
+        return {"caption": "Tuscany Travel Moment", "tags": ["Tuscany", "Travel"]}
 
 def slugify(text):
     turkish_map = {
@@ -96,18 +122,75 @@ def slugify(text):
     return "".join(c if c.isalnum() else '-' for c in text).strip('-')
 
 async def main():
-    print("[1] Uploading Images...")
+    print("[1] Uploading & Tagging Images...")
     uploaded_urls = []
     
     async with aiohttp.ClientSession() as session:
         # Upload Content Images
         for fpath in IMAGE_FILES:
-            url = await upload_image(session, fpath)
-            uploaded_urls.append(url if url else "https://placehold.co/600x400")
+            url, mime, size, fname = await upload_image(session, fpath)
+            if url:
+                uploaded_urls.append(url)
+                
+                # AI Analysis
+                meta = generate_image_metadata(fpath)
+                
+                # INSERT TO MEDIA TABLE
+                media_payload = {
+                     "filename": fname,
+                     "url": url,
+                     "mime_type": mime,
+                     "size_bytes": size,
+                     "alt_text": meta['caption'],
+                     "caption": meta['caption'],
+                     "tags": meta['tags']
+                }
+                headers = {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Accept-Profile": "blog",
+                    "Content-Profile": "blog",
+                    "Prefer": "resolution=ignore-duplicates" 
+                }
+                async with session.post(f"{SUPABASE_URL}/rest/v1/media", headers=headers, json=media_payload) as m_resp:
+                    if m_resp.status == 201:
+                         print(f"      ✅ Tagged & Saved: {fname} | Tags: {meta['tags']}")
+                    else:
+                         print(f"      ⚠️ Media DB Insert Failed: {await m_resp.text()}")
+
+            else:
+                uploaded_urls.append("https://placehold.co/600x400")
             
         # Upload Featured Image
-        featured_url = await upload_image(session, FEATURED_FILE)
-        if not featured_url: featured_url = uploaded_urls[0]
+        f_url, f_mime, f_size, f_fname = await upload_image(session, FEATURED_FILE)
+        if f_url:
+             featured_url = f_url
+             f_meta = generate_image_metadata(FEATURED_FILE)
+             
+             # INSERT FEATURED TO MEDIA TABLE
+             media_payload = {
+                     "filename": f_fname,
+                     "url": f_url,
+                     "mime_type": f_mime,
+                     "size_bytes": f_size,
+                     "alt_text": f_meta['caption'],
+                     "caption": f_meta['caption'],
+                     "tags": f_meta['tags']
+                }
+             headers = {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Accept-Profile": "blog",
+                    "Content-Profile": "blog",
+                    "Prefer": "resolution=ignore-duplicates"
+                }
+             async with session.post(f"{SUPABASE_URL}/rest/v1/media", headers=headers, json=media_payload) as m_resp:
+                    if m_resp.status == 201:
+                         print(f"      ✅ Featured Image Tagged & Saved")
+        else:
+             featured_url = uploaded_urls[0]
 
     print(f"   ✅ {len(uploaded_urls)} content images + 1 featured prepared.")
 
@@ -125,12 +208,13 @@ async def main():
     1. **Maintain the Sections**: Keep the flow (Accommodation -> Wine -> Art -> Truffle -> Conclusion).
     2. **Expand**: Add sensory details, historical context, and practical "Pro-Tips" to reach ~1500 words.
     3. **Tone**: Ultra-luxury, "La Dolce Vita", slow travel, sophisticated.
-    4. **Images**: You MUST insert the exact placeholders `[IMAGE_1]`, `[IMAGE_2]`, `[IMAGE_3]`, `[IMAGE_4]`, `[IMAGE_5]`, `[IMAGE_6]` in the appropriate sections according to the draft.
-       - Place [IMAGE_1] and [IMAGE_2] in the Accommodation section.
-       - Place [IMAGE_3] in the Wine section.
-       - Place [IMAGE_4] in the Art section.
-       - Place [IMAGE_5] in the Truffle section.
-       - Place [IMAGE_6] in the Conclusion or near the end.
+    4. **Images**: You MUST insert the exact placeholders `[IMAGE_1]`, `[IMAGE_2]`, `[IMAGE_3]`, `[IMAGE_4]`, `[IMAGE_5]`, `[IMAGE_6]` in the appropriate sections:
+       - Place [IMAGE_1] ("Entrance View") in the **Introduction** section.
+       - Place [IMAGE_2] ("Bedroom") in the **Accommodation** section.
+       - Place [IMAGE_3] ("Wine") in the **Wine** section.
+       - Place [IMAGE_4] ("Florence") in the **Art** section.
+       - Place [IMAGE_5] ("Food") in the **Truffle/Food** section.
+       - Place [IMAGE_6] ("Valley Sunrise") in the **Conclusion**.
     
     OUTPUT JSON FORMAT:
     {{

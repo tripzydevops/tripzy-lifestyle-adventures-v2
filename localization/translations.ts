@@ -1228,6 +1228,22 @@ export const translations: Record<Language, Translations> = {
         size: "Boyut",
         actions: "İşlemler",
         dropToUpload: "Yüklemek için Bırakın",
+        admin: {
+          loadError: "Medya yüklenemedi",
+          deleteConfirm: "Bu öğeyi silmek istediğinizden emin misiniz?",
+          deleteSuccess: "Dosya başarıyla silindi",
+          saveSuccess: "Başarıyla kaydedildi",
+          media: {
+            uploadSuccess: "{count} dosya başarıyla yüklendi",
+            uploadFailed: "Bazı dosyalar yüklenemedi",
+            urlCopied: "URL kopyalandı",
+            analyzing: "Görüntü analiz ediliyor...",
+            relevanceCheck: "Uygunluk Kontrolü",
+            relevanceDetails:
+              "{concept} içeriği için {percent}% güven ile tespit yapıldı.",
+            updateError: "Güncelleme başarısız",
+          },
+        },
         types: {
           all: "Tümü",
           image: "Resim",
@@ -1244,7 +1260,6 @@ export const translations: Record<Language, Translations> = {
         edit: "Düzenle",
         updateError: "Güncelleme başarısız",
       },
-      saveSuccess: "Başarıyla kaydedildi",
       users: {
         manageCommunity: "Topluluğu Yönet",
         communitySubtitle:

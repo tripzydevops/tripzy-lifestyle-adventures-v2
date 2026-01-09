@@ -28,91 +28,137 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
   isOpen,
 }) => {
   const { t } = useLanguage();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Edits
-  const [brightness, setBrightness] = useState(100); // 100% is normal
-  const [contrast, setContrast] = useState(100); // 100% is normal
-  const [rotation, setRotation] = useState(0); // degrees
-  const [aspectRatio, setAspectRatio] = useState<number | null>(null); // null = free
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
 
-  // Load image
-  useEffect(() => {
-    if (imageUrl) {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = imageUrl;
-      img.onload = () => setImage(img);
-      setLoading(true);
-      // Wait for load
-      img.onload = () => {
-        setImage(img);
-        setLoading(false);
-      };
-    }
-  }, [imageUrl]);
+  // This state holds the 'pixel' crop area returned by react-easy-crop
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
 
-  // Draw to canvas
+  // Dynamically import react-easy-crop only when needed to avoid SSR issues if any
+  const [Cropper, setCropper] = useState<any>(null);
+
   useEffect(() => {
-    if (!image || !canvasRef.current) return;
-    const canvas = canvasRef.current;
+    import("react-easy-crop").then((mod) => {
+      setCropper(() => mod.default);
+    });
+  }, []);
+
+  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  /**
+   * IMPORTANT: This utility function creates a canvas and draws the cropped image
+   * based on the `croppedAreaPixels` from react-easy-crop.
+   */
+  const getCroppedImg = async (
+    imageSrc: string,
+    pixelCrop: any,
+    rotation = 0
+  ) => {
+    const createImage = (url: string) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.addEventListener("load", () => resolve(image));
+        image.addEventListener("error", (error) => reject(error));
+        image.setAttribute("crossOrigin", "anonymous");
+        image.src = url;
+      });
+
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
 
-    // Apply filters
+    if (!ctx) {
+      return null;
+    }
+
+    const maxSize = Math.max(image.width, image.height);
+    const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
+
+    // set each dimensions to double largest dimension to allow for a safe area for the
+    // image to rotate in without being clipped by canvas context
+    canvas.width = safeArea;
+    canvas.height = safeArea;
+
+    // translate canvas context to a central location on image to allow rotating around the center.
+    ctx.translate(safeArea / 2, safeArea / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.translate(-safeArea / 2, -safeArea / 2);
+
+    // Apply filters BEFORE drawing
     ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
 
-    // Calculate dimensions
-    // Basic rotation logic requires swapping w/h for 90/270.
-    // For MVP we'll stick to 0/90/180/270 or just css transform for preview,
-    // but actual atomic processing needs offscreen canvas.
-    // Let's keep it simple: We draw the image centered.
+    // draw rotated image and store data.
+    ctx.drawImage(
+      image,
+      safeArea / 2 - image.width * 0.5,
+      safeArea / 2 - image.height * 0.5
+    );
 
-    // For this MVP, we are essentially building a "Filter + Simple Crop" tool.
-    // Real cropping requires a coordinate system.
-    // Optimization: We will just draw the full image with filters applied for now on a preview canvas.
+    const data = ctx.getImageData(0, 0, safeArea, safeArea);
 
-    canvas.width = image.width;
-    canvas.height = image.height;
+    // set canvas width to final desired crop size - this will clear existing context
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // paste generated rotate image with correct offsets for x,y crop values.
+    ctx.putImageData(
+      data,
+      Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
+      Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+    );
 
-    // Draw logic
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate((rotation * Math.PI) / 180);
-    ctx.drawImage(image, -image.width / 2, -image.height / 2);
-    ctx.restore();
-  }, [image, brightness, contrast, rotation]);
+    // As Blob
+    return new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (file) => {
+          if (file) resolve(file);
+          else reject(new Error("Canvas failure"));
+        },
+        "image/jpeg",
+        0.9
+      );
+    });
+  };
 
   const handleSave = async () => {
-    if (!canvasRef.current) return;
+    if (!croppedAreaPixels) return;
     setSaving(true);
-
-    canvasRef.current.toBlob(
-      async (blob) => {
-        if (blob) {
-          const file = new File([blob], "edited_image.jpg", {
-            type: "image/jpeg",
-          });
-          await onSave(file);
-          setSaving(false);
-          onClose();
-        }
-      },
-      "image/jpeg",
-      0.9
-    );
+    try {
+      const croppedBlob = await getCroppedImg(
+        imageUrl,
+        croppedAreaPixels,
+        rotation
+      );
+      if (croppedBlob) {
+        const file = new File([croppedBlob], "edited_image.jpg", {
+          type: "image/jpeg",
+        });
+        await onSave(file);
+        onClose();
+      }
+    } catch (e) {
+      console.error("Crop save critical error", e);
+      // Could enable toast here if needed
+    } finally {
+      setSaving(false);
+    }
   };
 
   const reset = () => {
     setBrightness(100);
     setContrast(100);
     setRotation(0);
-    setAspectRatio(null);
+    setZoom(1);
+    setCrop({ x: 0, y: 0 });
   };
 
   if (!isOpen) return null;
@@ -121,10 +167,10 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-navy-950 w-full max-w-6xl h-[90vh] rounded-3xl border border-white/5 flex overflow-hidden shadow-2xl relative">
         {/* Main Canvas Area */}
-        <div className="flex-1 bg-[#0f0f15] relative flex items-center justify-center overflow-hidden p-8">
+        <div className="flex-1 bg-[#0f0f15] relative overflow-hidden">
           {/* Grid Pattern Background */}
           <div
-            className="absolute inset-0 opacity-10"
+            className="absolute inset-0 opacity-10 pointer-events-none z-0"
             style={{
               backgroundImage:
                 "linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)",
@@ -132,25 +178,35 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
             }}
           />
 
-          {loading && (
-            <div className="text-gold animate-pulse">Loading Image...</div>
-          )}
-
-          <canvas
-            ref={canvasRef}
-            className="max-w-full max-h-full object-contain shadow-2xl border border-white/10"
-            style={{
-              filter: `brightness(${brightness}%) contrast(${contrast}%)`,
-              transform: `rotate(${rotation}deg)`,
-              // Note: CSS transform is just for preview speed here, actual save uses the draw logic above logic but we need to sync them.
-              // Actually, the useEffect above draws it "baked in", so we don't need CSS filter on the canvas element itself if we want to see what we save.
-              // Let's remove CSS filters to ensure WYSIWYG.
-            }}
-          />
+          <div className="relative w-full h-full z-10">
+            {Cropper && (
+              <Cropper
+                image={imageUrl}
+                crop={crop}
+                zoom={zoom}
+                rotation={rotation}
+                aspect={undefined} // Free crop for now
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+                showGrid={true}
+                classes={{
+                  containerClassName: "cropper-container",
+                  mediaClassName: "cropper-media",
+                }}
+                style={{
+                  // We apply the CSS filters visually to the cropper preview
+                  mediaStyle: {
+                    filter: `brightness(${brightness}%) contrast(${contrast}%)`,
+                  },
+                }}
+              />
+            )}
+          </div>
         </div>
 
         {/* Sidebar Controls */}
-        <div className="w-80 bg-navy-900 border-l border-white/5 flex flex-col">
+        <div className="w-80 bg-navy-900 border-l border-white/5 flex flex-col z-20 shadow-2xl">
           <div className="p-6 border-b border-white/5 flex justify-between items-center">
             <h3 className="text-xl font-serif font-bold text-white">
               Studio Editor
@@ -164,10 +220,10 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-8">
-            {/* Adjustments */}
+            {/* Visual Adjustments */}
             <div>
               <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Sun size={14} /> Adjustments
+                <Sun size={14} /> Look & Feel
               </h4>
 
               <div className="space-y-4">
@@ -204,10 +260,30 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
             {/* Transform */}
             <div>
               <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <RotateCw size={14} /> Transform
+                <Crop size={14} /> Transform
               </h4>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-300 flex justify-between">
+                    Zoom{" "}
+                    <span className="text-gold">
+                      {(zoom * 100).toFixed(0)}%
+                    </span>
+                  </label>
+                  <input
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.1}
+                    value={zoom}
+                    onChange={(e) => setZoom(Number(e.target.value))}
+                    className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-4">
                 <button
                   onClick={() => setRotation((r) => r + 90)}
                   className="bg-white/5 hover:bg-gold hover:text-navy-950 text-gray-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
@@ -221,6 +297,10 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                   <Undo2 size={16} /> Reset
                 </button>
               </div>
+            </div>
+
+            <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl text-blue-200 text-xs">
+              💡 Drag image to move, scroll to zoom.
             </div>
           </div>
 
