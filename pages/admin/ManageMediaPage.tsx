@@ -219,14 +219,33 @@ const ManageMediaPage = () => {
   };
 
   // Helper to wait for image to generate
-  const waitForImage = async (url: string): Promise<void> => {
-    for (let i = 0; i < 15; i++) {
-      try {
-        const res = await fetch(url, { method: "HEAD" });
-        if (res.ok) return;
-      } catch {}
-      await new Promise((r) => setTimeout(r, 1000));
-    }
+  // Helper to wait for image to generate using standard Image loading
+  // This avoids CORS preflight issues with fetch HEAD requests
+  const waitForImage = (url: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      // We set crossOrigin to anonymous to try and check CORS compliance early
+      // but even if it fails, we know "something" is there (or blocked).
+      img.crossOrigin = "anonymous";
+
+      const timeout = setTimeout(() => {
+        resolve(false); // Timeout
+      }, 15000);
+
+      img.onload = () => {
+        clearTimeout(timeout);
+        resolve(true);
+      };
+
+      img.onerror = () => {
+        clearTimeout(timeout);
+        // If it's a 404, it fails. If it's CORS, it also fails.
+        // We will assume "false" means "cannot use internal upload".
+        resolve(false);
+      };
+
+      img.src = url;
+    });
   };
 
   const handleReanalyze = async (item: MediaItem) => {
