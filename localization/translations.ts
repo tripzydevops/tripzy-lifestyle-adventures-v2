@@ -172,7 +172,6 @@ export interface Translations {
     createFirst: string;
     deleteConfirm: string;
     deleteSuccess: string;
-    saveSuccess: string;
     viewLive: string; // New
     selectFeatured: string; // New
     altText: string; // New
@@ -737,24 +736,21 @@ export const translations: Record<Language, Translations> = {
         mediaSubtitle:
           "Curate your visual story through images and cinematic clips.",
         newMedia: "Upload Assets",
-        searchMedia: "Search by filename or tags...",
-        noMediaFound: "No media found in your archives.",
-        dragDropText:
-          "Drag and drop files here, or click the button above to start building your library.",
+        searchMedia: "Search...",
+        noMediaFound: "No media found",
+        dragDropText: "Drag and drop to upload",
         uploadFirst: "Upload your first asset",
-        importMedia: "External Bridge",
-        importSubtitle:
-          "Fetch media directly from external travel sources and CDNs.",
-        pasteUrl:
-          "Paste the direct URL of an image or video to bridge it into your Tripzy media library.",
-        bridging: "Safely Bridging...",
-        importToLibrary: "Import to Library",
-        previewAppeared: "Preview will appear here after a successful bridge.",
-        uploadSuccess: "{count} file(s) uploaded successfully",
+        importMedia: "Import",
+        importSubtitle: "Add via URL",
+        pasteUrl: "Paste URL",
+        bridging: "Bridging...",
+        importToLibrary: "Add to Library",
+        previewAppeared: "Preview",
+        uploadSuccess: "Uploaded successfully",
         uploadFailed: "Upload failed",
-        urlCopied: "URL copied to clipboard",
-        imagesAndVideos: "Images and Videos",
-        uploading: "Uploading",
+        urlCopied: "URL copied",
+        imagesAndVideos: "Images & Videos",
+        uploading: "Uploading...",
         allTags: "All Tags",
         copyUrl: "Copy URL",
         openOriginal: "Open Original",
@@ -777,12 +773,11 @@ export const translations: Record<Language, Translations> = {
         analysisComplete: "Analysis complete. Metadata updated.",
         analysisFailed: "Analysis failed.",
         fitCover: "Crop to Fill",
-        fitContain: "Show Full Image",
+        fitContain: "Fit to View",
         rename: "Rename",
-        edit: "Edit Media",
-        updateError: "Failed to update",
+        edit: "Edit",
+        updateError: "Update failed",
       },
-      saveSuccess: "Saved successfully",
       users: {
         manageCommunity: "Manage Community",
         communitySubtitle:
@@ -1016,7 +1011,6 @@ export const translations: Record<Language, Translations> = {
       uploadError: "Medya yüklemesi başarısız oldu.",
       loadError: "Medya yüklenemedi.",
       uploadFirst: "İlk varlığınızı yükleyerek başlayın",
-
       mediaLibrary: "Medya Kütüphanesi",
       unsplash: "Unsplash",
       library: "Kütüphane",
@@ -1046,10 +1040,10 @@ export const translations: Record<Language, Translations> = {
       deleteSuccess: "Öğe başarıyla silindi.",
       saveSuccess: "Değişiklikler başarıyla kaydedildi.",
       saveDraft: "Taslağı Kaydet",
-      viewLive: "Canlı Yazıyı Görüntüle", // New
-      selectFeatured: "Öne Çıkan Medyayı Seç", // New
-      altText: "Alternatif Metin", // New
-      altPlaceholder: "Erişilebilirlik için medyayı tanımlayın", // New
+      viewLive: "Canlı Yazıyı Görüntüle",
+      selectFeatured: "Öne Çıkan Medyayı Seç",
+      altText: "Alternatif Metin",
+      altPlaceholder: "Erişilebilirlik için medyayı tanımlayın",
       schedule: "Zamanla",
       submitReview: "İncelemeye Gönder",
       publishNow: "Şimdi Yayınla",
@@ -1076,10 +1070,10 @@ export const translations: Record<Language, Translations> = {
         uiDirective: "UI Yönergesi",
         intelligenceMetadata: "Zeka Metaverisi",
         vibePersona: "Vibe / Persona",
-        intent: "Kullanıcı Niyeti", // New
-        reasoning: "Ajan Muhakemesi", // New
-        constraints: "Kısıtlamalar (Virgülle ayırın)", // New
-        confidence: "Güven Skoru", // New
+        intent: "Kullanıcı Niyeti",
+        reasoning: "Ajan Muhakemesi",
+        constraints: "Kısıtlamalar (Virgülle ayırın)",
+        confidence: "Güven Skoru",
       },
       settings: {
         title: "Sistem Yapılandırması",
@@ -1100,11 +1094,11 @@ export const translations: Record<Language, Translations> = {
         shareImageUrl: "Paylaşım Görseli URL'si",
         commitChanges: "Değişiklikleri Kaydet",
         synchronizing: "Senkronize ediliyor...",
-        backupExport: "Yedekleme ve Dışa Aktarma", // New
-        exportPosts: "Yazıları Dışa Aktar (JSON)", // New
-        exportComments: "Yorumları Dışa Aktar", // New
-        exportSubscribers: "Aboneleri Dışa Aktar", // New
-        exportMedia: "Medya Listesini Dışa Aktar", // New
+        backupExport: "Yedekleme ve Dışa Aktarma",
+        exportPosts: "Yazıları Dışa Aktar (JSON)",
+        exportComments: "Yorumları Dışa Aktar",
+        exportSubscribers: "Aboneleri Dışa Aktar",
+        exportMedia: "Medya Listesini Dışa Aktar",
       },
       profile: {
         title: "Yönetici Profili",
@@ -1112,10 +1106,10 @@ export const translations: Record<Language, Translations> = {
         fullName: "Ad Soyad",
         photoUrl: "Profil Fotoğrafı (URL)",
         saveProfile: "Profili Kaydet",
-        saving: "Kaydediliyor...", // New
-        currentLevel: "Mevcut Seviye", // New
-        toNextLevel: "Sonraki Seviyeye", // New
-        achievements: "Başarımlar", // New
+        saving: "Kaydediliyor...",
+        currentLevel: "Mevcut Seviye",
+        toNextLevel: "Sonraki Seviyeye",
+        achievements: "Başarımlar",
       },
       dashboard: {
         welcomeBack: "Tekrar hoş geldiniz,",
@@ -1155,10 +1149,10 @@ export const translations: Record<Language, Translations> = {
         title: "Etkileyici bir başlık girin...",
         excerpt: "Seyahat listeleri için kısa, akılda kalıcı bir özet...",
         metaKeywords: "macera, şehir rehberi, gizli mücevher",
-        intent: "örn. Aile Kültür Gezisi", // New
-        vibe: "örn. Lüks, Macera...", // New
-        reasoning: "Neden bu öneri?", // New
-        constraints: "Bütçe, Çocuk...", // New
+        intent: "örn. Aile Kültür Gezisi",
+        vibe: "örn. Lüks, Macera...",
+        reasoning: "Neden bu öneri?",
+        constraints: "Bütçe, Çocuk...",
       },
       ai: {
         generating: "Yapay Zeka ile Oluştur",
@@ -1228,37 +1222,21 @@ export const translations: Record<Language, Translations> = {
         size: "Boyut",
         actions: "İşlemler",
         dropToUpload: "Yüklemek için Bırakın",
-        admin: {
-          loadError: "Medya yüklenemedi",
-          deleteConfirm: "Bu öğeyi silmek istediğinizden emin misiniz?",
-          deleteSuccess: "Dosya başarıyla silindi",
-          saveSuccess: "Başarıyla kaydedildi",
-          media: {
-            uploadSuccess: "{count} dosya başarıyla yüklendi",
-            uploadFailed: "Bazı dosyalar yüklenemedi",
-            urlCopied: "URL kopyalandı",
-            analyzing: "Görüntü analiz ediliyor...",
-            relevanceCheck: "Uygunluk Kontrolü",
-            relevanceDetails:
-              "{concept} içeriği için {percent}% güven ile tespit yapıldı.",
-            updateError: "Güncelleme başarısız",
-          },
-        },
         types: {
           all: "Tümü",
           image: "Resim",
           video: "Video",
         },
-        popularTags: "Popüler Etiketler",
-        reanalyze: "Yapay Zeka ile Yeniden Analiz Et",
-        analyzing: "Görsel analiz ediliyor...",
-        analysisComplete: "Analiz tamamlandı.",
-        analysisFailed: "Analiz başarısız.",
+        popularTags: "Popüler",
+        reanalyze: "Yeniden Analiz",
+        analyzing: "Analiz ediliyor...",
+        analysisComplete: "Tamamlandı",
+        analysisFailed: "Başarısız",
         fitCover: "Doldur",
-        fitContain: "Tamamını Göster",
+        fitContain: "Sığdır",
         rename: "Yeniden Adlandır",
         edit: "Düzenle",
-        updateError: "Güncelleme başarısız",
+        updateError: "Güncelleme hatası",
       },
       users: {
         manageCommunity: "Topluluğu Yönet",
