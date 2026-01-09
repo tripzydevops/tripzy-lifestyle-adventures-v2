@@ -250,29 +250,46 @@ const ManageMediaPage = () => {
         );
 
         try {
+          // 3. Generate Replacement
+          // We add 'highly detailed' and '4k' to ensure quality
           const newImageUrl = await aiContentService.generateImage(
-            `${expectedConcept} travel photography`
+            `${expectedConcept} travel photography highly detailed 4k`
           );
           await waitForImage(newImageUrl);
 
-          const imgRes = await fetch(newImageUrl);
-          const imgBlob = await imgRes.blob();
-          const newFile = new File([imgBlob], item.fileName, {
-            type: "image/jpeg",
-          });
+          let uploadedUrl = newImageUrl;
+          let newSize = 0;
 
-          const uploadedUrl = await uploadService.uploadFile(newFile);
+          // Try to download and upload (Handle CORS)
+          try {
+            const imgRes = await fetch(newImageUrl);
+            if (!imgRes.ok) throw new Error("Fetch failed");
+            const imgBlob = await imgRes.blob();
+            const newFile = new File([imgBlob], item.fileName, {
+              type: "image/jpeg",
+            });
+            uploadedUrl = await uploadService.uploadFile(newFile);
+            newSize = newFile.size;
+          } catch (fetchErr) {
+            console.warn(
+              "CORS or Fetch error downloading generated image. Using direct URL.",
+              fetchErr
+            );
+            // Fallback: Use the direct Pollinations URL
+            // This is safe because uploadService.deleteFile handles external URLs gracefully.
+          }
 
+          // Update DB with NEW URL (Internal or External)
           await mediaService.updateMedia(item.id, {
             url: uploadedUrl,
-            sizeBytes: newFile.size,
+            sizeBytes: newSize || undefined,
             caption: `AI Auto-Corrected: ${expectedConcept}`,
             tags: ["ai-corrected", ...verification.detectedConcept.split(" ")],
           });
 
           addToast("Image auto-corrected successfully!", "success");
           fetchMedia();
-          return;
+          return; // Exit, we are done
         } catch (genError) {
           console.error("Auto-fix failed:", genError);
           addToast(
