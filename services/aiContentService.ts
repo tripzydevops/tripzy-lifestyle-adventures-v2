@@ -576,7 +576,8 @@ export const aiContentService = {
     const encodedPrompt = encodeURIComponent(cleanPrompt);
 
     // Using Flux-Realism or Default model via Pollinations
-    return `https://pollinations.ai/p/${encodedPrompt}?width=1280&height=720&seed=${seed}&model=flux-realism&nologo=true`;
+    // Note: We use 'image.pollinations.ai/prompt/' subdomain which supports CORS for programmatic access
+    return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&seed=${seed}&model=flux-realism&nologo=true`;
   },
 
   isConfigured(): boolean {

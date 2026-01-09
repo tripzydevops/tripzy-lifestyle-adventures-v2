@@ -279,27 +279,23 @@ const ManageMediaPage = () => {
           let uploadedUrl = newImageUrl;
           let newSize = 0;
 
-          // Try to upload to internal storage, but be smart about CORS
-          // If the URL is from pollinations.ai, we KNOW browser fetch will fail with CORS
-          // So we skip the fetch attempt to avoid the ugly red console error
-          const isPollinations = newImageUrl.includes("pollinations.ai");
-
-          if (!isPollinations) {
-            try {
-              const imgRes = await fetch(newImageUrl);
-              if (!imgRes.ok) throw new Error("Fetch failed");
-              const imgBlob = await imgRes.blob();
-              const newFile = new File([imgBlob], item.fileName, {
-                type: "image/jpeg",
-              });
-              uploadedUrl = await uploadService.uploadFile(newFile);
-              newSize = newFile.size;
-            } catch (fetchErr) {
-              // Silent fallback
-            }
-          } else {
-            // For Pollinations, we default directly to the URL to be cleaner
-            console.log("Using direct Pollinations URL (bypassing CORS fetch)");
+          // Try to upload to internal storage
+          try {
+            const imgRes = await fetch(newImageUrl);
+            if (!imgRes.ok) throw new Error("Fetch failed");
+            const imgBlob = await imgRes.blob();
+            const newFile = new File([imgBlob], item.fileName, {
+              type: "image/jpeg",
+            });
+            uploadedUrl = await uploadService.uploadFile(newFile);
+            newSize = newFile.size;
+          } catch (fetchErr) {
+            console.warn(
+              "CORS or Fetch error downloading generated image. Using direct URL.",
+              fetchErr
+            );
+            // Fallback: Use the direct Pollinations URL
+            // This is safe because uploadService.deleteFile handles external URLs gracefully.
           }
 
           // Update DB with NEW URL (Internal or External)
