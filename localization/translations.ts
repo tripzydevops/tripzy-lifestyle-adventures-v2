@@ -357,7 +357,7 @@ export interface Translations {
       fitCover: string;
       fitContain: string;
       rename: string;
-      updateError: string;
+      edit: string;
       updateError: string;
     };
     saveSuccess: string;
