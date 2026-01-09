@@ -751,14 +751,25 @@ figcaption,
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
 }
 
+/* Force Black Title in Popup */
 .custom-popup h4,
-.custom-popup h3 {
+.custom-popup h3,
+.map-popup-title {
   color: #000000 !important;
   text-shadow: none !important;
   margin-top: 0.5rem !important;
   font-family: var(--font-primary) !important;
+  opacity: 1 !important;
 }
 
 .custom-popup p {
   color: #374151 !important; /* gray-700 */
+}
+
+/* Force Black Text on Active Map Buttons (Gold Background) */
+.map-pin-btn-active {
+  color: #000000 !important;
+  background-color: var(--color-gold) !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
 }

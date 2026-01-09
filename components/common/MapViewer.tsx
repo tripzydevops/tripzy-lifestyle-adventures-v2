@@ -148,7 +148,7 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
                     </span>
                   </div>
                   <h4
-                    className="font-bold text-base mb-1"
+                    className="font-bold text-base mb-1 map-popup-title"
                     style={{ color: "black", textShadow: "none" }}
                   >
                     {point.title}
@@ -185,7 +185,7 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
             }}
             className={`text-base font-semibold px-6 py-3 rounded-xl border transition-all shadow-md ${
               activeMarker === point.title
-                ? "bg-gold text-black border-gold shadow-gold/20 scale-105"
+                ? "bg-gold text-black border-gold shadow-gold/20 scale-105 map-pin-btn-active"
                 : "bg-white/5 text-white/90 border-white/10 hover:bg-white/10 hover:border-gold/50 hover:text-gold"
             }`}
           >
