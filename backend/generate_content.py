@@ -589,7 +589,7 @@ async def process_post(item, author_id):
                          {
                              "lat": p['lat'], 
                              "lng": p['lng'], 
-                             "title": p['name'], 
+                             "title": p.get('name') or p.get('title') or p.get('place_name') or "Points of Interest", 
                              "description": p.get('description', ''),
                              "category": p.get('category', 'View')
                          } for p in map_data['points']
