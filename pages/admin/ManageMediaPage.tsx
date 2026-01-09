@@ -297,9 +297,27 @@ const ManageMediaPage = () => {
             const newFile = new File([imgBlob], item.fileName, {
               type: "image/jpeg",
             });
+
+            // VALIDATION: Ensure the NEW image is not also a placeholder
+            if (newFile.size < 5000) {
+              throw new Error(
+                "Generated image is too small (<5KB). Aborting replacement."
+              );
+            }
+
             uploadedUrl = await uploadService.uploadFile(newFile);
             newSize = newFile.size;
-          } catch (fetchErr) {
+          } catch (fetchErr: any) {
+            // If the error was our size check, we must NOT fallback. We should stop.
+            if (fetchErr.message && fetchErr.message.includes("too small")) {
+              console.error("AI Generation failed:", fetchErr);
+              addToast(
+                "AI Generation produced a broken image. Please try again.",
+                "error"
+              );
+              return; // STOP HERE. Do not save.
+            }
+
             console.warn(
               "CORS or Fetch error downloading generated image. Using direct URL.",
               fetchErr
