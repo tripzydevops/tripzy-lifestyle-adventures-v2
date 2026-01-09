@@ -959,10 +959,12 @@ const ManageMediaPage = () => {
 
       {editingItem && (
         <MediaEditorModal
-          isOpen={isEditorOpen}
-          onClose={() => setIsEditorOpen(false)}
-          imageUrl={editingItem.url}
-          onSave={handleSaveEditedImage}
+          isOpen={Boolean(editMedia)}
+          onClose={() => setEditMedia(null)}
+          imageUrl={editMedia?.url || ""}
+          fileName={editMedia?.fileName}
+          isSaving={false}
+          onSave={handleSaveEditedMedia}
         />
       )}
     </div>

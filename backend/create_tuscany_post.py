@@ -111,7 +111,7 @@ def generate_image_metadata(file_path):
         print(f"      ⚠️ AI Analysis Failed: {e}")
         return {"caption": "Tuscany Travel Moment", "tags": ["Tuscany", "Travel"]}
 
-def slugify(text):
+def unique_slug(text):
     turkish_map = {
         'ı': 'i', 'ğ': 'g', 'ü': 'u', 'ş': 's', 'ö': 'o', 'ç': 'c',
         'I': 'i', 'Ğ': 'g', 'Ü': 'u', 'Ş': 's', 'Ö': 'o', 'Ç': 'c',
@@ -126,6 +126,22 @@ async def main():
     uploaded_urls = []
     
     async with aiohttp.ClientSession() as session:
+        # CLEANUP: Delete existing media entries for these files to avoid broken link confusion
+        print("      🧹 Cleaning up old media records...")
+        targets = [f"tuscany_{os.path.basename(f)}" for f in IMAGE_FILES]
+        targets.append(f"tuscany_{os.path.basename(FEATURED_FILE)}")
+        
+        # We can't easily do a bulk delete by filename list via standard REST without a custom RPC or complex filter string.
+        # So we'll delete them one by one to be safe and simple.
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}"
+        }
+        for t_name in targets:
+             async with session.delete(f"{SUPABASE_URL}/rest/v1/media?filename=eq.{t_name}", headers=headers) as del_resp:
+                 if del_resp.status == 204:
+                     pass # Deleted successfully
+                 
         # Upload Content Images
         for fpath in IMAGE_FILES:
             url, mime, size, fname = await upload_image(session, fpath)
@@ -274,7 +290,7 @@ async def main():
 
     # [4] Insert to Database
     print("[4] Saving to Database...")
-    slug = slugify(USER_TITLE)
+    slug = unique_slug(USER_TITLE)
     
     # Get Admin User 
     admin_id = None

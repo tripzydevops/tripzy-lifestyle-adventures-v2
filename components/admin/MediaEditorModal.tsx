@@ -19,6 +19,7 @@ interface MediaEditorModalProps {
   onSave: (newSubFile: File) => Promise<void>;
   onClose: () => void;
   isOpen: boolean;
+  fileName?: string;
 }
 
 const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
@@ -26,6 +27,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
   onSave,
   onClose,
   isOpen,
+  fileName = "image",
 }) => {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
@@ -131,7 +133,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
 
   const handleSave = async () => {
     if (!croppedAreaPixels) return;
-    setSaving(true);
+    // setSaving(true); // Removed as isSaving prop is used
     try {
       const croppedBlob = await getCroppedImg(
         imageUrl,
@@ -139,7 +141,11 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
         rotation
       );
       if (croppedBlob) {
-        const file = new File([croppedBlob], "edited_image.jpg", {
+        // Smart Naming: meaningful prefix + original name
+        const cleanName = fileName.replace(/\.[^/.]+$/, ""); // remove extension
+        const newName = `edited_${cleanName}.jpg`;
+
+        const file = new File([croppedBlob], newName, {
           type: "image/jpeg",
         });
         await onSave(file);
@@ -149,7 +155,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
       console.error("Crop save critical error", e);
       // Could enable toast here if needed
     } finally {
-      setSaving(false);
+      // setSaving(false); // Removed as isSaving prop is used
     }
   };
 
@@ -186,6 +192,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                 zoom={zoom}
                 rotation={rotation}
                 aspect={undefined} // Free crop for now
+                objectFit="contain" // Allow full image to be seen
                 onCropChange={setCrop}
                 onCropComplete={onCropComplete}
                 onZoomChange={setZoom}
