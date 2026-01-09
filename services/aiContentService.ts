@@ -408,9 +408,7 @@ export const aiContentService = {
     return parseJSON<GeneratedVideoPrompt>(response);
   },
 
-  async analyzeImageFromUrl(
-    url: string
-  ): Promise<{
+  async analyzeImageFromUrl(url: string): Promise<{
     title?: string;
     altText: string;
     caption: string;
@@ -489,6 +487,67 @@ export const aiContentService = {
         caption: "A beautiful moment from Tripzy Lifestyle Adventures.",
         tags: [],
       };
+    }
+  },
+
+  async verifyImageRelevance(
+    url: string,
+    expectedConcept: string
+  ): Promise<{ isRelevant: boolean; detectedConcept: string }> {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) throw new Error("Gemini API key not configured.");
+
+    try {
+      const imgResp = await fetch(url);
+      const blob = await imgResp.blob();
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () =>
+          resolve((reader.result as string).split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      const prompt = `
+        Does this image depict "${expectedConcept}"?
+        Return a strict JSON object:
+        {
+          "isRelevant": boolean, // true if it matches the concept, false if it is something else entirely
+          "detectedConcept": "string" // A short 1-5 word description of what is actually in the image
+        }
+        Be lenient. If it's plausibly related, say true. Only say false for clear mismatches (e.g. expected 'Pyramids' but image is 'Eiffel Tower').
+      `;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: prompt },
+                  {
+                    inline_data: {
+                      mime_type: blob.type || "image/jpeg",
+                      data: base64Data,
+                    },
+                  },
+                ],
+              },
+            ],
+          }),
+        }
+      );
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      return parseJSON<{ isRelevant: boolean; detectedConcept: string }>(text);
+    } catch (err) {
+      console.error("Verification Error:", err);
+      // Fail safe: assume it is relevant to avoid false auto-replacements
+      return { isRelevant: true, detectedConcept: expectedConcept };
     }
   },
 

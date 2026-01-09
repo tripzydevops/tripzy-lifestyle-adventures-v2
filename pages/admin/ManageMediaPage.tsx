@@ -218,9 +218,72 @@ const ManageMediaPage = () => {
     }
   };
 
+  // Helper to wait for image to generate
+  const waitForImage = async (url: string): Promise<void> => {
+    for (let i = 0; i < 15; i++) {
+      try {
+        const res = await fetch(url, { method: "HEAD" });
+        if (res.ok) return;
+      } catch {}
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  };
+
   const handleReanalyze = async (item: MediaItem) => {
     try {
       addToast(t("admin.media.analyzing"), "info");
+
+      const expectedConcept = item.fileName
+        .replace(/\.[^/.]+$/, "")
+        .replace(/_/g, " ");
+
+      // 2. Verify Relevance
+      const verification = await aiContentService.verifyImageRelevance(
+        item.url,
+        expectedConcept
+      );
+
+      if (!verification.isRelevant) {
+        addToast(
+          `Mismatch detected! Image seems to be '${verification.detectedConcept}' instead of '${expectedConcept}'. Fixing...`,
+          "info"
+        );
+
+        try {
+          const newImageUrl = await aiContentService.generateImage(
+            `${expectedConcept} travel photography`
+          );
+          await waitForImage(newImageUrl);
+
+          const imgRes = await fetch(newImageUrl);
+          const imgBlob = await imgRes.blob();
+          const newFile = new File([imgBlob], item.fileName, {
+            type: "image/jpeg",
+          });
+
+          const uploadedUrl = await uploadService.uploadFile(newFile);
+
+          await mediaService.updateMedia(item.id, {
+            url: uploadedUrl,
+            sizeBytes: newFile.size,
+            caption: `AI Auto-Corrected: ${expectedConcept}`,
+            tags: ["ai-corrected", ...verification.detectedConcept.split(" ")],
+          });
+
+          addToast("Image auto-corrected successfully!", "success");
+          fetchMedia();
+          return;
+        } catch (genError) {
+          console.error("Auto-fix failed:", genError);
+          addToast(
+            `Could not auto-fix image for '${expectedConcept}'. Please check manually.`,
+            "error"
+          );
+          return;
+        }
+      }
+
+      // Normal Flow
       const analysis = await aiContentService.analyzeImageFromUrl(item.url);
 
       await mediaService.updateMedia(item.id, {
