@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -77,6 +77,29 @@ interface MapViewerProps {
 const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
   const tripzy = useTripzy();
   const [activeMarker, setActiveMarker] = useState<string | null>(null);
+  const markerRefs = useRef<{ [key: string]: L.Marker | null }>({});
+
+  const handlePointSelect = (title: string, lat: number, lng: number) => {
+    setActiveMarker(title);
+
+    // 1. Open Popup
+    const marker = markerRefs.current[title];
+    if (marker) {
+      marker.openPopup();
+    }
+
+    // 2. Track Interaction
+    if (tripzy) {
+      tripzy.track("map_interaction", {
+        action: "point_select",
+        poi_name: title,
+        map_name: mapData.name,
+        post_context: postTitle,
+        lat: lat,
+        lng: lng,
+      });
+    }
+  };
 
   const handleMarkerClick = (point: any) => {
     setActiveMarker(point.title);
@@ -117,11 +140,15 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
 
           {mapData.data?.map((point: any, idx: number) => (
             <Marker
+              ref={(ref) => {
+                if (ref) markerRefs.current[point.title] = ref;
+              }}
               key={idx}
               position={[point.lat, point.lng]}
               icon={getCategoryIcon(point.category)}
               eventHandlers={{
-                click: () => handleMarkerClick(point),
+                click: () =>
+                  handlePointSelect(point.title, point.lat, point.lng),
               }}
             >
               <Popup className="custom-popup rounded-xl overflow-hidden shadow-xl border-none">
@@ -186,10 +213,7 @@ const MapViewer: React.FC<MapViewerProps> = ({ mapData, postTitle }) => {
         {mapData.data?.map((point: any, idx: number) => (
           <button
             key={idx}
-            onClick={() => {
-              // Logic to focus map on this point could be added here
-              setActiveMarker(point.title);
-            }}
+            onClick={() => handlePointSelect(point.title, point.lat, point.lng)}
             style={
               activeMarker === point.title
                 ? {
