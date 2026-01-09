@@ -424,7 +424,12 @@ export const aiContentService = {
       const base64Data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          const base64 = (reader.result as string).split(",")[1];
+          const res = reader.result as string;
+          // Log data to debug 400 errors
+          console.log(
+            `[Tripzy AI] Image fetched. Type: ${blob.type}, Size: ${blob.size}, Base64 Length: ${res.length}`
+          );
+          const base64 = res.split(",")[1];
           resolve(base64);
         };
         reader.onerror = reject;

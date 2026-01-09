@@ -257,10 +257,13 @@ const ManageMediaPage = () => {
         .replace(/_/g, " ");
 
       // 2. Verify Relevance
+      console.log("[ManageMedia] Verifying relevance for:", item.url);
       const verification = await aiContentService.verifyImageRelevance(
         item.url,
         expectedConcept
       );
+
+      console.log("[ManageMedia] Verification result:", verification);
 
       if (!verification.isRelevant) {
         addToast(
