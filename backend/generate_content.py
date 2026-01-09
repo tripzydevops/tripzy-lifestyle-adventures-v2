@@ -60,7 +60,7 @@ async def fetch_featured_image(query):
                         unsplash_credit = f"Photo by {img['user']['name']} on Unsplash"
                 elif resp.status in [403, 429]:
                      print("      ⚠️ Unsplash Limit. Waiting 5s...")
-                     time.sleep(5)
+                     await asyncio.sleep(5)
                      # Retry once logic could go here
     except Exception as e:
         print(f"      ⚠️ Fetch failed: {e}")
@@ -305,7 +305,7 @@ async def fetch_unsplash_image(query):
                         }
                 elif resp.status in [403, 429]:
                     print(f"⚠️ Unsplash Limit Hit. Waiting 10s...")
-                    time.sleep(10) # Simple backoff
+                    await asyncio.sleep(10) # Simple backoff
                     # One retry
                     async with session.get(url) as retry_resp:
                         if retry_resp.status == 200:
@@ -354,74 +354,87 @@ async def post_process_images_in_content(content):
 async def fix_images_main():
     print("[START] Fixing Images (Pollinations -> Unsplash)...")
     
-    # 1. Fetch all posts
     async with aiohttp.ClientSession() as session:
-        url = f"{SUPABASE_URL}/rest/v1/posts?select=id,title,content,featured_image"
-        headers = supabase.headers
-        async with session.get(url, headers=headers) as resp:
-            posts = await resp.json()
-            
-    print(f"Found {len(posts)} posts. Scanning for broken images...")
-    
-    for post in posts:
-        is_updated = False
-        updates = {}
+        offset = 0
+        limit = 10
         
-        # 1. Check Featured Image
-        feat_img = post.get('featured_image') or ""
-        
-        if "pollinations" in feat_img or "image.pollinations.ai" in feat_img:
-            print(f"[{post['title']}] Fixing Featured Image (Current: {feat_img[:20]}...)")
+        while True:
+            # Pagination Header
+            range_header = f"{offset}-{offset + limit - 1}"
+            batch_headers = {**supabase.headers, "Range": range_header}
             
-            # Smart Fallback Search Strategy
-            # Extract potential location name (first word is often the key in Turkish titles like "Bodrum...", "Antalya...")
-            first_word = post['title'].split(" ")[0]
-            
-            queries = [
-                post['title'] + " travel",
-                post['title'],
-                f"{first_word} Turkey travel", # Try adding country context
-                first_word, # Just the location name
-                "Travel" # Last resort
-            ]
-            
-            unsplash_feat = None
-            for q in queries:
-                if not q: continue
-                cleaned_q = q.replace(' ', '+')
-                print(f"   -> Trying Unsplash: {q}")
-                unsplash_feat = await fetch_unsplash_image(cleaned_q)
-                if unsplash_feat:
+            url = f"{SUPABASE_URL}/rest/v1/posts?select=id,title,content,featured_image&order=id"
+            async with session.get(url, headers=batch_headers) as resp:
+                if resp.status not in [200, 206]: 
+                    print(f"❌ Failed to fetch batch: {await resp.text()}")
                     break
+                posts = await resp.json()
             
-            if unsplash_feat:
-                updates['featured_image'] = unsplash_feat['url']
-                is_updated = True
-                print(f"   ✅ Found replacement: {unsplash_feat['url'][:30]}...")
-            else:
-                print("   ❌ Failed to get Unsplash alternative (all queries failed).")
-        
-        # 2. Check Content Images
-        if "pollinations" in (post.get('content') or ""):
-            print(f"[{post['title']}] Fixing Content Images...")
-            new_content = await post_process_images_in_content(post['content'])
-            if new_content != post['content']:
-                updates['content'] = new_content
-                is_updated = True
+            if not posts:
+                print("   -> No more posts found.")
+                break
                 
-        if is_updated:
-            print(f"   -> Updating Supabase for {post['title']}...")
-            async with aiohttp.ClientSession() as session:
-                update_url = f"{SUPABASE_URL}/rest/v1/posts?id=eq.{post['id']}"
-                async with session.patch(update_url, headers=headers, json=updates) as patch_resp:
-                    if patch_resp.status == 204:
-                         print("      ✅ Updated.")
-                    else:
-                         print(f"      ❌ Failed: {await patch_resp.text()}")
+            print(f"   -> Processing batch {offset}-{offset+limit} ({len(posts)} found)...")
             
-            # Rate limit respect
-            print("   -> Sleeping 2s...")
-            time.sleep(2)
+            for post in posts:
+                is_updated = False
+                updates = {}
+                
+                # 1. Check Featured Image
+                feat_img = post.get('featured_image') or ""
+                
+                if "pollinations" in feat_img or "image.pollinations.ai" in feat_img:
+                    print(f"[{post['title']}] Fixing Featured Image (Current: {feat_img[:20]}...)")
+                    
+                    # Smart Fallback Search Strategy
+                    first_word = post['title'].split(" ")[0]
+                    
+                    queries = [
+                        post['title'] + " travel",
+                        post['title'],
+                        f"{first_word} Turkey travel", 
+                        first_word, 
+                        "Travel" 
+                    ]
+                    
+                    unsplash_feat = None
+                    for q in queries:
+                        if not q: continue
+                        cleaned_q = q.replace(' ', '+')
+                        print(f"   -> Trying Unsplash: {q}")
+                        unsplash_feat = await fetch_unsplash_image(cleaned_q)
+                        if unsplash_feat:
+                            break
+                    
+                    if unsplash_feat:
+                        updates['featured_image'] = unsplash_feat['url']
+                        is_updated = True
+                        print(f"   ✅ Found replacement: {unsplash_feat['url'][:30]}...")
+                    else:
+                        print("   ❌ Failed to get Unsplash alternative.")
+                
+                # 2. Check Content Images
+                if "pollinations" in (post.get('content') or ""):
+                    print(f"[{post['title']}] Fixing Content Images...")
+                    new_content = await post_process_images_in_content(post['content'])
+                    if new_content != post['content']:
+                        updates['content'] = new_content
+                        is_updated = True
+                        
+                if is_updated:
+                    print(f"   -> Updating Supabase for {post['title']}...")
+                    update_url = f"{SUPABASE_URL}/rest/v1/posts?id=eq.{post['id']}"
+                    async with session.patch(update_url, headers=supabase.headers, json=updates) as patch_resp:
+                        if patch_resp.status == 204:
+                             print("      ✅ Updated.")
+                        else:
+                             print(f"      ❌ Failed: {await patch_resp.text()}")
+                    
+                    # Rate limit respect
+                    await asyncio.sleep(2)
+            
+            offset += limit
+            await asyncio.sleep(1)
 
 
 async def generate_post_content(item):
@@ -626,7 +639,7 @@ async def main():
         chunk = POSTS_TO_GENERATE[i:i + chunk_size]
         await asyncio.gather(*(process_post(post, author_id) for post in chunk))
         print("[WAIT] Cooling down for 5 seconds...")
-        time.sleep(5)
+        await asyncio.sleep(5)
 
 if __name__ == "__main__":
     # Choose mode based on what you need
