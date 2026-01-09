@@ -515,8 +515,15 @@ export const aiContentService = {
       const blob = await imgResp.blob();
       const base64Data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
-        reader.onloadend = () =>
+        reader.onloadend = () => {
+          if (blob.size < 5000) {
+            reject(
+              new Error("Image too small (<5KB). Likely an error placeholder.")
+            );
+            return;
+          }
           resolve((reader.result as string).split(",")[1]);
+        };
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
