@@ -52,9 +52,6 @@ const DiscoveryHero: React.FC<DiscoveryProps> = ({ onSearch, isSearching }) => {
       : [...activeVibes, id];
     setActiveVibes(newVibes);
     // Don't auto-search on vibe toggle, let user click "Go" or focus intent
-    // OR: We could auto-filter Level 1 here.
-    // Let's defer to main search for now.
-    onSearch(searchTerm, newVibes);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -69,7 +66,7 @@ const DiscoveryHero: React.FC<DiscoveryProps> = ({ onSearch, isSearching }) => {
       <div
         className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1469474932222-de90811e9240?q=80&w=2070&auto=format&fit=crop')`,
+          backgroundImage: `url('https://images.unsplash.com/photo-1506929562872-bb421503ef21?q=80&w=2068&auto=format&fit=crop')`, // Reliable beach/sunset vibe
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-navy-950/70 via-navy-900/40 to-navy-950/90" />
@@ -78,9 +75,7 @@ const DiscoveryHero: React.FC<DiscoveryProps> = ({ onSearch, isSearching }) => {
       <div className="relative z-10 container mx-auto px-4 text-center max-w-4xl">
         <h1 className="text-4xl md:text-6xl font-display font-bold text-white mb-6 tracking-tight">
           Where should your{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-orange-400">
-            next story
-          </span>{" "}
+          <span className="text-yellow-400 inline-block px-2">next story</span>{" "}
           begin?
         </h1>
 
