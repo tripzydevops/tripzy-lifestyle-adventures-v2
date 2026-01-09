@@ -281,8 +281,15 @@ const ManageMediaPage = () => {
 
           // Try to upload to internal storage
           try {
-            const imgRes = await fetch(newImageUrl);
-            if (!imgRes.ok) throw new Error("Fetch failed");
+            // Use our new internal proxy to route the request server-side
+            // This completely bypasses browser CORS restrictions
+            const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(
+              newImageUrl
+            )}`;
+
+            const imgRes = await fetch(proxyUrl);
+            if (!imgRes.ok) throw new Error("Proxy fetch failed");
+
             const imgBlob = await imgRes.blob();
             const newFile = new File([imgBlob], item.fileName, {
               type: "image/jpeg",
