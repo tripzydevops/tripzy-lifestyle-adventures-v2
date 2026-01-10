@@ -183,6 +183,28 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
     });
   };
 
+  // Filename state
+  const [currentFileName, setCurrentFileName] = useState(fileName);
+
+  useEffect(() => {
+    // Strip extension for editing
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+    setCurrentFileName(nameWithoutExt);
+  }, [fileName]);
+
+  const sanitizeFileName = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "") // Remove special chars
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/-+/g, "-"); // Remove duplicate hyphens
+  };
+
+  const handleFileNameBlur = () => {
+    const sanitized = sanitizeFileName(currentFileName);
+    setCurrentFileName(sanitized || "image");
+  };
+
   const handleSave = async (mode: "replace" | "new") => {
     if (!croppedAreaPixels) return;
     // setSaving(true); // Removed as isSaving prop is used
@@ -194,7 +216,8 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
       );
       if (croppedBlob) {
         // Smart Naming: meaningful prefix + original name
-        const cleanName = fileName.replace(/\.[^/.]+$/, ""); // remove extension
+        const cleanName = currentFileName; // Use user-edited name
+
         // For replaced items, we might want to keep original name to be cleaner,
         // but adding a suffix ensures cache busting and uniqueness.
         // For 'new', we definitely want a prefix.
@@ -202,14 +225,27 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
         let newName = fileName; // Default to existing name
 
         if (mode === "new") {
-          newName = `edited_${cleanName}.jpg`; // Should ideally use ext from mimeType but simplistic for now
-          if (mimeType === "image/png") newName = `edited_${cleanName}.png`;
-          else if (mimeType === "image/webp")
-            newName = `edited_${cleanName}.webp`;
+          // Construct new filename with correct extension
+          let ext = ".jpg";
+          if (mimeType === "image/png") ext = ".png";
+          else if (mimeType === "image/webp") ext = ".webp";
+
+          newName = `${cleanName}${ext}`;
         } else {
-          // REPLACE mode: Use original name so simple file construction works,
-          // explicit overwrite logic handled in parent component.
-          newName = fileName;
+          // DELETE: Logic about keeping original name only applies if we want to overwrite EXACTLY the same file reference.
+          // IF the user changed the name, we might ideally want to rename the file, but for "Replace" mode,
+          // the backend logic often implies "keep the same URL/path".
+          // However, if we pass a new file object with a new name, the upload service MIGHT use it if we changed logic there.
+          // BUT, `ManageMediaPage` logic for "replace" explicitly extracts the ORIGINAL filename from the URL to overwrite it.
+          // So changing name here for 'replace' effectively does nothing for the storage path,
+          // BUT it creates a file with the right metadata name which is good.
+          // For now, we trust `ManageMediaPage` to handle the 'replace' path logic,
+          // but we still send the file with the potentially updated name in case future logic uses it.
+
+          let ext = ".jpg";
+          if (mimeType === "image/png") ext = ".png";
+          else if (mimeType === "image/webp") ext = ".webp";
+          newName = `${cleanName}${ext}`;
         }
 
         const file = new File([croppedBlob], newName, {
@@ -365,6 +401,29 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
             >
               <X size={20} />
             </button>
+          </div>
+
+          {/* FILENAME INPUT (SEO) */}
+          <div className="px-6 pt-6 -mb-2">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">
+              File Name (SEO)
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={currentFileName}
+                onChange={(e) => setCurrentFileName(e.target.value)}
+                onBlur={handleFileNameBlur}
+                placeholder="e.g. florence-city-view"
+                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-gold/50 transition-all font-mono"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">
+                {mimeType.split("/")[1]}
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-500 mt-1.5">
+              Use "-" for spaces. Lowercase only.
+            </p>
           </div>
 
           {/* TAB NAVIGATION */}
