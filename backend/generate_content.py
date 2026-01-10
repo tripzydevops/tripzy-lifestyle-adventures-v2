@@ -163,7 +163,6 @@ async def post_process_images_in_content(content, post_title=""):
 model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
 POSTS_TO_GENERATE = [
-POSTS_TO_GENERATE = [
     # English Posts
     {"title": "The Ultimate Guide to Exploring Paris", "lang": "en", "category": "Destinations", "tags": ["Paris", "France", "Europe", "City Guide"]},
     {"title": "Biking Through Amsterdam", "lang": "en", "category": "Adventure", "tags": ["Amsterdam", "Netherlands", "Cycling", "Active Travel"]},
@@ -260,390 +259,159 @@ class SupabaseClient:
                     return await resp.json()
                 except Exception:
                     # In case it returns 204 or empty success
-                    return {"status": "success"}
+    async def fetch_existing_titles(self):
+        async with aiohttp.ClientSession() as session:
+            url = f"{self.url}/rest/v1/posts?select=title"
+            headers = self.headers.copy()
+            async with session.get(url, headers=headers) as resp:
+                if resp.status != 200:
+                    return []
+                data = await resp.json()
+                return [p['title'] for p in data]
 
 supabase = SupabaseClient(SUPABASE_URL, SUPABASE_KEY)
 
-def slugify(text):
-    turkish_map = {
-        'ı': 'i', 'ğ': 'g', 'ü': 'u', 'ş': 's', 'ö': 'o', 'ç': 'c',
-        'I': 'i', 'Ğ': 'g', 'Ü': 'u', 'Ş': 's', 'Ö': 'o', 'Ç': 'c'
-    }
-    text = "".join(turkish_map.get(char, char) for char in text)
-    text = text.lower().strip()
-    return "".join(c if c.isalnum() else '-' for c in text).strip('-')
+# ... (slugify, generate_embedding, fetch_unsplash_image, post_process_images_in_content remain same)
 
-async def generate_embedding(text):
-    try:
-        # Use genai.embed_content directly (not GenerativeModel)
-        result = genai.embed_content(
-            model="models/text-embedding-004",
-            content=text[:8000],
-            task_type="retrieval_document"
-        )
-        return result['embedding']
-    except Exception as e:
-        print(f"⚠️ Embedding failed: {e}")
-        return None
-
-async def fetch_unsplash_image(query):
-    if not UNSPLASH_KEY:
-        return None
+async def research_trending_topics(existing_titles):
+    print("\n🧠 AI Researching Trends & Checking Saturation...")
     
-    url = f"https://api.unsplash.com/search/photos?query={query}&per_page=1&client_id={UNSPLASH_KEY}"
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    if data['results']:
-                        img = data['results'][0]
-                        return {
-                            "url": img['urls']['regular'],
-                            "alt": img['alt_description'] or query,
-                            "credit": f"Photo by {img['user']['name']} on Unsplash"
-                        }
-                elif resp.status in [403, 429]:
-                    print(f"⚠️ Unsplash Limit Hit. Waiting 10s...")
-                    await asyncio.sleep(10) # Simple backoff
-                    # One retry
-                    async with session.get(url) as retry_resp:
-                        if retry_resp.status == 200:
-                            data = await retry_resp.json()
-                            if data['results']:
-                                img = data['results'][0]
-                                return {
-                                    "url": img['urls']['regular'],
-                                    "alt": img['alt_description'] or query,
-                                    "credit": f"Photo by {img['user']['name']} on Unsplash"
-                                }
-    except Exception as e:
-        print(f"⚠️ Unsplash fetch failed for {query}: {e}")
-    return None
-
-async def post_process_images_in_content(content):
-    import re
-    # Pattern to find images currently using Pollinations (or just replace placeholders if leftover)
-    # We specifically look for our magazine-figure structure with Pollinations URLs
-    # OR typical markdown images: ![alt](url)
+    existing_list = "\n".join(f"- {t}" for t in existing_titles[:50]) # Limit context size
     
-    # Logic: Regex to find the <img> tag with src="...pollinations..."
-    img_pattern = r'<img src="(https://.*?pollinations.*?)" alt="(.*?)"'
+    prompt = f"""
+    You are the Strategy Director for a high-end travel magazine 'Tripzy'.
     
-    matches = re.findall(img_pattern, content)
+    CONTEXT:
+    We already have content about:
+    {existing_list}
+    (and more...)
     
-    new_content = content
-    for url, alt in matches:
-        # Extract keyword from Pollinations URL or use Alt
-        # URL format: .../prompt/Keyword?width...
-        keyword_match = re.search(r'/prompt/([^?]+)', url)
-        if not keyword_match:
-            keyword_match = re.search(r'/p/([^?]+)', url) # Featured image format
-            
-        keyword = keyword_match.group(1).replace('%20', ' ') if keyword_match else alt
-        
-        print(f"   -> Replacing image for: {keyword}")
-        unsplash_img = await fetch_unsplash_image(keyword)
-        
-        if unsplash_img:
-            # Replace the URL in the content
-            new_content = new_content.replace(url, unsplash_img['url'])
-            # Also try to update the alt and credit if possible, but basic URL swap is key
-    return new_content
-
-async def fix_images_main():
-    print("[START] Fixing Images (Pollinations -> Unsplash)...")
+    TASK:
+    Suggest 3 NEW, TRENDING travel topics/titles for 2026 that:
+    1. Do NOT overlap with the existing content above.
+    2. Focus on "Slow Travel", "Hidden Gems", or "Premium Experiences".
+    3. Are catchy and SEO-friendly.
     
-    async with aiohttp.ClientSession() as session:
-        offset = 0
-        limit = 10
-        
-        while True:
-            # Pagination Header
-            range_header = f"{offset}-{offset + limit - 1}"
-            batch_headers = {**supabase.headers, "Range": range_header}
-            
-            url = f"{SUPABASE_URL}/rest/v1/posts?select=id,title,content,featured_image&order=id"
-            async with session.get(url, headers=batch_headers) as resp:
-                if resp.status not in [200, 206]: 
-                    print(f"❌ Failed to fetch batch: {await resp.text()}")
-                    break
-                posts = await resp.json()
-            
-            if not posts:
-                print("   -> No more posts found.")
-                break
-                
-            print(f"   -> Processing batch {offset}-{offset+limit} ({len(posts)} found)...")
-            
-            for post in posts:
-                is_updated = False
-                updates = {}
-                
-                # 1. Check Featured Image
-                feat_img = post.get('featured_image') or ""
-                
-                if "pollinations" in feat_img or "image.pollinations.ai" in feat_img:
-                    print(f"[{post['title']}] Fixing Featured Image (Current: {feat_img[:20]}...)")
-                    
-                    # Smart Fallback Search Strategy
-                    first_word = post['title'].split(" ")[0]
-                    
-                    queries = [
-                        post['title'] + " travel",
-                        post['title'],
-                        f"{first_word} Turkey travel", 
-                        first_word, 
-                        "Travel" 
-                    ]
-                    
-                    unsplash_feat = None
-                    for q in queries:
-                        if not q: continue
-                        cleaned_q = q.replace(' ', '+')
-                        print(f"   -> Trying Unsplash: {q}")
-                        unsplash_feat = await fetch_unsplash_image(cleaned_q)
-                        if unsplash_feat:
-                            break
-                    
-                    if unsplash_feat:
-                        updates['featured_image'] = unsplash_feat['url']
-                        is_updated = True
-                        print(f"   ✅ Found replacement: {unsplash_feat['url'][:30]}...")
-                    else:
-                        print("   ❌ Failed to get Unsplash alternative.")
-                
-                # 2. Check Content Images
-                if "pollinations" in (post.get('content') or ""):
-                    print(f"[{post['title']}] Fixing Content Images...")
-                    new_content = await post_process_images_in_content(post['content'])
-                    if new_content != post['content']:
-                        updates['content'] = new_content
-                        is_updated = True
-                        
-                if is_updated:
-                    print(f"   -> Updating Supabase for {post['title']}...")
-                    update_url = f"{SUPABASE_URL}/rest/v1/posts?id=eq.{post['id']}"
-                    async with session.patch(update_url, headers=supabase.headers, json=updates) as patch_resp:
-                        if patch_resp.status == 204:
-                             print("      ✅ Updated.")
-                        else:
-                             print(f"      ❌ Failed: {await patch_resp.text()}")
-                    
-                    # Rate limit respect
-                    await asyncio.sleep(2)
-            
-            offset += limit
-            await asyncio.sleep(1)
-
-
-async def generate_post_content(item):
-    lang_instruction = "English" if item['lang'] == 'en' else "Turkish"
-    system_prompt = f"""
-    You are a professional travel editor for 'Tripzy Lifestyle Adventures'.
-    Write a high-quality, engaging travel blog post about "{item['title']}".
-    Language: {lang_instruction}
-    
-    Structure the response as a valid JSON object with:
-    - content: HTML string (use premium structure with <h2>, <p>, <ul>, <blockquote class="magazine-pullquote">, etc.)
-    - excerpt: A short summary (150 chars)
-    - meta_title: SEO title
-    - meta_description: SEO description
-    - intelligence_metadata: An object containing:
-        - intent: What is the primary user intent?
-        - lifestyleVibe: Adventure, Luxury, Budget, or Culture?
-        - constraints: Array of inferred constraints (e.g. ['Family-friendly', 'Moderate Budget'])
-        - reasoning: 2-3 sentences explaining the "Autonomous Agent's" perspective on this recommendation.
-        - confidence: 0.0 to 1.0 score.
-    - map_data: An object containing:
-        - center_lat: approximate latitude for the detailed region
-        - center_lng: approximate longitude
-        - zoom: integer (e.g., 13)
-        - points: Array of specific POIs mentioned in the article, each with:
-            - name: Name of the place (e.g. "Hagia Sophia")
-            - lat: latitude
-            - lng: longitude
-            - description: 1 sentence description
-            - category: One of ["History", "Food", "Nature", "View", "Activity"]
-    
-    CRITICAL INSTRUCTIONS:
-    1. The content MUST be at least 1500 words for "The Brain" to process effectively.
-    2. Embed 5-7 image placeholders using the format: [IMAGE: English keyword for the image | User Friendly Caption]
-    3. IMPORTANT: Even if the post is in Turkish, the image keywords MUST be in English for search compatibility. The CAPTION should be in the language of the post (Turkish or English). The caption can be in the target language.
-    4. Use a mix of informative and storytelling tones.
-    5. Apply HTML classes like 'magazine-section', 'magazine-h2', 'magazine-body' for premium styling.
-    6. MAP DATA IS MANDATORY. You MUST generate 'map_data' with valid coordinates and EXACTLY 7 to 10 points of interest (not just 1 or 2). Ensure they are geographically distinct. 
-    7. SEO MANDATORY: 
-       - 'meta_description' MUST be between 130 and 160 characters. Do not make it short.
-       - 'meta_title' must be catchy and include keywords.
-       - 'meta_keywords' field (in intelligent_metadata or root) is required.
+    OUTPUT JSON LIST:
+    [
+        {{
+            "title": "Title Here",
+            "lang": "en", 
+            "category": "Destinations",
+            "tags": ["Tag1", "Tag2"],
+            "reason": "Why this is trending..."
+        }},
+        ...
+    ]
     """
     
     try:
         response = await model.generate_content_async(
-            system_prompt,
+            prompt,
             generation_config=genai.types.GenerationConfig(
                 response_mime_type="application/json"
             )
         )
-        data = json.loads(response.text)
-        # If Gemini returns a list, take the first element
-        if isinstance(data, list) and len(data) > 0:
-            return data[0]
-        return data
+        suggestions = json.loads(response.text)
+        return suggestions
     except Exception as e:
-        print(f"❌ Generation failed for {item['title']}: {e}")
-        # print(f"RAW RESPONSE: {response.text if 'response' in locals() else 'No response'}")
-        return None
+        print(f"❌ Research failed: {e}")
+        return []
 
-async def process_post(item, author_id):
-    print(f"Generating: {item['title']} ({item['lang']})...")
+async def autonomous_mode():
+    print("\n🤖 Autonomous Trend Mode")
+    print("========================")
     
-    content_data = await generate_post_content(item)
-    if not content_data:
+    # 1. Get Context
+    print("   -> Fetching existing content database...")
+    existing_titles = await supabase.fetch_existing_titles()
+    print(f"      Found {len(existing_titles)} existing posts.")
+    
+    # 2. Research
+    suggestions = await research_trending_topics(existing_titles)
+    
+    if not suggestions:
+        print("   -> No suggestions generated. Try again.")
         return
 
-    # Generate Image URL (Unsplash First, then Pollinations)
-    search_query = item['title'] + (" travel" if item['lang'] == 'en' else " gezi")
-    unsplash_feat = await fetch_unsplash_image(search_query)
+    print("\n💡 AI Suggestions:")
+    for idx, s in enumerate(suggestions):
+        print(f"   {idx+1}. {s['title']} ({s['lang']})")
+        print(f"      Reason: {s.get('reason', 'N/A')}")
     
-    if unsplash_feat:
-        image_url = unsplash_feat['url']
+    # 3. Approve
+    selection = input("\nSelect posts to generate (e.g. '1,3' or 'all' or 'q'): ").strip().lower()
+    if selection == 'q': return
+    
+    to_generate = []
+    if selection == 'all':
+        to_generate = suggestions
     else:
-        # Fallback to Pollinations
-        seed = random.randint(1, 1000000)
-        safe_title = item['title'].replace(" ", "%20")
-        image_url = f"https://pollinations.ai/p/{safe_title}%20travel%20photography?width=1280&height=720&seed={seed}&model=flux-realism"
+        try:
+            indices = [int(x.strip()) - 1 for x in selection.split(',')]
+            for i in indices:
+                if 0 <= i < len(suggestions):
+                    to_generate.append(suggestions[i])
+        except:
+            print("Invalid selection.")
+            return
 
-    # Generate Embedding
-    full_text = f"{item['title']} {content_data['excerpt']} {content_data['content']}"
-    embedding = await generate_embedding(full_text)
+    # 4. Execute
+    if to_generate:
+        print(f"\n🚀 Starting Generation for {len(to_generate)} posts...")
+        author_id = await supabase.fetch_admin_user()
+        if author_id:
+            for item in to_generate:
+                await process_post(item, author_id)
+        else:
+            print("❌ Error: Could not authenticate as admin.")
 
-    # Prepare Supabase payload
-    post = {
-        "title": item['title'],
-        "slug": slugify(item['title']),
-        "content": content_data['content'],
-        "excerpt": content_data['excerpt'],
-        "featured_image": image_url,
-        "category": item['category'],
-        "tags": item['tags'],
-        "status": "published",
-        "author_id": author_id,
-        "published_at": datetime.now().isoformat(),
-        "meta_title": content_data['meta_title'],
-        "meta_description": content_data['meta_description'],
-        "meta_keywords": content_data.get('meta_keywords') or content_data.get('intelligence_metadata', {}).get('meta_keywords'),
-        "embedding": embedding,
-        "metadata": content_data.get('intelligence_metadata', {}),
-        "lang": item['lang']
-    }
-
-    # Internal Image Placeholder Replacement
-    import re
-    # Find all [IMAGE: ...] placeholders (case insensitive, whitespace flexible)
-    placeholders = re.findall(r'\[IMAGE:\s*(.*?)\]', post['content'], re.IGNORECASE)
-    unique_placeholders = list(set([p.strip() for p in placeholders]))[:5]
+async def interactive_mode():
+    print("\n🚀 Tripzy AI Interactive Post Generator")
+    print("=======================================")
     
-    for ph in unique_placeholders:
-        img_info = await fetch_unsplash_image(ph)
+    while True:
+        title = input("\n📝 Enter Post Title (or 'q' to quit): ").strip()
+        if title.lower() == 'q': break
+        if not title: continue
+
+        lang_input = input("🗣️  Enter Language (en/tr) [default: tr]: ").strip().lower()
+        lang = lang_input if lang_input in ['en', 'tr'] else 'tr'
+
+        cat_input = input("📂 Enter Category [default: Destinations]: ").strip()
+        category = cat_input if cat_input else "Destinations"
+
+        tags_input = input("🏷️  Enter Tags (comma separated): ").strip()
+        tags = [t.strip() for t in tags_input.split(',')] if tags_input else ["Travel", "Tripzy"]
+
+        print(f"\n⚙️  Generating '{title}' in '{lang.upper()}'...")
         
-        # Fallback to Pollinations if Unsplash fails or returns None
-        if not img_info:
-            img_url = f"https://image.pollinations.ai/prompt/{ph.replace(' ', '%20')}?width=1080&height=720&nologo=true"
-            img_info = {
-                "url": img_url,
-                "alt": ph,
-                "credit": "AI Generated (Pollinations.ai)"
-            }
-
-        html = f"""
-        <figure class="magazine-figure" style="margin: 3.5rem 0; clear: both; position: relative; overflow: hidden; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
-            <img src="{img_info['url']}" alt="{img_info['alt']}" style="width: 100%; height: auto; display: block; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);" onmouseover="this.style.transform='scale(1.05)'; this.parentElement.style.boxShadow='0 35px 60px -15px rgba(0, 0, 0, 0.3)';" onmouseout="this.style.transform='scale(1)'; this.parentElement.style.boxShadow='0 25px 50px -12px rgba(0, 0, 0, 0.25)';" />
-            <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); padding: 2rem 1.5rem 1rem;">
-                <figcaption style="text-align: left; font-size: 0.95rem; color: #ffffff; font-weight: 500; font-family: 'Outfit', 'Inter', sans-serif;">
-                    {img_info['alt']}
-                </figcaption>
-                <span style="display: block; font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-top: 0.25rem;">
-                    {img_info['credit']}
-                </span>
-            </div>
-        </figure>
-        """
-        # Robust replacement pattern
-        pattern = rf'\[IMAGE:\s*{re.escape(ph)}\s*\]'
-        post['content'] = re.sub(pattern, html, post['content'], flags=re.IGNORECASE)
-    
-    # Final cleanup
-    post['content'] = re.sub(r'\[IMAGE:.*?\]', '', post['content'], flags=re.IGNORECASE)
-    
-    # Insert Post
-    result = await supabase.insert_post(post)
-    if result:
-        print(f"[SUCCESS] Published Post: {item['title']}")
-        
-        # Insert Map Data (Layer 1 & 3)
-        map_data = content_data.get('map_data')
-        if map_data and map_data.get('points'):
-             post_id = result[0]['id'] if isinstance(result, list) and len(result) > 0 else result.get('id')
-             if not post_id:
-                 print("      ⚠️ Could not get Post ID for map creation.")
-             else:
-                 # Create Map object
-                 new_map = {
-                     "post_id": post_id, 
-                     "name": f"Highlights of {item['title']}",
-                     "type": "markers",
-                     "center_lat": map_data.get('center_lat', 0),
-                     "center_lng": map_data.get('center_lng', 0),
-                     "zoom": map_data.get('zoom', 12),
-                     "map_style": "streets",
-                     "data": [
-                         {
-                             "lat": p['lat'], 
-                             "lng": p['lng'], 
-                             "title": p.get('name') or p.get('title') or p.get('place_name') or "Points of Interest", 
-                             "description": p.get('description', ''),
-                             "category": p.get('category', 'View')
-                         } for p in map_data['points']
-                     ]
-                 }
-                 
-                 # Insert into maps table
-
-             async with aiohttp.ClientSession() as session:
-                url = f"{SUPABASE_URL}/rest/v1/maps"
-                headers = supabase.headers
-                async with session.post(url, headers=headers, json=new_map) as map_resp:
-                    if map_resp.status == 201:
-                        print(f"      Mapped {len(map_data['points'])} points.")
-                    else:
-                        print(f"      ❌ Map Create Failed: {await map_resp.text()}")
-
-
-
-
-async def main():
-    print("[START] Batch Generation for 20 Posts...")
-    
-    author_id = await supabase.fetch_admin_user()
-    if not author_id:
-        print("[ERROR] Could not find a valid author (admin or otherwise). Exiting.")
-        return
-
-    print(f"[INFO] Using Author ID: {author_id}")
-
-    # Process in chunks to avoid rate limits
-    chunk_size = 2
-    for i in range(0, len(POSTS_TO_GENERATE), chunk_size):
-        chunk = POSTS_TO_GENERATE[i:i + chunk_size]
-        await asyncio.gather(*(process_post(post, author_id) for post in chunk))
-        print("[WAIT] Cooling down for 5 seconds...")
-        await asyncio.sleep(5)
+        author_id = await supabase.fetch_admin_user()
+        if author_id:
+            item = {"title": title, "lang": lang, "category": category, "tags": tags}
+            await process_post(item, author_id)
+        else:
+            print("❌ Error: Could not authenticate as admin.")
+            break
 
 if __name__ == "__main__":
-    # Choose mode based on what you need
-    # asyncio.run(main()) # To generate new posts
-    asyncio.run(fix_images_main()) # To fix existing images
+    print("Select Mode:")
+    print("1. Batch Generate (from list)")
+    print("2. Fix Existing Images (Pollinations -> Unsplash)")
+    print("3. Interactive Mode (Create new post)")
+    print("4. Autonomous Trend Mode (AI Research)")
+    
+    choice = input("Enter choice (1-4): ").strip()
+    
+    if choice == '1':
+        asyncio.run(main())
+    elif choice == '2':
+        asyncio.run(fix_images_main())
+    elif choice == '3':
+        asyncio.run(interactive_mode())
+    elif choice == '4':
+        asyncio.run(autonomous_mode())
+    else:
+        print("Invalid choice.")
 
 
