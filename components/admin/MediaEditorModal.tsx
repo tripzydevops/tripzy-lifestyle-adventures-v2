@@ -11,6 +11,7 @@ import {
   RectangleHorizontal,
   RectangleVertical,
   Square,
+  Pencil, // Added explicitly
 } from "lucide-react";
 import { useLanguage } from "../../localization/LanguageContext";
 
@@ -295,9 +296,8 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
   const [activeTab, setActiveTab] = useState<"crop" | "adjust" | "retouch">(
     "crop"
   );
-  const [blemishes, setBlemishes] = useState<
-    Array<{ x: number; y: number; radius: number }>
-  >([]);
+  const [blemishes, setBlemishes] = useState<>([]);
+  const [showMarkers, setShowMarkers] = useState(true);
   const imageRef = useRef<HTMLImageElement>(null);
 
   const addBlemish = (
@@ -385,19 +385,22 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                     // Let's rely on percentage positioning.
                   }}
                 >
-                  {blemishes.map((b, i) => (
-                    <div
-                      key={i}
-                      className="absolute rounded-full bg-red-500/30 border border-red-500 shadow-sm"
-                      style={{
-                        left: `${b.x * 100}%`,
-                        top: `${b.y * 100}%`,
-                        width: "40px", // Visual size approx
-                        height: "40px",
-                        transform: "translate(-50%, -50%)",
-                      }}
-                    />
-                  ))}
+                  {showMarkers &&
+                    blemishes.map((b, i) => (
+                      <div
+                        key={i}
+                        className="absolute rounded-full border border-red-500/50 shadow-sm transition-opacity duration-300"
+                        style={{
+                          left: `${b.x * 100}%`,
+                          top: `${b.y * 100}%`,
+                          width: "40px",
+                          height: "40px",
+                          transform: "translate(-50%, -50%)",
+                          boxShadow: "0 0 10px rgba(255,0,0,0.1) inset", // Subtle inner glow only
+                          backgroundColor: "rgba(255, 0, 0, 0.05)", // Almost transparent
+                        }}
+                      />
+                    ))}
                 </div>
               </div>
             ) : (
@@ -482,14 +485,18 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                 onChange={(e) => setCurrentFileName(e.target.value)}
                 onBlur={handleFileNameBlur}
                 placeholder="e.g. florence-city-view"
-                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-gold/50 transition-all font-mono"
+                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-10 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-gold/50 transition-all font-mono"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">
-                {mimeType.split("/")[1]}
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none flex items-center gap-1">
+                <span className="text-[10px] uppercase">
+                  {mimeType.split("/")[1]}
+                </span>
+                <Pencil size={12} className="text-gold opacity-50" />
               </div>
             </div>
-            <p className="text-[10px] text-gray-500 mt-1.5">
-              Use "-" for spaces. Lowercase only.
+            <p className="text-[10px] text-gray-500 mt-1.5 flex items-center gap-1">
+              <span className="text-gold">★</span> Type to rename.
+              Auto-formatted for SEO.
             </p>
           </div>
 
@@ -669,6 +676,24 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                 </div>
 
                 <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl mb-2">
+                    <span className="text-xs text-gray-300 font-bold">
+                      Show Edits
+                    </span>
+                    <button
+                      onClick={() => setShowMarkers(!showMarkers)}
+                      className={`w-10 h-6 rounded-full p-1 transition-colors ${
+                        showMarkers ? "bg-gold" : "bg-gray-600"
+                      }`}
+                    >
+                      <div
+                        className={`w-4 h-4 bg-white rounded-full transition-transform ${
+                          showMarkers ? "translate-x-4" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
                   <button
                     onClick={undoLastBlemish}
                     disabled={blemishes.length === 0}
