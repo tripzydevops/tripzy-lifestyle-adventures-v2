@@ -302,6 +302,15 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
     setBlemishes([]);
   };
 
+  const reset = () => {
+    setBrightness(100);
+    setContrast(100);
+    setRotation(0);
+    setZoom(1);
+    setCrop({ x: 0, y: 0 });
+    setBlemishes([]);
+  };
+
   if (!isOpen) return null;
 
   return (
