@@ -249,14 +249,24 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
   };
 
   const handleSave = async (mode: "replace" | "new") => {
-    if (!croppedAreaPixels) return;
-    // setSaving(true); // Removed as isSaving prop is used
+    // FIX: If in Retouch mode, we want the FULL image, not the last crop state
+    // which might be a default center crop from the invisible Cropper.
+    let finalCrop = croppedAreaPixels;
+
+    if (activeTab === "retouch" && mediaSize) {
+      finalCrop = {
+        x: 0,
+        y: 0,
+        width: mediaSize.width,
+        height: mediaSize.height,
+      };
+    }
+
+    if (!finalCrop) return;
+
+    // setSaving(true); // IsSaving prop managed by parent
     try {
-      const croppedBlob = await getCroppedImg(
-        imageUrl,
-        croppedAreaPixels,
-        rotation
-      );
+      const croppedBlob = await getCroppedImg(imageUrl, finalCrop, rotation);
       if (croppedBlob) {
         // Smart Naming: meaningful prefix + original name
         const cleanName = currentFileName; // Use user-edited name
