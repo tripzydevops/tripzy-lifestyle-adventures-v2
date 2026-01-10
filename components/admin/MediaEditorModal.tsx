@@ -39,6 +39,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [aspect, setAspect] = useState<number | undefined>(4 / 3); // Default 4:3
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
 
@@ -324,6 +325,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
     setContrast(100);
     setRotation(0);
     setZoom(1);
+    setAspect(4 / 3);
     setCrop({ x: 0, y: 0 });
     setBlemishes([]);
   };
@@ -395,7 +397,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                     crop={crop}
                     zoom={zoom}
                     rotation={rotation}
-                    aspect={undefined} // Free crop for now
+                    aspect={aspect}
                     objectFit="contain" // Allow full image to be seen
                     onCropChange={setCrop}
                     onCropComplete={onCropComplete}
@@ -543,6 +545,54 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm text-gray-300 flex justify-between">
+                      Aspect Ratio
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      <button
+                        onClick={() => setAspect(16 / 9)}
+                        className={`text-[10px] py-2 rounded-lg font-bold transition-all border ${
+                          aspect === 16 / 9
+                            ? "bg-gold text-navy-950 border-gold"
+                            : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20"
+                        }`}
+                      >
+                        16:9
+                      </button>
+                      <button
+                        onClick={() => setAspect(4 / 3)}
+                        className={`text-[10px] py-2 rounded-lg font-bold transition-all border ${
+                          aspect === 4 / 3
+                            ? "bg-gold text-navy-950 border-gold"
+                            : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20"
+                        }`}
+                      >
+                        4:3
+                      </button>
+                      <button
+                        onClick={() => setAspect(1)}
+                        className={`text-[10px] py-2 rounded-lg font-bold transition-all border ${
+                          aspect === 1
+                            ? "bg-gold text-navy-950 border-gold"
+                            : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20"
+                        }`}
+                      >
+                        1:1
+                      </button>
+                      <button
+                        onClick={() => setAspect(2 / 3)}
+                        className={`text-[10px] py-2 rounded-lg font-bold transition-all border ${
+                          aspect === 2 / 3
+                            ? "bg-gold text-navy-950 border-gold"
+                            : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20"
+                        }`}
+                      >
+                        2:3
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm text-gray-300 flex justify-between">
                       Zoom{" "}
                       <span className="text-gold">
                         {(zoom * 100).toFixed(0)}%
@@ -553,6 +603,29 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                       min={1}
                       max={3}
                       step={0.1}
+                      value={zoom}
+                      onChange={(e) => setZoom(Number(e.target.value))}
+                      className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-4">
+                  <button
+                    onClick={() => setRotation((r) => r + 90)}
+                    className="bg-white/5 hover:bg-gold hover:text-navy-950 text-gray-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
+                  >
+                    <RotateCw size={16} /> Rotate
+                  </button>
+                  <button
+                    onClick={reset}
+                    className="bg-white/5 hover:bg-red-500 hover:text-white text-gray-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
+                  >
+                    <Undo2 size={16} /> Reset
+                  </button>
+                </div>
+              </div>
+            )}
                       value={zoom}
                       onChange={(e) => setZoom(Number(e.target.value))}
                       className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
