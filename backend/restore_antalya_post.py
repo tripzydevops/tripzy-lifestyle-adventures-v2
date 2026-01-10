@@ -172,6 +172,24 @@ async def upload_image(session, file_path, file_name):
     public_url = f"{SUPABASE_URL}/storage/v1/object/public/blog-media/{path}"
     return public_url
 
+async def create_map(session, map_data):
+    url = f"{SUPABASE_URL}/rest/v1/maps"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Profile": "blog",
+        "Accept-Profile": "blog",
+        "Prefer": "resolution=merge-duplicates,return=representation"
+    }
+    # Delete existing map for this post to be clean? Or just upsert?
+    # Maps might have unique constraint on post_id? logic says yes.
+    # Let's try POST.
+    async with session.post(url, headers=headers, json=map_data) as resp:
+        if resp.status in [200, 201]:
+             print("      ✅ Map created successfully")
+        else:
+             print(f"      ⚠️ Map creation failed: {await resp.text()}")
+
 async def main():
     print("🚀 Starting Post Restoration...")
     
@@ -243,28 +261,45 @@ async def main():
         "published_at": datetime.now().isoformat(),
         "lang": "tr",
         "category": "Destinations",
-        "tags": ["Turkuaz Kıyı", "Road Trip Türkiye", "Fethiye", "Kaş", "Likya Yolu", "Premium Seyahat"],
-        "meta_title": "Fethiye Kaş Gezi Rehberi: Turkuaz Kıyı Mavi Yolculuk",
-        "meta_description": "Fethiye'den Kaş'a uzanan D400 karayolunda eşsiz bir yolculuk. Ölüdeniz, Kabak Koyu, Kaputaş ve Kekova dahil detaylı gezi rehberi.",
-        "author_id": "00000000-0000-0000-0000-000000000000" # Will fetch specific admin if possible, but upsert usually ignores if existing
+        "tags": ["Turkuaz Kıyı", "Road Trip Türkiye", "Fethiye", "Kaş", "Likya Yolu", "Premium Seyahat", "Kalkan", "Kekova"],
+        "meta_title": "Fethiye Kaş Mavi Yolculuk: Turkuaz Kıyı Gezi Rehberi 2026",
+        "meta_description": "Fethiye'den Kaş'a D400 rotasında lüks ve macera dolu bir yolculuk. Ölüdeniz, Kabak Koyu, Kaputaş ve Kekova dahil detaylı gezi rehberi.",
+        "meta_keywords": "fethiye kaş arası gezilecek yerler, likya yolu, kaputaş plajı, ölüdeniz, kabak koyu, kaş gezi rehberi, mavi yolculuk, türkiye road trip",
+        "author_id": "00000000-0000-0000-0000-000000000000",
+        "metadata": {
+            "intent": "Scenic Road Trip & Cultural Exploration",
+            "lifestyleVibe": "Bohem Lüks & Serene Nature",
+            "constraints": ["Requires Car", "Winding Roads", "Summer/Fall Best"],
+            "reasoning": "A perfect blend of high-adrenaline activities (Paragliding), historical depth (Xanthos), and exclusive relaxation (Kalkan/Kaş). ideal for premium travelers seeking 'Slow Travel'.",
+            "confidence": 0.98
+        }
     }
 
     print("💾 Saving Post to Database...")
     
+    post_id = None
+
     async with aiohttp.ClientSession() as session:
         # First, try to get an admin ID to be safe
         user_url = f"{SUPABASE_URL}/rest/v1/profiles?select=id&role=eq.admin&limit=1"
         h = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
         
         async with session.get(user_url, headers=h) as resp:
-            users = await resp.json()
+            # Check for error or empty
+            if resp.status != 200:
+                 print(f"⚠️ Failed to fetch specific admin: {resp.status}")
+                 users = []
+            else:
+                 users = await resp.json()
+            
             if users and len(users) > 0:
                 post_data['author_id'] = users[0]['id']
             else:
                  # Fallback fetch any user
                  async with session.get(f"{SUPABASE_URL}/rest/v1/profiles?limit=1", headers=h) as r2:
-                     u2 = await r2.json()
-                     if u2: post_data['author_id'] = u2[0]['id']
+                      if r2.status == 200:
+                          u2 = await r2.json()
+                          if u2: post_data['author_id'] = u2[0]['id']
 
         # Upsert Post
         insert_url = f"{SUPABASE_URL}/rest/v1/posts"
@@ -280,10 +315,36 @@ async def main():
             if post_resp.status in [200, 201]:
                 print(f"✅ Success! Post saved.")
                 d = await post_resp.json()
+                post_id = d[0]['id']
                 print(f"   ID: {d[0]['id']}")
                 print(f"   Slug: {d[0]['slug']}")
             else:
                 print(f"❌ Failed to save post: {await post_resp.text()}")
+
+        # 4. Create Map
+        if post_id:
+            print("🗺️ Creating Map...")
+            map_data = {
+                "post_id": post_id,
+                "name": "Fethiye - Kaş Route",
+                "type": "markers",
+                "center_lat": 36.4,
+                "center_lng": 29.4,
+                "zoom": 9,
+                "map_style": "outdoors",
+                "data": [
+                    {"title": "Fethiye", "lat": 36.6213, "lng": 29.1164, "description": "Start Point"},
+                    {"title": "Ölüdeniz (Babadağ)", "lat": 36.5493, "lng": 29.1247, "description": "Paragliding & Blue Lagoon"},
+                    {"title": "Faralya (Butterfly Valley)", "lat": 36.4916, "lng": 29.1317, "description": "Scenic Views"},
+                    {"title": "Kabak Koyu", "lat": 36.4627, "lng": 29.1256, "description": "Bohem Glamping"},
+                    {"title": "Xanthos", "lat": 36.3533, "lng": 29.3188, "description": "Ancient Capital"},
+                    {"title": "Kalkan", "lat": 36.2657, "lng": 29.4128, "description": "Fine Dining"},
+                    {"title": "Kaputaş Plajı", "lat": 36.2294, "lng": 29.4491, "description": "Turquoise Waters"},
+                    {"title": "Kaş", "lat": 36.1993, "lng": 29.6377, "description": "Final Destination"},
+                    {"title": "Kekova", "lat": 36.1833, "lng": 29.8667, "description": "Sunken City Boat Trip"}
+                ]
+            }
+            await create_map(session, map_data)
 
 if __name__ == "__main__":
     asyncio.run(main())
