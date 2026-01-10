@@ -626,29 +626,6 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                 </div>
               </div>
             )}
-                      value={zoom}
-                      onChange={(e) => setZoom(Number(e.target.value))}
-                      className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 mt-4">
-                  <button
-                    onClick={() => setRotation((r) => r + 90)}
-                    className="bg-white/5 hover:bg-gold hover:text-navy-950 text-gray-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
-                  >
-                    <RotateCw size={16} /> Rotate
-                  </button>
-                  <button
-                    onClick={reset}
-                    className="bg-white/5 hover:bg-red-500 hover:text-white text-gray-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
-                  >
-                    <Undo2 size={16} /> Reset
-                  </button>
-                </div>
-              </div>
-            )}
 
             {activeTab === "retouch" && (
               <div>
