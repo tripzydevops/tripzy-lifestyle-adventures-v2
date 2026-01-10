@@ -159,7 +159,8 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
         // We shift the IMAGE, so to clone from Right, we shift image Left (negative).
         // To clone from Left, we shift image Right (positive).
 
-        const offsetDist = Math.max(spotRadius * 1.2, image.width * 0.02); // Grab from just outside the spot
+        // Increase offset to ensure we aren't cloning part of the blemish itself (especially for wide watermarks)
+        const offsetDist = Math.max(spotRadius * 2.5, image.width * 0.05);
         const shiftX = b.x < 0.5 ? -offsetDist : offsetDist;
         const shiftY = b.y < 0.5 ? -offsetDist : offsetDist;
 
@@ -418,8 +419,12 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                         style={{
                           left: `${b.x * 100}%`,
                           top: `${b.y * 100}%`,
-                          width: "40px",
-                          height: "40px",
+                          width: `${b.radius * 2 * 100}%`, // Match exact logical size (diameter)
+                          height: `${b.radius * 2 * 100}%`, // This assumes image is roughly square or we want oval?
+                          // Actually, b.radius is relative to WIDTH. So height should be relative to WIDTH too for a circle.
+                          // But CSS height % is relative to parent HEIGHT.
+                          // To keep it a perfect circle visually is hard with pure %, but let's try fixed aspect-ratio.
+                          aspectRatio: "1/1",
                           transform: "translate(-50%, -50%)",
                           boxShadow: "0 0 10px rgba(255,0,0,0.1) inset", // Subtle inner glow only
                           backgroundColor: "rgba(255, 0, 0, 0.05)", // Almost transparent
