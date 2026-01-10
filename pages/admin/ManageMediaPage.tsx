@@ -197,18 +197,32 @@ const ManageMediaPage = () => {
     setIsEditorOpen(true);
   };
 
-  const handleSaveEditedImage = async (file: File) => {
+  const handleSaveEditedImage = async (file: File, mode: "replace" | "new") => {
     if (!editingItem) return;
 
     try {
       const newUrl = await uploadService.uploadFile(file);
 
-      await mediaService.updateMedia(editingItem.id, {
-        url: newUrl,
-        sizeBytes: file.size,
-      });
+      if (mode === "replace") {
+        await mediaService.updateMedia(editingItem.id, {
+          url: newUrl,
+          sizeBytes: file.size,
+        });
+        addToast("Image replaced successfully", "success");
+      } else {
+        await mediaService.addMedia({
+          url: newUrl,
+          fileName: file.name,
+          mediaType: "image",
+          sizeBytes: file.size,
+          // Copy metadata from original to keep context
+          tags: editingItem.tags,
+          caption: editingItem.caption,
+          altText: editingItem.altText,
+        });
+        addToast("Image saved as copy successfully", "success");
+      }
 
-      addToast("Image updated successfully", "success");
       fetchMedia();
       setIsEditorOpen(false);
       setEditingItem(null);
@@ -963,7 +977,6 @@ const ManageMediaPage = () => {
           onClose={() => setEditingItem(null)}
           imageUrl={editingItem?.url || ""}
           fileName={editingItem?.fileName}
-          isSaving={false}
           onSave={handleSaveEditedImage}
         />
       )}

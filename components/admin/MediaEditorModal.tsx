@@ -16,7 +16,7 @@ import { useLanguage } from "../../localization/LanguageContext";
 
 interface MediaEditorModalProps {
   imageUrl: string;
-  onSave: (newSubFile: File) => Promise<void>;
+  onSave: (newSubFile: File, mode: "replace" | "new") => Promise<void>;
   onClose: () => void;
   isOpen: boolean;
   fileName?: string;
@@ -131,7 +131,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
     });
   };
 
-  const handleSave = async () => {
+  const handleSave = async (mode: "replace" | "new") => {
     if (!croppedAreaPixels) return;
     // setSaving(true); // Removed as isSaving prop is used
     try {
@@ -143,12 +143,16 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
       if (croppedBlob) {
         // Smart Naming: meaningful prefix + original name
         const cleanName = fileName.replace(/\.[^/.]+$/, ""); // remove extension
-        const newName = `edited_${cleanName}.jpg`;
+        // For replaced items, we might want to keep original name to be cleaner,
+        // but adding a suffix ensures cache busting and uniqueness.
+        // For 'new', we definitely want a prefix.
+        const prefix = mode === "new" ? "edited_" : "cropped_";
+        const newName = `${prefix}${cleanName}.jpg`;
 
         const file = new File([croppedBlob], newName, {
           type: "image/jpeg",
         });
-        await onSave(file);
+        await onSave(file, mode);
         onClose();
       }
     } catch (e) {
@@ -312,19 +316,47 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
           </div>
 
           <div className="p-6 border-t border-white/5 bg-navy-950">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full bg-gold hover:bg-gold-light text-navy-950 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-gold/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {saving ? (
-                <>Saving...</>
-              ) : (
-                <>
-                  <Check size={20} /> Save Changes
-                </>
-              )}
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleSave("replace")}
+                disabled={saving}
+                className="bg-navy-800 hover:bg-navy-700 text-white py-4 rounded-xl font-bold text-sm shadow-lg transition-all flex flex-col items-center justify-center gap-1 disabled:opacity-50 border border-white/5"
+              >
+                {saving ? (
+                  <span className="text-xs">Processing...</span>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <RotateCw size={16} className="text-blue-400" />
+                      <span>Replace Original</span>
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-normal">
+                      Overwrites current item
+                    </span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleSave("new")}
+                disabled={saving}
+                className="bg-gold hover:bg-gold-light text-navy-950 py-4 rounded-xl font-bold text-sm shadow-lg hover:shadow-gold/20 transition-all flex flex-col items-center justify-center gap-1 disabled:opacity-50"
+              >
+                {saving ? (
+                  <span className="text-xs">Processing...</span>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Check size={16} />
+                      <span>Save as New</span>
+                    </div>
+                    <span className="text-[10px] text-navy-900/60 font-normal">
+                      Creates a copy
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
