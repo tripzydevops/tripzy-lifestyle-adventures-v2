@@ -17,12 +17,12 @@ if not SUPABASE_KEY:
     exit(1)
 
 IMAGES_MAP = {
-    "intro": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_0_1768079003011.jpg",
-    "fethiye": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_1_1768079003011.jpg",
-    "faralya": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_2_1768079003011.jpg",
-    "xanthos": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_3_1768079003011.jpg",
-    "kaputas": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_4_1768079003011.jpg",
-    "kekova": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_1768079047334.jpg"
+    "intro": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_2_1768079003011.jpg",
+    "fethiye": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_3_1768079003011.jpg",
+    "faralya": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_4_1768079003011.jpg",
+    "xanthos": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_0_1768079003011.jpg",
+    "kaputas": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_1768079047334.jpg",
+    "kekova": r"C:\Users\elif\.gemini\antigravity\brain\2e59b15f-f74a-4ab0-aad3-9633f13ce14b\uploaded_image_1_1768079003011.jpg"
 }
 
 # The Content provided by USER
