@@ -1,0 +1,39 @@
+
+import os
+import asyncio
+import aiohttp
+import json
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
+
+SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
+
+POST_ID = "fbe1886d-0712-4856-8d81-b632b731f2b6"
+
+async def main():
+    print(f"🔍 Checking Metadata for Post {POST_ID}...")
+    
+    async with aiohttp.ClientSession() as session:
+        url = f"{SUPABASE_URL}/rest/v1/posts?id=eq.{POST_ID}&select=metadata"
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Profile": "blog",
+            "Accept-Profile": "blog"
+        }
+        
+        async with session.get(url, headers=headers) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                if data:
+                    print("✅ Metadata found:")
+                    print(json.dumps(data[0].get('metadata'), indent=2))
+                else:
+                    print("⚠️ Post not found.")
+            else:
+                print(f"❌ Failed: {await resp.text()}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
