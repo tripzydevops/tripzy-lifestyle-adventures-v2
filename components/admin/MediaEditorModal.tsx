@@ -193,7 +193,24 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
   }, [fileName]);
 
   const sanitizeFileName = (name: string) => {
+    const trMap: Record<string, string> = {
+      ş: "s",
+      Ş: "s",
+      ı: "i",
+      İ: "i",
+      ğ: "g",
+      Ğ: "g",
+      ü: "u",
+      Ü: "u",
+      ö: "o",
+      Ö: "o",
+      ç: "c",
+      Ç: "c",
+    };
     return name
+      .split("")
+      .map((char) => trMap[char] || char)
+      .join("")
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, "") // Remove special chars
       .replace(/\s+/g, "-") // Replace spaces with hyphens
@@ -372,27 +389,43 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
               </div>
             ) : (
               Cropper && (
-                <Cropper
-                  image={imageUrl}
-                  crop={crop}
-                  zoom={zoom}
-                  rotation={rotation}
-                  aspect={undefined} // Free crop for now
-                  objectFit="contain" // Allow full image to be seen
-                  onCropChange={setCrop}
-                  onCropComplete={onCropComplete}
-                  onZoomChange={setZoom}
-                  showGrid={true}
-                  classes={{
-                    containerClassName: "cropper-container",
-                    mediaClassName: "cropper-media",
-                  }}
-                  style={{
-                    mediaStyle: {
-                      filter: `brightness(${brightness}%) contrast(${contrast}%)`,
-                    },
-                  }}
-                />
+                <>
+                  <Cropper
+                    image={imageUrl}
+                    crop={crop}
+                    zoom={zoom}
+                    rotation={rotation}
+                    aspect={undefined} // Free crop for now
+                    objectFit="contain" // Allow full image to be seen
+                    onCropChange={setCrop}
+                    onCropComplete={onCropComplete}
+                    onZoomChange={setZoom}
+                    showGrid={false}
+                    classes={{
+                      containerClassName: "cropper-container",
+                      mediaClassName: "cropper-media",
+                    }}
+                    style={{
+                      mediaStyle: {
+                        filter: `brightness(${brightness}%) contrast(${contrast}%)`,
+                      },
+                    }}
+                  />
+
+                  {/* Custom 3x4 Grid Overlay */}
+                  <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
+                    <div className="w-full h-full opacity-30">
+                      {/* 3 Columns (2 vertical lines) */}
+                      <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white shadow-[0_0_2px_rgba(0,0,0,0.5)]"></div>
+                      <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white shadow-[0_0_2px_rgba(0,0,0,0.5)]"></div>
+
+                      {/* 4 Rows (3 horizontal lines) */}
+                      <div className="absolute top-1/4 left-0 right-0 h-px bg-white shadow-[0_0_2px_rgba(0,0,0,0.5)]"></div>
+                      <div className="absolute top-2/4 left-0 right-0 h-px bg-white shadow-[0_0_2px_rgba(0,0,0,0.5)]"></div>
+                      <div className="absolute top-3/4 left-0 right-0 h-px bg-white shadow-[0_0_2px_rgba(0,0,0,0.5)]"></div>
+                    </div>
+                  </div>
+                </>
               )
             )}
           </div>
