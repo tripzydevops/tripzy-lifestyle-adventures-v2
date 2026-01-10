@@ -964,7 +964,7 @@ const ManageMediaPage = () => {
           imageUrl={editingItem?.url || ""}
           fileName={editingItem?.fileName}
           isSaving={false}
-          onSave={handleSaveEditedMedia}
+          onSave={handleSaveEditedImage}
         />
       )}
     </div>
