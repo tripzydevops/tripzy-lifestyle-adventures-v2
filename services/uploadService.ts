@@ -73,9 +73,22 @@ export const uploadService = {
    * @param file The file to upload.
    * @returns The public URL of the uploaded file.
    */
-  async uploadFile(file: File): Promise<string> {
+  /**
+   * Uploads a file to Supabase Storage without adding it to the media database.
+   * Handles WebP conversion and duplicate checking.
+   */
+  async uploadToStorage(
+    file: File
+  ): Promise<{
+    url: string;
+    size: number;
+    mimeType: string;
+    isDuplicate: boolean;
+  }> {
     console.log(
-      `Uploading file: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`
+      `[uploadToStorage] Processing: ${file.name} (${(file.size / 1024).toFixed(
+        2
+      )} KB)`
     );
 
     // Auto-optimize images to WebP
@@ -89,15 +102,19 @@ export const uploadService = {
     }
 
     // Check for duplicates before uploading
-    console.log("Checking for duplicates...");
     const existingMedia = await mediaService.findDuplicateMedia(
       fileToUpload.name,
       fileToUpload.size
     );
 
     if (existingMedia) {
-      console.log(`Duplicate found! Using existing media: ${existingMedia.id}`);
-      return existingMedia.url;
+      console.log(`Duplicate found! Using existing media URL`);
+      return {
+        url: existingMedia.url,
+        size: existingMedia.sizeBytes || fileToUpload.size,
+        mimeType: existingMedia.mimeType || fileToUpload.type,
+        isDuplicate: true,
+      };
     }
 
     // Generate unique filename
@@ -112,26 +129,48 @@ export const uploadService = {
       });
 
     if (uploadError) {
-      console.error("Upload error:", uploadError);
       throw new Error(`Failed to upload file: ${uploadError.message}`);
     }
 
-    // Get the public URL
     const publicUrl = getPublicUrl(uniqueFileName);
+    console.log(`File uploaded to storage: ${publicUrl}`);
+
+    return {
+      url: publicUrl,
+      size: fileToUpload.size,
+      mimeType: fileToUpload.type,
+      isDuplicate: false,
+    };
+  },
+
+  /**
+   * Uploads an image or video file to Supabase Storage and adds it to the DB.
+   * @param file The file to upload.
+   * @returns The public URL of the uploaded file.
+   */
+  async uploadFile(file: File): Promise<string> {
+    const { url, size, mimeType, isDuplicate } = await this.uploadToStorage(
+      file
+    );
+
+    if (isDuplicate) {
+      // If duplicate, we return the URL but don't add a new DB entry
+      // (Unless we really want to? existing logic returned existingMedia.url and stopped)
+      return url;
+    }
 
     // Determine media type
-    const mediaType = fileToUpload.type.startsWith("video/")
-      ? "video"
-      : "image";
+    const mediaType = mimeType.startsWith("video/") ? "video" : "image";
 
     // AI Metadata Generation for Images
     let altText = "";
     let caption = "";
     let tags: string[] = [];
+
     if (mediaType === "image") {
       try {
         console.log("Analyzing image with Tripzy AI...");
-        const analysis = await aiContentService.analyzeImageFromUrl(publicUrl);
+        const analysis = await aiContentService.analyzeImageFromUrl(url);
         altText = analysis.altText;
         caption = analysis.caption;
         tags = analysis.tags || [];
@@ -142,17 +181,16 @@ export const uploadService = {
 
     // Add the new item to the media library database
     await mediaService.addMedia({
-      url: publicUrl,
-      fileName: fileToUpload.name,
+      url: url,
+      fileName: file.name, // Use original filename for display
       mediaType: mediaType,
       altText,
       caption,
       tags,
-      sizeBytes: fileToUpload.size,
+      sizeBytes: size,
     });
 
-    console.log(`File uploaded successfully. URL: ${publicUrl}`);
-    return publicUrl;
+    return url;
   },
 
   /**

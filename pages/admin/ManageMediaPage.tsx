@@ -201,12 +201,14 @@ const ManageMediaPage = () => {
     if (!editingItem) return;
 
     try {
-      const newUrl = await uploadService.uploadFile(file);
+      // Use uploadToStorage to get the URL/Size WITHOUT adding to DB automatically
+      const { url: newUrl, size: newSize } =
+        await uploadService.uploadToStorage(file);
 
       if (mode === "replace") {
         await mediaService.updateMedia(editingItem.id, {
           url: newUrl,
-          sizeBytes: file.size,
+          sizeBytes: newSize,
         });
         addToast("Image replaced successfully", "success");
       } else {
@@ -214,7 +216,7 @@ const ManageMediaPage = () => {
           url: newUrl,
           fileName: file.name,
           mediaType: "image",
-          sizeBytes: file.size,
+          sizeBytes: newSize,
           // Copy metadata from original to keep context
           tags: editingItem.tags,
           caption: editingItem.caption,
