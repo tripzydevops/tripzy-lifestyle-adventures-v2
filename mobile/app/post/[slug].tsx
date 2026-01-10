@@ -86,7 +86,6 @@ export default function PostDetailScreen() {
           title: post.category,
           headerStyle: { backgroundColor: "#0f172a" },
           headerTintColor: "#fff",
-          headerBackTitleVisible: false,
         }}
       />
       <ScrollView className="flex-1 bg-navy-950">

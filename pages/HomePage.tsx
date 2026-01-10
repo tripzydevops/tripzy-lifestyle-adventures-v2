@@ -9,6 +9,7 @@ import SEO from "../components/common/SEO";
 import Pagination from "../components/common/Pagination";
 import { Play, ArrowRight, Sparkles, MapPin, ExternalLink } from "lucide-react";
 import { useLanguage } from "../localization/LanguageContext";
+import { useTripzy } from "../hooks/useTripzy";
 
 import DiscoveryHero from "../components/home/DiscoveryHero";
 import SkeletonPostCard from "../components/common/SkeletonPostCard";
