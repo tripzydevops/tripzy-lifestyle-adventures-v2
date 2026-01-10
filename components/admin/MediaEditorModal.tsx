@@ -107,7 +107,57 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
       safeArea / 2 - image.height * 0.5
     );
 
+    // Apply Blemish/Spot Removal Filter
+    if (blemishes.length > 0) {
+      blemishes.forEach((b) => {
+        // b.x and b.y are relative to the ORIGINAL image dimensions (0-1)
+        // We need to map them to the safeArea canvas coordinates
+
+        // 1. Calculate position on the Rotated/Centered image
+        // The image is drawn at:
+        // x = safeArea / 2 - image.width * 0.5
+        // y = safeArea / 2 - image.height * 0.5
+
+        const imgStartX = safeArea / 2 - image.width * 0.5;
+        const imgStartY = safeArea / 2 - image.height * 0.5;
+
+        const spotX = imgStartX + b.x * image.width;
+        const spotY = imgStartY + b.y * image.height;
+
+        // Radius relative to image width for consistency
+        const spotRadius = b.radius * image.width;
+
+        // Apply Blur Effect to this spot
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(spotX, spotY, spotRadius, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+
+        // Simple Blur approximation: Draw the image again over the spot but shifted/blurred
+        // Since standard canvas blur filter can be expensive or inconsistent,
+        // we'll use a backdrop filter or simply fill with an average color if blur isn't available.
+        // Best approach for "Retouch" without heavy libraries:
+        // 1. Get ImageData
+        // 2. Simple box blur on pixels
+        // 3. Put back
+
+        // Optimization: just use the context filter if supported, fallback to clearRect (bad) or fill
+        ctx.filter = "blur(10px)";
+        ctx.drawImage(
+          image,
+          safeArea / 2 - image.width * 0.5,
+          safeArea / 2 - image.height * 0.5
+        );
+
+        ctx.restore();
+      });
+    }
+
     const data = ctx.getImageData(0, 0, safeArea, safeArea);
+
+    // reset filter for final crop extraction if needed
+    ctx.filter = "none";
 
     // set canvas width to final desired crop size - this will clear existing context
     canvas.width = pixelCrop.width;
@@ -176,12 +226,44 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
     }
   };
 
-  const reset = () => {
-    setBrightness(100);
-    setContrast(100);
-    setRotation(0);
-    setZoom(1);
-    setCrop({ x: 0, y: 0 });
+  // Mode Tab
+  const [activeTab, setActiveTab] = useState<"crop" | "adjust" | "retouch">(
+    "crop"
+  );
+  const [blemishes, setBlemishes] = useState<
+    Array<{ x: number; y: number; radius: number }>
+  >([]);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  const addBlemish = (
+    e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
+  ) => {
+    if (activeTab !== "retouch" || !imageRef.current) return;
+
+    const rect = imageRef.current.getBoundingClientRect();
+    let clientX, clientY;
+
+    if ("touches" in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    }
+
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+
+    // Default blemish size relative to image
+    setBlemishes([...blemishes, { x, y, radius: 0.03 }]);
+  };
+
+  const undoLastBlemish = () => {
+    setBlemishes((prev) => prev.slice(0, -1));
+  };
+
+  const clearBlemishes = () => {
+    setBlemishes([]);
   };
 
   if (!isOpen) return null;
@@ -190,7 +272,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-navy-950 w-full max-w-6xl h-[90vh] rounded-3xl border border-white/5 flex overflow-hidden shadow-2xl relative">
         {/* Main Canvas Area */}
-        <div className="flex-1 bg-[#0f0f15] relative overflow-hidden">
+        <div className="flex-1 bg-[#0f0f15] relative overflow-hidden flex items-center justify-center">
           {/* Grid Pattern Background */}
           <div
             className="absolute inset-0 opacity-10 pointer-events-none z-0"
@@ -201,30 +283,72 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
             }}
           />
 
-          <div className="relative w-full h-full z-10">
-            {Cropper && (
-              <Cropper
-                image={imageUrl}
-                crop={crop}
-                zoom={zoom}
-                rotation={rotation}
-                aspect={undefined} // Free crop for now
-                objectFit="contain" // Allow full image to be seen
-                onCropChange={setCrop}
-                onCropComplete={onCropComplete}
-                onZoomChange={setZoom}
-                showGrid={true}
-                classes={{
-                  containerClassName: "cropper-container",
-                  mediaClassName: "cropper-media",
-                }}
-                style={{
-                  // We apply the CSS filters visually to the cropper preview
-                  mediaStyle: {
+          <div className="relative w-full h-full z-10 flex items-center justify-center p-8">
+            {activeTab === "retouch" ? (
+              <div className="relative inline-block shadow-2xl">
+                <img
+                  ref={imageRef}
+                  src={imageUrl}
+                  alt="Retouch"
+                  className="max-h-[80vh] max-w-full object-contain cursor-crosshair select-none"
+                  style={{
                     filter: `brightness(${brightness}%) contrast(${contrast}%)`,
-                  },
-                }}
-              />
+                    transform: `rotate(${rotation}deg) scale(${zoom})`,
+                  }}
+                  onMouseDown={addBlemish}
+                />
+                {/* Blemish Overlays (Need to account for transforms if we want them to stick effectively visually in this simple view, 
+                    but for now calculating RELATIVE to the image element is easiest if we don't apply CSS transform to wrapper)
+                    Actually, sticking them ON the image with absolute positioning is best.
+                */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    transform: `rotate(${rotation}deg) scale(${zoom})`,
+                    // This transform might desync markers from click if not careful,
+                    // but since click is on the IMG which is transformed, the coordinates are local to rect.
+                    // Let's rely on percentage positioning.
+                  }}
+                >
+                  {blemishes.map((b, i) => (
+                    <div
+                      key={i}
+                      className="absolute rounded-full bg-red-500/30 border border-red-500 shadow-sm"
+                      style={{
+                        left: `${b.x * 100}%`,
+                        top: `${b.y * 100}%`,
+                        width: "40px", // Visual size approx
+                        height: "40px",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              Cropper && (
+                <Cropper
+                  image={imageUrl}
+                  crop={crop}
+                  zoom={zoom}
+                  rotation={rotation}
+                  aspect={undefined} // Free crop for now
+                  objectFit="contain" // Allow full image to be seen
+                  onCropChange={setCrop}
+                  onCropComplete={onCropComplete}
+                  onZoomChange={setZoom}
+                  showGrid={true}
+                  classes={{
+                    containerClassName: "cropper-container",
+                    mediaClassName: "cropper-media",
+                  }}
+                  style={{
+                    mediaStyle: {
+                      filter: `brightness(${brightness}%) contrast(${contrast}%)`,
+                    },
+                  }}
+                />
+              )
             )}
           </div>
         </div>
@@ -243,89 +367,137 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
             </button>
           </div>
 
+          {/* TAB NAVIGATION */}
+          <div className="flex border-b border-white/5 mx-6 mt-4">
+            {(["crop", "adjust", "retouch"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
+                  activeTab === tab
+                    ? "border-gold text-gold"
+                    : "border-transparent text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
           <div className="flex-1 overflow-y-auto p-6 space-y-8">
-            {/* Visual Adjustments */}
-            <div>
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Sun size={14} /> Look & Feel
-              </h4>
+            {activeTab === "adjust" && (
+              <div>
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Sun size={14} /> Look & Feel
+                </h4>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm text-gray-300 flex justify-between">
-                    Brightness <span className="text-gold">{brightness}%</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="200"
-                    value={brightness}
-                    onChange={(e) => setBrightness(Number(e.target.value))}
-                    className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                  />
-                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm text-gray-300 flex justify-between">
+                      Brightness{" "}
+                      <span className="text-gold">{brightness}%</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={brightness}
+                      onChange={(e) => setBrightness(Number(e.target.value))}
+                      className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm text-gray-300 flex justify-between">
-                    Contrast <span className="text-gold">{contrast}%</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="200"
-                    value={contrast}
-                    onChange={(e) => setContrast(Number(e.target.value))}
-                    className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Transform */}
-            <div>
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Crop size={14} /> Transform
-              </h4>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm text-gray-300 flex justify-between">
-                    Zoom{" "}
-                    <span className="text-gold">
-                      {(zoom * 100).toFixed(0)}%
-                    </span>
-                  </label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={3}
-                    step={0.1}
-                    value={zoom}
-                    onChange={(e) => setZoom(Number(e.target.value))}
-                    className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                  />
+                  <div className="space-y-2">
+                    <label className="text-sm text-gray-300 flex justify-between">
+                      Contrast <span className="text-gold">{contrast}%</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={contrast}
+                      onChange={(e) => setContrast(Number(e.target.value))}
+                      className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
                 </div>
               </div>
+            )}
 
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                <button
-                  onClick={() => setRotation((r) => r + 90)}
-                  className="bg-white/5 hover:bg-gold hover:text-navy-950 text-gray-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
-                >
-                  <RotateCw size={16} /> Rotate
-                </button>
-                <button
-                  onClick={reset}
-                  className="bg-white/5 hover:bg-red-500 hover:text-white text-gray-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
-                >
-                  <Undo2 size={16} /> Reset
-                </button>
+            {activeTab === "crop" && (
+              <div>
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Crop size={14} /> Transform
+                </h4>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm text-gray-300 flex justify-between">
+                      Zoom{" "}
+                      <span className="text-gold">
+                        {(zoom * 100).toFixed(0)}%
+                      </span>
+                    </label>
+                    <input
+                      type="range"
+                      min={1}
+                      max={3}
+                      step={0.1}
+                      value={zoom}
+                      onChange={(e) => setZoom(Number(e.target.value))}
+                      className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-4">
+                  <button
+                    onClick={() => setRotation((r) => r + 90)}
+                    className="bg-white/5 hover:bg-gold hover:text-navy-950 text-gray-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
+                  >
+                    <RotateCw size={16} /> Rotate
+                  </button>
+                  <button
+                    onClick={reset}
+                    className="bg-white/5 hover:bg-red-500 hover:text-white text-gray-300 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
+                  >
+                    <Undo2 size={16} /> Reset
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl text-blue-200 text-xs">
-              💡 Drag image to move, scroll to zoom.
-            </div>
+            {activeTab === "retouch" && (
+              <div>
+                <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl text-blue-200 text-xs mb-6">
+                  💡 Tap anywhere on the image to mask blemishes or spots.
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={undoLastBlemish}
+                    disabled={blemishes.length === 0}
+                    className="w-full bg-white/5 hover:bg-white/10 text-gray-300 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 border border-white/5"
+                  >
+                    <Undo2 size={16} /> Undo Last Spot
+                  </button>
+
+                  <button
+                    onClick={clearBlemishes}
+                    disabled={blemishes.length === 0}
+                    className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 border border-red-500/20"
+                  >
+                    Clear All Spots
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "crop" && (
+              <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl text-blue-200 text-xs mt-4">
+                💡 Drag image to move, scroll to zoom.
+              </div>
+            )}
           </div>
 
           <div className="p-6 border-t border-white/5 bg-navy-950">
