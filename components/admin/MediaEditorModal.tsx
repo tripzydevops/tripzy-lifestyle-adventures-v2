@@ -20,6 +20,7 @@ interface MediaEditorModalProps {
   onClose: () => void;
   isOpen: boolean;
   fileName?: string;
+  mimeType?: string;
 }
 
 const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
@@ -28,6 +29,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
   onClose,
   isOpen,
   fileName = "image",
+  mimeType = "image/jpeg",
 }) => {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
@@ -125,7 +127,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
           if (file) resolve(file);
           else reject(new Error("Canvas failure"));
         },
-        "image/jpeg",
+        mimeType, // Use original mimeType
         0.9
       );
     });
@@ -146,11 +148,22 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
         // For replaced items, we might want to keep original name to be cleaner,
         // but adding a suffix ensures cache busting and uniqueness.
         // For 'new', we definitely want a prefix.
-        const prefix = mode === "new" ? "edited_" : "cropped_";
-        const newName = `${prefix}${cleanName}.jpg`;
+
+        let newName = fileName; // Default to existing name
+
+        if (mode === "new") {
+          newName = `edited_${cleanName}.jpg`; // Should ideally use ext from mimeType but simplistic for now
+          if (mimeType === "image/png") newName = `edited_${cleanName}.png`;
+          else if (mimeType === "image/webp")
+            newName = `edited_${cleanName}.webp`;
+        } else {
+          // REPLACE mode: Use original name so simple file construction works,
+          // explicit overwrite logic handled in parent component.
+          newName = fileName;
+        }
 
         const file = new File([croppedBlob], newName, {
-          type: "image/jpeg",
+          type: mimeType,
         });
         await onSave(file, mode);
         onClose();

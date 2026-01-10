@@ -201,17 +201,46 @@ const ManageMediaPage = () => {
     if (!editingItem) return;
 
     try {
-      // Use uploadToStorage to get the URL/Size WITHOUT adding to DB automatically
-      const { url: newUrl, size: newSize } =
-        await uploadService.uploadToStorage(file);
+      let newUrl = "";
+      let newSize = file.size;
 
       if (mode === "replace") {
-        await mediaService.updateMedia(editingItem.id, {
-          url: newUrl,
-          sizeBytes: newSize,
+        // Extract original filename from URL or use the one in DB
+        // For Supabase storage, the URL usually ends with the filename.
+        // We want to overwrite the EXACT file path.
+        // We can extract it from the existing URL.
+        const urlParts = editingItem.url.split("/");
+        const originalFileName = urlParts[urlParts.length - 1].split("?")[0];
+
+        // Upload with Overwrite
+        const result = await uploadService.uploadToStorage(file, {
+          customFileName: originalFileName,
+          upsert: true,
         });
-        addToast("Image replaced successfully", "success");
+
+        newUrl = result.url;
+        newSize = result.size;
+
+        // Add a timestamp to force UI refresh (cache busting)
+        // We update the DB with the same base URL (or clean one) but local state might need help
+        // actually, let's keep the DB URL clean.
+
+        await mediaService.updateMedia(editingItem.id, {
+          sizeBytes: newSize,
+          // We don't strictly *need* to update URL if it's identical,
+          // but sending it again doesn't hurt.
+        });
+
+        addToast(
+          "Image replaced successfully (Cache may take a moment to clear)",
+          "success"
+        );
       } else {
+        // SAVE AS NEW
+        const result = await uploadService.uploadToStorage(file);
+        newUrl = result.url;
+        newSize = result.size;
+
         await mediaService.addMedia({
           url: newUrl,
           fileName: file.name,
@@ -979,6 +1008,7 @@ const ManageMediaPage = () => {
           onClose={() => setEditingItem(null)}
           imageUrl={editingItem?.url || ""}
           fileName={editingItem?.fileName}
+          mimeType={editingItem?.mimeType}
           onSave={handleSaveEditedImage}
         />
       )}

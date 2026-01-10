@@ -78,7 +78,8 @@ export const uploadService = {
    * Handles WebP conversion and duplicate checking.
    */
   async uploadToStorage(
-    file: File
+    file: File,
+    options?: { customFileName?: string; upsert?: boolean }
   ): Promise<{
     url: string;
     size: number;
@@ -102,37 +103,42 @@ export const uploadService = {
     }
 
     // Check for duplicates before uploading
-    const existingMedia = await mediaService.findDuplicateMedia(
-      fileToUpload.name,
-      fileToUpload.size
-    );
+    // SKIP duplication check if we are explicitly overwriting (upserting)
+    if (!options?.upsert) {
+      const existingMedia = await mediaService.findDuplicateMedia(
+        fileToUpload.name,
+        fileToUpload.size
+      );
 
-    if (existingMedia) {
-      console.log(`Duplicate found! Using existing media URL`);
-      return {
-        url: existingMedia.url,
-        size: existingMedia.sizeBytes || fileToUpload.size,
-        mimeType: existingMedia.mimeType || fileToUpload.type,
-        isDuplicate: true,
-      };
+      if (existingMedia) {
+        console.log(`Duplicate found! Using existing media URL`);
+        return {
+          url: existingMedia.url,
+          size: existingMedia.sizeBytes || fileToUpload.size,
+          mimeType: existingMedia.mimeType || fileToUpload.type,
+          isDuplicate: true,
+        };
+      }
     }
 
-    // Generate unique filename
-    const uniqueFileName = generateUniqueFileName(fileToUpload.name);
+    // Determine filename: Use custom if provided, otherwise generate unique
+    const finalFileName = options?.customFileName
+      ? options.customFileName
+      : generateUniqueFileName(fileToUpload.name);
 
     // Upload to Supabase Storage
     const { error: uploadError } = await supabase.storage
       .from("blog-media")
-      .upload(uniqueFileName, fileToUpload, {
+      .upload(finalFileName, fileToUpload, {
         cacheControl: "3600",
-        upsert: false,
+        upsert: options?.upsert || false,
       });
 
     if (uploadError) {
       throw new Error(`Failed to upload file: ${uploadError.message}`);
     }
 
-    const publicUrl = getPublicUrl(uniqueFileName);
+    const publicUrl = getPublicUrl(finalFileName);
     console.log(`File uploaded to storage: ${publicUrl}`);
 
     return {
