@@ -148,19 +148,32 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
         // Simple Blur approximation: Draw the image again over the spot but shifted/blurred
         // Since standard canvas blur filter can be expensive or inconsistent,
         // we'll use a backdrop filter or simply fill with an average color if blur isn't available.
-        // Best approach for "Retouch" without heavy libraries:
-        // 1. Get ImageData
-        // 2. Simple box blur on pixels
-        // 3. Put back
+        // SMART RETOUCH: Directional Clone + Blur
+        // Instead of just blurring the defect (which keeps it dark/visible),
+        // we "clone" pixels from a nearby clean area (offset towards center of image)
+        // and blend them in.
 
-        // Optimization: just use the context filter if supported, fallback to clearRect (bad) or fill
-        // Dynamic blur relative to image size (e.g., 2% of width) ensures visibility on high-res
-        const blurAmount = Math.max(10, Math.round(image.width * 0.02));
-        ctx.filter = `blur(${blurAmount}px)`;
+        // 1. Determine direction to clone FROM (always look towards center to avoid edges)
+        // If spot is on Left (x<0.5), we clone from Right.
+        // If spot is on Right (x>0.5), we clone from Left.
+        // We shift the IMAGE, so to clone from Right, we shift image Left (negative).
+        // To clone from Left, we shift image Right (positive).
+
+        const offsetDist = Math.max(spotRadius * 1.2, image.width * 0.02); // Grab from just outside the spot
+        const shiftX = b.x < 0.5 ? -offsetDist : offsetDist;
+        const shiftY = b.y < 0.5 ? -offsetDist : offsetDist;
+
+        // 2. Draw the Cloned Patch
+        // We apply a moderate blur to the clone source to help it blend and smooth out noise
+        // But not so much that it looks like a smudge.
+        const blendBlur = Math.max(2, Math.round(image.width * 0.005));
+        ctx.filter = `blur(${blendBlur}px)`;
+
+        // Draw image shifted so that pixels from (spotX + shift) appear at spotX
         ctx.drawImage(
           image,
-          safeArea / 2 - image.width * 0.5,
-          safeArea / 2 - image.height * 0.5
+          safeArea / 2 - image.width * 0.5 + shiftX,
+          safeArea / 2 - image.height * 0.5 + shiftY
         );
 
         ctx.restore();
