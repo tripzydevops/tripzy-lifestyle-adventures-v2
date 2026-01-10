@@ -143,7 +143,7 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
         // 3. Put back
 
         // Optimization: just use the context filter if supported, fallback to clearRect (bad) or fill
-        ctx.filter = "blur(10px)";
+        ctx.filter = "blur(30px)";
         ctx.drawImage(
           image,
           safeArea / 2 - image.width * 0.5,
