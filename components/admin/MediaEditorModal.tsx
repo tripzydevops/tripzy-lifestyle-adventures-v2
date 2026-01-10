@@ -45,6 +45,10 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
 
   // This state holds the 'pixel' crop area returned by react-easy-crop
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [mediaSize, setMediaSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
 
   // Dynamically import react-easy-crop only when needed to avoid SSR issues if any
   const [Cropper, setCropper] = useState<any>(null);
@@ -57,6 +61,11 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
 
   const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const onMediaLoaded = (mediaSize: { width: number; height: number }) => {
+    setMediaSize(mediaSize);
+    // Auto-set aspect to original on load if desired, but let's keep default 4:3 unless they click 'Original'
   };
 
   /**
@@ -404,9 +413,12 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                     onCropChange={setCrop}
                     onCropComplete={onCropComplete}
                     onZoomChange={setZoom}
+                    onMediaLoaded={onMediaLoaded}
                     showGrid={false}
+                    restrictPosition={false} // Allow moving image freely (adding whitespace)
+                    minZoom={0.5} // Allow zooming out
                     classes={{
-                      containerClassName: "cropper-container",
+                      containerClassName: "cropper-container bg-black", // Ensure background is black for "borders"
                       mediaClassName: "cropper-media",
                     }}
                     style={{
@@ -591,14 +603,22 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                         2:3
                       </button>
                       <button
-                        onClick={() => setAspect(undefined)}
+                        onClick={() => {
+                          if (mediaSize)
+                            setAspect(mediaSize.width / mediaSize.height);
+                          else setAspect(undefined); // Fallback
+                        }}
                         className={`text-[10px] py-2 rounded-lg font-bold transition-all border col-span-4 ${
-                          aspect === undefined
+                          // Approximate comparison for "Original" highlight
+                          mediaSize &&
+                          Math.abs(
+                            (aspect || 0) - mediaSize.width / mediaSize.height
+                          ) < 0.01
                             ? "bg-gold text-navy-950 border-gold"
                             : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20"
                         }`}
                       >
-                        Free / Custom
+                        Original (Fit)
                       </button>
                     </div>
                   </div>
@@ -606,13 +626,16 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                   <div className="space-y-2">
                     <label className="text-sm text-gray-300 flex justify-between">
                       Zoom{" "}
+                      <span className="text-[10px] text-gray-500 font-normal ml-2">
+                        (Zoom out to add border)
+                      </span>
                       <span className="text-gold">
                         {(zoom * 100).toFixed(0)}%
                       </span>
                     </label>
                     <input
                       type="range"
-                      min={1}
+                      min={0.5} // Allow zooming OUT to 50%
                       max={3}
                       step={0.1}
                       value={zoom}
