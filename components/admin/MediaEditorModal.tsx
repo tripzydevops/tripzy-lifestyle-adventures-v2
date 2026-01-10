@@ -144,7 +144,9 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
         // 3. Put back
 
         // Optimization: just use the context filter if supported, fallback to clearRect (bad) or fill
-        ctx.filter = "blur(30px)";
+        // Dynamic blur relative to image size (e.g., 2% of width) ensures visibility on high-res
+        const blurAmount = Math.max(10, Math.round(image.width * 0.02));
+        ctx.filter = `blur(${blurAmount}px)`;
         ctx.drawImage(
           image,
           safeArea / 2 - image.width * 0.5,
@@ -308,8 +310,8 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
     const x = (clientX - rect.left) / rect.width;
     const y = (clientY - rect.top) / rect.height;
 
-    // Default blemish size relative to image
-    setBlemishes([...blemishes, { x, y, radius: 0.03 }]);
+    // Default blemish size relative to image (increased for better usability)
+    setBlemishes([...blemishes, { x, y, radius: 0.05 }]);
   };
 
   const undoLastBlemish = () => {
@@ -587,6 +589,16 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                         }`}
                       >
                         2:3
+                      </button>
+                      <button
+                        onClick={() => setAspect(undefined)}
+                        className={`text-[10px] py-2 rounded-lg font-bold transition-all border col-span-4 ${
+                          aspect === undefined
+                            ? "bg-gold text-navy-950 border-gold"
+                            : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20"
+                        }`}
+                      >
+                        Free / Custom
                       </button>
                     </div>
                   </div>
