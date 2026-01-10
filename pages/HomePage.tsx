@@ -10,7 +10,6 @@ import Pagination from "../components/common/Pagination";
 import { Play, ArrowRight, Sparkles, MapPin, ExternalLink } from "lucide-react";
 import { useLanguage } from "../localization/LanguageContext";
 
-import { useTripzy } from "../hooks/useTripzy";
 import DiscoveryHero from "../components/home/DiscoveryHero";
 import SkeletonPostCard from "../components/common/SkeletonPostCard";
 
@@ -18,6 +17,7 @@ const TRIPZY_APP_URL =
   import.meta.env.VITE_TRIPZY_APP_URL || "https://tripzy.travel";
 
 import { youtubeService, YoutubeVideo } from "../services/youtubeService";
+import AgentResponse from "../components/home/AgentResponse";
 
 const HomePage = () => {
   const { t } = useLanguage();
@@ -30,47 +30,91 @@ const HomePage = () => {
   const [videos, setVideos] = useState<YoutubeVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedLang, setSelectedLang] = useState<string>("all");
+
+  // Streaming State
+  const [streamState, setStreamState] = useState({
+    status: "",
+    analysis: null,
+    visuals: [],
+    text: "",
+    posts: [],
+    isDone: false,
+  });
+
   const isFirstRender = useRef(true);
 
   // Hybrid Search Logic
   const handleSearch = async (term: string, vibes: string[]) => {
     setIsSearching(true);
-    setLoading(true);
-    window.scrollTo({ top: 900, behavior: "smooth" }); // Scroll to results
+    // Don't set loading=true for posts yet, we want to show the Agent UI first
+    window.scrollTo({ top: 500, behavior: "smooth" }); // Scroll to Agent area
+
+    // Reset Stream
+    setStreamState({
+      status: "Connecting to Agent...",
+      analysis: null,
+      visuals: [],
+      text: "",
+      posts: [],
+      isDone: false,
+    });
 
     try {
-      // Level 1: Pure Vibe Filter (Fastest)
-      if (!term && vibes.length > 0) {
-        // TODO: Filter locally or via simple SQL query
-        // For now, let's just use the tripzy hook if available, or simulate filtering
-      }
-
-      // Level 2 & 3: AI Search
+      // Level 2 & 3: AI Search (Streaming)
       if (tripzy && (term || vibes.length > 0)) {
-        // Construct natural query from vibes
         const vibeQuery =
           vibes.length > 0
             ? `I'm looking for a ${vibes.join(" and ")} experience.`
             : "";
         const fullQuery = `${vibeQuery} ${term}`.trim();
 
-        const result = await tripzy.getRecommendations(fullQuery);
+        await tripzy.streamRecommendation(fullQuery, [], (event) => {
+          setStreamState((prev) => {
+            const newState = { ...prev };
 
-        if (result.content) {
-          setPosts(result.content);
-          setAiIntent(result.intent);
-          setTotalPages(1);
-        }
+            switch (event.type) {
+              case "status":
+                newState.status = event.data;
+                break;
+              case "analysis":
+                newState.analysis = event.data;
+                break;
+              case "visuals":
+                newState.visuals = event.data;
+                break;
+              case "token":
+                newState.text += event.data;
+                break;
+              case "posts":
+                // Real-time update of the grid!
+                setPosts(event.data);
+                newState.posts = event.data;
+                setTotalPages(1);
+                break;
+              case "done":
+                newState.isDone = true;
+                newState.status = "Complete";
+                setIsSearching(false);
+                break;
+              case "error":
+                newState.status = "Error: " + event.data;
+                setIsSearching(false);
+                break;
+            }
+            return newState;
+          });
+        });
       } else {
-        // Fallback if no SDK or no query
-        // Fallback if no SDK or no query
+        // Fallback or empty search
+        setLoading(true);
         const { posts: fetchedPosts, totalPages: fetchedTotalPages } =
-          await postService.getPublishedPosts(1, 10, selectedLang); // Reset to page 1
+          await postService.getPublishedPosts(1, 10, selectedLang);
         setPosts(fetchedPosts);
+        setIsSearching(false);
+        setLoading(false);
       }
     } catch (e) {
       console.error("Search failed:", e);
-    } finally {
       setIsSearching(false);
       setLoading(false);
     }
@@ -86,44 +130,17 @@ const HomePage = () => {
 
   useEffect(() => {
     const fetchContent = async () => {
+      // If we have just done a search (streamState has text), don't overwrite with default feed
+      if (streamState.text) return;
+
       setLoading(true);
-
-      // 1. Try to get Personalized Recommendations from Tripzy SDK
-      // DISABLED: User prefers standard feed for "Latest Stories".
-      /*
-      if (tripzy) {
-        try {
-          // If first page, ask the Brain
-          if (currentPage === 1) {
-            const recommendation = await tripzy.getRecommendations(""); // Empty query = "Surprise me based on history"
-
-            if (recommendation.content && recommendation.content.length > 0) {
-              setPosts(recommendation.content);
-              setAiIntent(recommendation.intent || null);
-              setTotalPages(1); // SDK returns a single tailored list for now
-              setLoading(false);
-              return; // Exit early if personalization succeeded
-            }
-          }
-        } catch (err) {
-          console.warn(
-            "Tripzy Intelligence API failed, falling back to standard feed",
-            err
-          );
-        }
-      } 
-      */
-
-      // 2. Fallback: Standard Chronological Feed
       const { posts: fetchedPosts, totalPages: fetchedTotalPages } =
         await postService.getPublishedPosts(currentPage, 10, selectedLang);
       setPosts(fetchedPosts);
       setTotalPages(fetchedTotalPages);
       setAiIntent(null);
       setLoading(false);
-      setLoading(false);
 
-      // Scroll to the stories section ONLY if we are paginating or filtering, NOT on initial load
       if (
         !isFirstRender.current &&
         (currentPage > 1 || selectedLang !== "all")
@@ -135,9 +152,8 @@ const HomePage = () => {
         isFirstRender.current = false;
       }
     };
-
     fetchContent();
-  }, [currentPage, tripzy, selectedLang]);
+  }, [currentPage, tripzy, selectedLang]); // Removed tripzy dependency to avoid double fetch logic loop
 
   return (
     <div className="flex flex-col min-h-screen bg-navy-900">
@@ -147,6 +163,11 @@ const HomePage = () => {
       <main className="flex-grow">
         {/* Hero Section */}
         <DiscoveryHero onSearch={handleSearch} isSearching={isSearching} />
+
+        {/* Agent Streaming UI */}
+        <div id="agent-response-area" className="container mx-auto px-4">
+          <AgentResponse streamState={streamState} />
+        </div>
 
         {/* YouTube Videos Section */}
         <section className="py-20 bg-navy-950/50">

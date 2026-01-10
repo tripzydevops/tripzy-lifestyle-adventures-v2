@@ -75,14 +75,75 @@ export class ReasoningLayer {
     }
   }
 
+  /**
+   * Streams the agent's thought process and final response.
+   * Events include: status updates, analysis data, visual matches, and text tokens.
+   */
+  public async streamRecommendation(
+    query: string,
+    userSignals: any[],
+    onEvent: (event: { type: string; data: any }) => void
+  ) {
+    const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+
+    try {
+      const response = await fetch(`${API_URL}/recommend/stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          session_id: "client-" + Date.now(),
+          query: query,
+          user_context: { signals: userSignals },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Stream connection failed: ${response.status}`);
+      }
+
+      if (!response.body) return;
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse NDJSON (Newline Delimited JSON)
+        const lines = buffer.split("\n");
+        // Keep the last chunk if it's incomplete
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const event = JSON.parse(line);
+              onEvent(event);
+            } catch (e) {
+              console.warn("Error parsing stream chunk", e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Streaming failed:", error);
+      onEvent({
+        type: "error",
+        data: "Connection lost. Using local fallback.",
+      });
+      // Optionally trigger local fallback here
+    }
+  }
+
   private async callBackendReasoning(query: string, signals: any[]) {
     // Force lowercase for better matching
-    const API_URL = import.meta.env.VITE_BACKEND_URL;
-
-    // If no backend URL configured, skip the fetch attempt to avoid noise
-    if (!API_URL || API_URL.includes("localhost")) {
-      throw new Error("No remote backend available");
-    }
+    const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
     const response = await fetch(`${API_URL}/recommend`, {
       method: "POST",

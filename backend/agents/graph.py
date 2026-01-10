@@ -1,6 +1,7 @@
 
 import os
 import json
+import asyncio
 import aiohttp
 import google.generativeai as genai
 from typing import List, Dict, Any, Optional
@@ -134,6 +135,7 @@ class Agent:
     async def ainvoke(self, state: Dict[str, Any]):
         """
         Manually runs the Analyze -> Retrieve -> Recommend pipeline.
+        With User Memory and Visual Search.
         """
         print(f"--- Running Agent for {state['session_id']} ---")
         
@@ -145,14 +147,31 @@ class Agent:
         analysis = await self.analyze_user(state["query"], signals)
         state["analysis"] = analysis
         
+        # 2b. SAVE Memory (Persist Vibe)
+        # We fire and forget this logic for speed, or await it
+        await supabase_save_profile(state["session_id"], state.get("user_id"), analysis)
+        
         # 3. Retrieve Context (Layer 3)
-        # We use the prompt's 'lifestyleVibe' or search query to find content
         search_q = analysis.get('intent') or state['query']
         print(f"--- Retrieving Content for: {search_q} ---")
-        retrieved_items = await supabase_retrieve_context(search_q, analysis.get('lifestyleVibe'))
+        
+        # Parallel Retrieval Strategy
+        # If UI directive implies visual ("immersion"), we fetch images too
+        tasks = [supabase_retrieve_context(search_q, analysis.get('lifestyleVibe'))]
+        
+        is_visual_intent = analysis.get("ui_directive") in ["immersion", "visual"] or \
+                           any(k in search_q.lower() for k in ["look like", "photo", "image", "view", "scene"])
+                           
+        if is_visual_intent:
+             print("--- Visual Intent Detected: Fetching Images ---")
+             tasks.append(supabase_retrieve_visuals(search_q))
+        
+        results = await asyncio.gather(*tasks)
+        retrieved_items = results[0]
+        visual_items = results[1] if len(results) > 1 else []
         
         # 4. Generate Recommendation
-        rec = await self.generate_recommendation(state["query"], analysis, retrieved_items)
+        rec = await self.generate_recommendation(state["query"], analysis, retrieved_items, visual_items)
         state["recommendation"] = rec
         state["recommendation"]["constraints"] = analysis.get("constraints")
         state["recommendation"]["lifestyleVibe"] = analysis.get("lifestyleVibe")
@@ -217,21 +236,24 @@ class Agent:
             print(f"Analysis failed: {e}")
             return {"intent": query, "constraints": [], "lifestyleVibe": "General", "reasoning": "Error in AI processing"}
 
-    async def generate_recommendation(self, query: str, analysis: dict, retrieved_items: List[dict]):
+    async def generate_recommendation(self, query: str, analysis: dict, retrieved_items: List[dict], visual_items: List[dict] = []):
         print("--- Generating Recommendation ---")
         
         context_str = json.dumps(retrieved_items) if retrieved_items else "No specific database matches found."
+        visuals_str = json.dumps(visual_items) if visual_items else "No visual matches."
         
         prompt = f"""
         Based on the following User Analysis and Retrieved Content, recommend a travel option.
         
         ANALYSIS: {json.dumps(analysis)}
         RETRIEVED CONTENT (Real DB Items): {context_str}
+        VISUAL GALLERY (DB Images): {visuals_str}
         ORIGINAL QUERY: "{query}"
         
         TASK:
         Provide a helpful, tailored response. 
         - If retrieved items exist, RECOMMEND THEM specifically.
+        - If VISUAL GALLERY items are present, Mention them like: "I found some images of... (and mention the alt_text)".
         - Explain *why* these fit the user's inferred vibe.
         
         OUTPUT JSON:
@@ -259,5 +281,87 @@ class Agent:
                 "confidence": 0.5
             }
 
+
+    async def astream(self, state: Dict[str, Any]):
+        """
+        Streamed version of the pipeline. Yields events as they happen.
+        Events:
+        - status: Update UI progress
+        - analysis: Intermediate thought process
+        - visuals: Found images
+        - token: Streaming text response
+        - done: Final completion
+        """
+        try:
+            # 1. Start Support
+            yield json.dumps({"type": "status", "data": "Reading Signals..."}) + "\n"
+            signals = await supabase_fetch_signals(state["session_id"])
+            
+            # 2. Analyze
+            yield json.dumps({"type": "status", "data": "Analyzing Vibe..."}) + "\n"
+            analysis = await self.analyze_user(state["query"], signals)
+            yield json.dumps({"type": "analysis", "data": analysis}) + "\n"
+            
+            # 2b. Save Memory
+            await supabase_save_profile(state["session_id"], state.get("user_id"), analysis)
+            
+            # 3. Retrieve
+            search_q = analysis.get('intent') or state['query']
+            yield json.dumps({"type": "status", "data": f"Searching: {search_q}..."}) + "\n"
+            
+            tasks = [supabase_retrieve_context(search_q, analysis.get('lifestyleVibe'))]
+            is_visual_intent = analysis.get("ui_directive") in ["immersion", "visual"] or \
+                               any(k in search_q.lower() for k in ["look like", "photo", "image", "view", "scene"])
+            
+            if is_visual_intent:
+                tasks.append(supabase_retrieve_visuals(search_q))
+            
+            results = await asyncio.gather(*tasks)
+            retrieved_items = results[0]
+            visual_items = results[1] if len(results) > 1 else []
+            
+            if retrieved_items:
+                 yield json.dumps({"type": "posts", "data": retrieved_items}) + "\n"
+
+            if visual_items:
+                yield json.dumps({"type": "visuals", "data": visual_items}) + "\n"
+            
+            # 4. Stream Response
+            yield json.dumps({"type": "status", "data": "Generating Response..."}) + "\n"
+            
+            async for token in self.stream_recommendation(state["query"], analysis, retrieved_items, visual_items):
+                yield json.dumps({"type": "token", "data": token}) + "\n"
+            
+            yield json.dumps({"type": "done", "data": "complete"}) + "\n"
+
+        except Exception as e:
+            yield json.dumps({"type": "error", "data": str(e)}) + "\n"
+
+    async def stream_recommendation(self, query: str, analysis: dict, retrieved_items: List[dict], visual_items: List[dict]):
+        """
+        Generates the final text response as a stream of tokens.
+        """
+        context_str = json.dumps(retrieved_items) if retrieved_items else "No specific database matches found."
+        
+        # We don't ask for JSON here, just natural text for the stream
+        prompt = f"""
+        ACT AS: Tripzy Agent.
+        CONTEXT: {json.dumps(analysis)}
+        DB ITEMS: {context_str}
+        VISUALS FOUND: {len(visual_items)} images.
+        USER QUERY: "{query}"
+        
+        TASK: Write a friendly, engaging response recommending the items above. 
+        - Incorporate the 'lifestyleVibe' ({analysis.get('lifestyleVibe')}).
+        - If visuals were found, mention them naturally (e.g., "I found some beautiful shots...").
+        - Keep it concise.
+        """
+        
+        response = await model.generate_content_async(prompt, stream=True)
+        async for chunk in response:
+            if chunk.text:
+                yield chunk.text
+
 # Instantiate
 app_graph = Agent()
+

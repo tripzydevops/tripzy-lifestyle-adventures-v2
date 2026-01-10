@@ -38,6 +38,8 @@ class ReasonedRecommendation(BaseModel):
 async def root():
     return {"status": "Tripzy Reasoning Engine (LangGraph) is active"}
 
+from fastapi.responses import StreamingResponse
+
 @app.post("/recommend", response_model=ReasonedRecommendation)
 async def get_recommendation(request: RecommendationRequest):
     initial_state = {
@@ -46,7 +48,8 @@ async def get_recommendation(request: RecommendationRequest):
         "signals": [],
         "analysis": {},
         "recommendation": {},
-        "error": None
+        "error": None,
+        "user_id": request.user_id
     }
     
     # Run the graph
@@ -62,6 +65,24 @@ async def get_recommendation(request: RecommendationRequest):
         "constraints": analysis.get("constraints", []),
         "lifestyleVibe": analysis.get("lifestyleVibe", "Unknown")
     }
+
+@app.post("/recommend/stream")
+async def stream_recommendation(request: RecommendationRequest):
+    initial_state = {
+        "session_id": request.session_id,
+        "query": request.query,
+        "signals": [],
+        "analysis": {},
+        "recommendation": {},
+        "error": None,
+        "user_id": request.user_id
+    }
+    
+    async def event_generator():
+        async for event in app_graph.astream(initial_state):
+            yield event
+
+    return StreamingResponse(event_generator(), media_type="application/x-ndjson")
 
 from backend.utils.seo_fixer import fix_post
 

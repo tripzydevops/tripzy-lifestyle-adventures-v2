@@ -13,6 +13,11 @@ interface TripzyContextType {
   isReady: boolean;
   track: (eventType: string, metadata?: any) => void;
   getRecommendations: (query?: string) => Promise<any>;
+  streamRecommendation: (
+    query: string,
+    ignoredContext: any[],
+    onEvent: (e: any) => void
+  ) => Promise<void>;
 }
 
 const TripzyContext = createContext<TripzyContextType | undefined>(undefined);
@@ -67,6 +72,17 @@ export const TripzyProvider: React.FC<{ children: ReactNode }> = ({
     return { content: [], reasoning: "Client not ready" };
   };
 
+  const streamRecommendation = async (
+    query: string,
+    ignoredContext: any[],
+    onEvent: (e: any) => void
+  ) => {
+    if (client) {
+      return await client.streamRecommendation(query, onEvent);
+    }
+    onEvent({ type: "error", data: "Client not ready" });
+  };
+
   return (
     <TripzyContext.Provider
       value={{
@@ -74,6 +90,7 @@ export const TripzyProvider: React.FC<{ children: ReactNode }> = ({
         isReady: !!client,
         track,
         getRecommendations,
+        streamRecommendation,
       }}
     >
       {children}

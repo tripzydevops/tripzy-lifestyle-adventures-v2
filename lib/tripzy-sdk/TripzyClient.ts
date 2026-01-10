@@ -84,4 +84,11 @@ export class TripzyClient {
       content, // Hydrated real data
     };
   }
+  public async streamRecommendation(
+    query: string = "",
+    onEvent: (event: { type: string; data: any }) => void
+  ) {
+    const userSignals = this.signals.getSessionSignals();
+    return await this.brain.streamRecommendation(query, userSignals, onEvent);
+  }
 }
