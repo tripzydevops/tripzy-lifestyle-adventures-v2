@@ -296,7 +296,9 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
   const [activeTab, setActiveTab] = useState<"crop" | "adjust" | "retouch">(
     "crop"
   );
-  const [blemishes, setBlemishes] = useState<>([]);
+  const [blemishes, setBlemishes] = useState<
+    Array<{ x: number; y: number; radius: number }>
+  >([]);
   const [showMarkers, setShowMarkers] = useState(true);
   const imageRef = useRef<HTMLImageElement>(null);
 
