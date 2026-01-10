@@ -733,10 +733,10 @@ const ManageMediaPage = () => {
                               e.stopPropagation();
                               handleStartRename(item);
                             }}
-                            className="text-gray-500 hover:text-gold opacity-0 group-hover/title:opacity-100 transition-opacity ml-1"
+                            className="text-gray-400 hover:text-gold transition-colors ml-2 p-1"
                             title={t("admin.media.rename")}
                           >
-                            <FileSignature size={10} />
+                            <FileSignature size={14} />
                           </button>
                         </div>
                       )}
