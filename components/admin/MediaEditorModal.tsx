@@ -412,17 +412,26 @@ const MediaEditorModal: React.FC<MediaEditorModalProps> = ({
                     }}
                   />
 
-                  {/* Custom 3x4 Grid Overlay */}
-                  <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
-                    <div className="w-full h-full opacity-30">
+                  {/* Custom 3x4 Grid Overlay - Centered Viewport Approximation */}
+                  {/* Since we cannot easily inject into the internal Viewport of react-easy-crop without CSS hacks,
+                      we will overlay the entire area. 
+                      User feedback "still 3x3" implies the default grid might still be visible OR my overlay is invisible. 
+                      We use z-50 and gold color to be sure.
+                  */}
+                  <div className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center opacity-70">
+                    <div className="relative w-full h-full max-w-4xl max-h-[80vh] border-2 border-white/20">
+                      {/* This is a guess at the viewport size. Realistically we should let Cropper handle it.
+                           If we can't perfectly match the viewport, a full-screen grid is better than a confined 3x3 one.
+                       */}
+
                       {/* 3 Columns (2 vertical lines) */}
-                      <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white shadow-[0_0_2px_rgba(0,0,0,0.5)]"></div>
-                      <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white shadow-[0_0_2px_rgba(0,0,0,0.5)]"></div>
+                      <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white/50 shadow-sm"></div>
+                      <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white/50 shadow-sm"></div>
 
                       {/* 4 Rows (3 horizontal lines) */}
-                      <div className="absolute top-1/4 left-0 right-0 h-px bg-white shadow-[0_0_2px_rgba(0,0,0,0.5)]"></div>
-                      <div className="absolute top-2/4 left-0 right-0 h-px bg-white shadow-[0_0_2px_rgba(0,0,0,0.5)]"></div>
-                      <div className="absolute top-3/4 left-0 right-0 h-px bg-white shadow-[0_0_2px_rgba(0,0,0,0.5)]"></div>
+                      <div className="absolute top-1/4 left-0 right-0 h-px bg-white/50 shadow-sm"></div>
+                      <div className="absolute top-2/4 left-0 right-0 h-px bg-white/50 shadow-sm"></div>
+                      <div className="absolute top-3/4 left-0 right-0 h-px bg-white/50 shadow-sm"></div>
                     </div>
                   </div>
                 </>

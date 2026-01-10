@@ -227,6 +227,7 @@ const ManageMediaPage = () => {
 
         await mediaService.updateMedia(editingItem.id, {
           sizeBytes: newSize,
+          fileName: file.name, // Update the display name in DB
           // We don't strictly *need* to update URL if it's identical,
           // but sending it again doesn't hurt.
         });
