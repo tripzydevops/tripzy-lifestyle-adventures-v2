@@ -172,12 +172,24 @@ const ManageMediaPage = () => {
   const handleSaveRename = async (id: string) => {
     if (!renameValue.trim()) return;
 
+    // Standardize naming: Lowercase, alphanumeric, and hyphens only (Proper Saving Format)
+    const slugifiedName = renameValue
+      .toLowerCase()
+      .trim()
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "") // Remove accents
+      .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric with hyphens
+      .replace(/^-+|-+$/g, ""); // Trim hyphens
+
+    // Ensure we keep extension if the user didn't provide one, or just keep it as the name
+    // For the 'fileName' column in blog.media, we usually store the display name.
+
     try {
-      await mediaService.updateMedia(id, { fileName: renameValue });
+      await mediaService.updateMedia(id, { fileName: slugifiedName });
       setRenamingId(null);
       setRenameValue("");
       addToast(t("admin.saveSuccess"), "success");
-      fetchMedia(); // Refresh list to show new name (and re-sort/filter if needed)
+      fetchMedia();
     } catch (error) {
       addToast(t("admin.media.updateError"), "error");
     }
