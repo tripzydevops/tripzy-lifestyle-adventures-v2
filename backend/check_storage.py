@@ -1,30 +1,48 @@
+
 import os
 import asyncio
-from supabase import create_client, Client
+import aiohttp
+import json
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 
-url: str = os.environ.get("VITE_SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("VITE_SUPABASE_ANON_KEY")
+SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
 
-supabase: Client = create_client(url, key)
+async def list_bucket_files(path=""):
+    url = f"{SUPABASE_URL}/storage/v1/object/list/blog-media"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "prefix": path,
+        "limit": 100,
+        "offset": 0,
+        "sortBy": {"column": "name", "order": "asc"}
+    }
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=payload) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return [x['name'] for x in data]
+            else:
+                print(f"Error listing path '{path}': {resp.status} - {await resp.text()}")
+                return []
 
-async def list_files():
+async def main():
     print("📂 Checking 'blog-media' bucket...")
-    try:
-        # List root
-        res = supabase.storage.from_("blog-media").list()
-        print(f"Root files: {[x['name'] for x in res]}")
-        
-        # List content folder
-        res_content = supabase.storage.from_("blog-media").list("content")
-        print(f"Content/ files: {[x['name'] for x in res_content]}")
-        
-    except Exception as e:
-        print(f"Error: {e}")
+    
+    # List root
+    root_files = await list_bucket_files("")
+    print(f"Root files: {root_files}")
+    
+    # List content folder
+    content_files = await list_bucket_files("content/")
+    print(f"Content/ files: {content_files}")
 
 if __name__ == "__main__":
-    import asyncio
-    # Supabase-py is synchronous for storage usually, but let's just run it
-    list_files()
+    asyncio.run(main())

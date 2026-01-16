@@ -101,13 +101,15 @@ export const mediaService = {
   async addMedia(
     mediaData: Omit<MediaItem, "id" | "uploadedAt">
   ): Promise<MediaItem> {
-    const supabaseData = {
+    const supabaseData: any = {
       url: mediaData.url,
-      filename: mediaData.fileName, // Correct column name is 'filename' without underscore
+      filename: mediaData.fileName,
       mime_type: mediaData.mediaType === "video" ? "video/mp4" : "image/jpeg",
       size_bytes: mediaData.sizeBytes,
       tags: mediaData.tags || [],
-      embedding: null, // Initialize
+      alt_text: mediaData.altText,
+      caption: mediaData.caption,
+      embedding: null,
     };
 
     // Generate embedding
@@ -123,19 +125,45 @@ export const mediaService = {
       console.warn("Failed to generate embedding for media:", e);
     }
 
-    const { data, error } = await supabase
+    const { data: blogMedia, error: blogError } = await supabase
       .schema("blog")
       .from("media")
       .insert([supabaseData])
       .select()
       .single();
 
-    if (error) {
-      console.error("Supabase Error (addMedia):", error);
-      throw error;
+    if (blogError) {
+      console.error("Supabase Error (addMedia -> blog.media):", blogError);
+      throw blogError;
     }
 
-    return mapMediaFromSupabase(data);
+    // --- DUAL WRITE: Sync to public.media_library ---
+    try {
+      // Extract storage path from URL
+      const storagePath =
+        mediaData.url.split("/blog-media/")[1]?.split("?")[0] ||
+        mediaData.fileName;
+
+      const libraryData = {
+        public_url: mediaData.url.split("?")[0], // Clean URL
+        storage_path: storagePath,
+        title: mediaData.caption || mediaData.fileName,
+        alt_text: mediaData.altText,
+        semantic_tags: mediaData.tags || [],
+        ai_description: mediaData.caption || "",
+        embedding: supabaseData.embedding,
+        size_bytes: mediaData.sizeBytes,
+        file_format: mediaData.fileName.split(".").pop()?.toLowerCase(),
+      };
+
+      await supabase
+        .from("media_library")
+        .upsert([libraryData], { onConflict: "public_url" });
+    } catch (libErr) {
+      console.warn("Dual Write to media_library failed (addMedia):", libErr);
+    }
+
+    return mapMediaFromSupabase(blogMedia);
   },
 
   async importMediaFromUrl(url: string): Promise<MediaItem> {
@@ -215,7 +243,7 @@ export const mediaService = {
       }
     }
 
-    const { data, error } = await supabase
+    const { data: blogMedia, error: blogError } = await supabase
       .schema("blog")
       .from("media")
       .update(supabaseUpdates)
@@ -223,12 +251,37 @@ export const mediaService = {
       .select()
       .single();
 
-    if (error) {
-      console.error("Supabase Error (updateMedia):", error);
-      throw error;
+    if (blogError) {
+      console.error("Supabase Error (updateMedia):", blogError);
+      throw blogError;
     }
 
-    return mapMediaFromSupabase(data);
+    // --- DUAL WRITE: Sync to public.media_library ---
+    try {
+      const cleanUrl = blogMedia.url.split("?")[0];
+      const storagePath =
+        cleanUrl.split("/blog-media/")[1]?.split("?")[0] || blogMedia.filename;
+
+      const libraryUpdate: any = {
+        public_url: cleanUrl,
+        storage_path: storagePath,
+        title: blogMedia.caption || blogMedia.filename,
+        alt_text: blogMedia.alt_text,
+        semantic_tags: blogMedia.tags || [],
+        ai_description: blogMedia.caption || "",
+        size_bytes: blogMedia.size_bytes,
+        file_format: blogMedia.filename.split(".").pop()?.toLowerCase(),
+        embedding: supabaseUpdates.embedding || blogMedia.embedding,
+      };
+
+      await supabase
+        .from("media_library")
+        .upsert([libraryUpdate], { onConflict: "public_url" });
+    } catch (libErr) {
+      console.warn("Dual Write to media_library failed (updateMedia):", libErr);
+    }
+
+    return mapMediaFromSupabase(blogMedia);
   },
 
   async deleteMedia(id: string): Promise<void> {

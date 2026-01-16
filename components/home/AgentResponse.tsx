@@ -15,6 +15,7 @@ interface AgentResponseProps {
     text: string;
     posts: any[];
     isDone: boolean;
+    consensus?: any;
   };
 }
 
@@ -94,6 +95,35 @@ const AgentResponse: React.FC<AgentResponseProps> = ({ streamState }) => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* 2.5 Consensus Judge (UI Transparency) */}
+      {streamState.consensus && (
+        <div className="animate-fade-in-up bg-gold/5 border border-gold/20 rounded-xl p-4 flex gap-4">
+          <div className="bg-gold/10 p-2 rounded-lg h-fit">
+            <Sparkles className="w-5 h-5 text-gold" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-gold text-xs font-bold uppercase tracking-widest">
+                Consensus Judge
+              </span>
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  streamState.consensus.consensus_score > 0.7
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-red-500/20 text-red-400"
+                }`}
+              >
+                Score: {Math.round(streamState.consensus.consensus_score * 100)}
+                %
+              </span>
+            </div>
+            <p className="text-slate-300 text-sm leading-relaxed italic">
+              "{streamState.consensus.critique}"
+            </p>
           </div>
         </div>
       )}

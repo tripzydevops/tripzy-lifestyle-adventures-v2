@@ -217,37 +217,37 @@ const ManageMediaPage = () => {
       let newSize = file.size;
 
       if (mode === "replace") {
-        // Extract original filename from URL or use the one in DB
-        // For Supabase storage, the URL usually ends with the filename.
-        // We want to overwrite the EXACT file path.
-        // We can extract it from the existing URL.
-        const urlParts = editingItem.url.split("/");
-        const originalFileName = urlParts[urlParts.length - 1].split("?")[0];
+        // Correctly extract the FULL path after /public/ or /blog-media/
+        // URL format: .../storage/v1/object/public/blog-media/content/filename.jpg
+        const storageSeparator = "/blog-media/";
+        const urlParts = editingItem.url.split(storageSeparator);
 
-        // Upload with Overwrite
+        if (urlParts.length < 2) {
+          throw new Error("Could not extract storage path from URL");
+        }
+
+        // This gives us 'content/filename.jpg' or just 'filename.jpg'
+        const fullStoragePath = urlParts[1].split("?")[0];
+
+        addToast("Replacing image...", "info");
+
+        // Upload with Overwrite using the full path
         const result = await uploadService.uploadToStorage(file, {
-          customFileName: originalFileName,
+          customFileName: fullStoragePath,
           upsert: true,
         });
 
         newUrl = result.url;
         newSize = result.size;
 
-        // Add a timestamp to force UI refresh (cache busting)
-        // We update the DB with the same base URL (or clean one) but local state might need help
-        // actually, let's keep the DB URL clean.
-
+        // DB Update
         await mediaService.updateMedia(editingItem.id, {
           sizeBytes: newSize,
-          fileName: file.name, // Update the display name in DB
-          // We don't strictly *need* to update URL if it's identical,
-          // but sending it again doesn't hurt.
+          fileName: file.name,
+          url: `${newUrl}?t=${Date.now()}`, // Cache buster for UI
         });
 
-        addToast(
-          "Image replaced successfully (Cache may take a moment to clear)",
-          "success"
-        );
+        addToast("Image replaced successfully", "success");
       } else {
         // SAVE AS NEW
         const result = await uploadService.uploadToStorage(file);

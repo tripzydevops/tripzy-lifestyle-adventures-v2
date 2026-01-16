@@ -10,6 +10,11 @@ from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
+from backend.agents.cross_domain_agent import agent as cross_domain_agent
+from backend.agents.visual_intelligence_agent import visual_agent
+from backend.agents.consensus_agent import judge_agent as consensus_agent
+from backend.utils.usage_monitor import monitor
+
 # --- Configuration ---
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
@@ -45,6 +50,57 @@ async def supabase_fetch_signals(session_id: str):
             print(f"Supabase Signals Fetch Error: {e}")
             return []
 
+async def supabase_save_profile(session_id: str, user_id: Optional[str], analysis: Dict[str, Any]):
+    """
+    R&D Archival: Persists inferred user vibe and intent to Supabase (blog schema).
+    """
+    if not user_id:
+        print("⚠️ [Phase 5.3]: No user_id provided. Skipping persistent profile update.")
+        return
+
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates",
+        "Accept-Profile": "blog",
+        "Content-Profile": "blog"
+    }
+    url = f"{SUPABASE_URL}/rest/v1/user_profiles"
+    
+    payload = {
+        "user_id": user_id,
+        "session_id": session_id,
+        "lifestyle_vibe": analysis.get("lifestyle_vibe") or analysis.get("vibe") or "Neutral",
+        "constraints": analysis.get("constraints") or [],
+        "last_active": "now()"
+    }
+    
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(url, headers=headers, json=payload) as r:
+                if r.status >= 300:
+                    text = await r.text()
+                    print(f"Supabase Profile Save Warning: {r.status} - {text}")
+        except Exception as e:
+            print(f"Supabase Profile Save Error: {e}")
+
+async def supabase_retrieve_visuals(query_text: str, vibe: Optional[str] = None):
+    """
+    R&D Semantic Visual Search: Defers to VisualIntelligenceAgent (Layer 2).
+    Incorproates lifestyle vibe for aesthetic alignment.
+    """
+    try:
+        search_query = query_text
+        if vibe:
+            search_query = f"{query_text} {vibe} aesthetics"
+            
+        analysis = await visual_agent.discover_scenes(search_query)
+        return analysis.matches
+    except Exception as e:
+        print(f"Visual Retrieval Wrapper Error: {e}")
+        return []
+
 async def supabase_retrieve_context(query_text: str, vibe_filter: str):
     """
     Performs retrieval from blog.posts using embedding similarity.
@@ -60,7 +116,7 @@ async def supabase_retrieve_context(query_text: str, vibe_filter: str):
     # 1. Embed query using Gemini
     embed_model = genai.GenerativeModel('models/text-embedding-004')
     try:
-        embedding_res = await embed_model.embed_content_async(
+        embedding_res = genai.embed_content(
             model="models/text-embedding-004",
             content=query_text,
             task_type="retrieval_query"
@@ -179,62 +235,50 @@ class Agent:
         return state
 
     async def analyze_user(self, query: str, signals: List[dict]):
-        print("--- Analyzing User & Intent ---")
-        mode = "COLD_START" if not signals else "CONTEXTUAL"
-        
-        # Context String
-        signal_context = ""
-        if mode == "CONTEXTUAL":
-            # Summarize signals for the LLM
-            simple_signals = [{
-                "type": s.get('signal_type'), 
-                "target": s.get('target_type'),
-                "meta": s.get('metadata')
-            } for s in signals[:10]]
-            signal_context = json.dumps(simple_signals)
-        else:
-            signal_context = "User History: NONE (New User / Cold Start)"
-
-        prompt = f"""
-        ACT AS: Tripzy Autonomous Agent (Layer 2 Reasoner)
-        DOMAIN: Travel & Lifestyle
-        MODE: {mode}
-        
-        USER QUERY: "{query}"
-        USER SIGNALS: {signal_context}
-        
-        TASKS:
-        1. ANALYZE INTENT: What is the user looking for?
-        2. INFER CONSTRAINTS: Budget (Low/High), Group (Solo/Family), Pace (Fast/Slow).
-        3. CROSS-DOMAIN MAPPING: Map keywords to attributes (e.g. "Spa" -> "Relaxation").
-        4. UI DIRECTIVE: Determine energy level: "immersion" (scenic/slow), "high_energy" (fast/viral), or "utility" (data).
-        5. THOUGHT STREAM: Breakdown your steps for the simulation UI.
-        
-        OUTPUT JSON:
-        {{
-            "lifestyleVibe": "string",
-            "constraints": ["string"],
-            "ui_directive": "immersion" | "high_energy" | "utility",
-            "confidence": 0.0-1.0,
-            "reasoning": "Detailed explanation",
-            "thoughts": ["Step 1...", "Step 2...", "Step 3..."],
-            "keywords": ["tag1", "tag2"]
-        }}
         """
+        R&D Entry point for Intent Analysis.
+        Now leverages the Cross-Domain Transfer Agent for solving Cold Start problems.
+        """
+        print("--- Analyzing User & Intent (Cross-Domain R&D) ---")
         
-        try:
-            response = await model.generate_content_async(prompt)
-            text = response.text
-            # Clean markdown
-            if "```json" in text:
-                text = text.split("```json")[1].split("```")[0].strip()
-            elif "```" in text:
-                text = text.split("```")[1].split("```")[0].strip()
-                
-            return json.loads(text)
-        except Exception as e:
-            print(f"Analysis failed: {e}")
-            return {"intent": query, "constraints": [], "lifestyleVibe": "General", "reasoning": "Error in AI processing"}
+        # Call the specialized Cross-Domain Agent
+        persona = await cross_domain_agent.infer_persona(query, signals)
+        
+        # Archival/R&D Logging: Map persona back to analysis structure
+        analysis = persona.model_dump()
+        
+        # --- R&D Phase 3: Hybrid Weighting (Alpha Decay) ---
+        # Calculate Alpha based on number of signals (N)
+        # alpha = 1.0 (Cold Start) -> 0.0 (Pure Behavioral)
+        n_signals = len(signals)
+        decay_rate = 0.1 # Each signal reduces cold-start reliance by 10%
+        alpha = max(0.0, 1.0 - (n_signals * decay_rate))
+        
+        analysis["hybrid_alpha"] = alpha
+        analysis["signal_count"] = n_signals
+        
+        if alpha < 0.5:
+             # Shift Vibe based on real interactions if they exist
+             # This is a simplified behavioral shift for Phase 3
+             most_common_type = "interaction"
+             analysis["vibe"] = f"{persona.vibe} (Refined by {n_signals} signals)"
+        
+        # Add UI directive inferred from the persona/vibe
+        if persona.pace == "Slow" or "Bohem" in persona.vibe:
+            analysis["ui_directive"] = "immersion"
+        elif persona.pace == "Fast":
+            analysis["ui_directive"] = "high_energy"
+        else:
+            analysis["ui_directive"] = "utility"
+            
+        # Ensure 'lifestyleVibe' matches the frontend expectations (persona.vibe)
+        analysis["lifestyleVibe"] = persona.vibe
+        analysis["intent"] = persona.intent_logic
+        
+        # Proof of Work: Log the deduction for the experiment log
+        print(f"   [R&D Inference]: {persona.vibe} (Alpha: {alpha:.2f})")
+        
+        return analysis
 
     async def generate_recommendation(self, query: str, analysis: dict, retrieved_items: List[dict], visual_items: List[dict] = []):
         print("--- Generating Recommendation ---")
@@ -282,6 +326,47 @@ class Agent:
             }
 
 
+    async def ainvoke(self, state: Dict[str, Any]):
+        """
+        Non-streaming execution of the agent pipeline.
+        Used for APIs and tests.
+        """
+        signals = await supabase_fetch_signals(state["session_id"])
+        analysis = await self.analyze_user(state["query"], signals)
+        
+        # Save Memory
+        await supabase_save_profile(state["session_id"], state.get("user_id"), analysis)
+        
+        search_q = analysis.get('intent') or state['query']
+        
+        tasks = [supabase_retrieve_context(search_q, analysis.get('lifestyleVibe'))]
+        is_visual_intent = analysis.get("ui_directive") in ["immersion", "visual"] or \
+                           any(k in search_q.lower() for k in ["look like", "photo", "image", "view", "scene"])
+        
+        if is_visual_intent:
+            tasks.append(supabase_retrieve_visuals(search_q, analysis.get('lifestyleVibe')))
+        
+        results = await asyncio.gather(*tasks)
+        retrieved_items = results[0]
+        visual_items = results[1] if len(results) > 1 else []
+
+        # --- R&D Phase 3: Consensus Judge ---
+        consensus = await consensus_agent.validate_alignment(analysis, retrieved_items, visual_items)
+        analysis["consensus"] = consensus.model_dump()
+        
+        # Generate the non-streaming recommendation
+        recommendation = await self.generate_recommendation(state["query"], analysis, retrieved_items, visual_items)
+        
+        # Add the analysis vibe back for frontend consistency
+        recommendation["lifestyleVibe"] = analysis.get("lifestyleVibe")
+        
+        return {
+            "analysis": analysis,
+            "retrieved_items": retrieved_items,
+            "visual_items": visual_items,
+            "recommendation": recommendation
+        }
+
     async def astream(self, state: Dict[str, Any]):
         """
         Streamed version of the pipeline. Yields events as they happen.
@@ -314,11 +399,17 @@ class Agent:
                                any(k in search_q.lower() for k in ["look like", "photo", "image", "view", "scene"])
             
             if is_visual_intent:
-                tasks.append(supabase_retrieve_visuals(search_q))
+                tasks.append(supabase_retrieve_visuals(search_q, analysis.get('lifestyleVibe')))
             
             results = await asyncio.gather(*tasks)
             retrieved_items = results[0]
             visual_items = results[1] if len(results) > 1 else []
+
+            # 3b. Consensus Judge
+            yield json.dumps({"type": "status", "data": "Verifying Consensus..."}) + "\n"
+            consensus = await consensus_agent.validate_alignment(analysis, retrieved_items, visual_items)
+            analysis["consensus"] = consensus.model_dump()
+            yield json.dumps({"type": "consensus", "data": analysis["consensus"]}) + "\n"
             
             if retrieved_items:
                  yield json.dumps({"type": "posts", "data": retrieved_items}) + "\n"
@@ -361,6 +452,14 @@ class Agent:
         async for chunk in response:
             if chunk.text:
                 yield chunk.text
+        
+        # --- Phase 5: Financial Observability ---
+        # The usage metadata is typically available on the response object after the stream is fully consumed
+        try:
+            if hasattr(response, 'usage_metadata'):
+                 await monitor.log_usage("RecommendationEngine", "gemini-2.0-flash", response.usage_metadata, "Main-Stream")
+        except:
+            pass
 
 # Instantiate
 app_graph = Agent()

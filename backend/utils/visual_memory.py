@@ -159,3 +159,42 @@ class VisualMemory:
                     print(f"         ⚠️ Dual-write failed: {e}")
 
 
+    async def semantic_search(self, query: str, limit: int = 5) -> List[dict]:
+        """
+        R&D Feature: Performs vector similarity search over image embeddings.
+        """
+        if not self.has_ai:
+            print("⚠️ Semantic Search requires Gemini API Key.")
+            return []
+
+        # 1. Generate Embedding for the query
+        try:
+            embed_result = genai.embed_content(
+                model=self.model_embedding,
+                content=query,
+                task_type="retrieval_query"
+            )
+            query_vector = embed_result['embedding']
+        except Exception as e:
+            print(f"❌ Query Embedding failed: {e}")
+            return []
+
+        # 2. Call Supabase match_media RPC
+        db_url = f"{self.supabase_url}/rest/v1/rpc/match_media"
+        payload = {
+            "query_embedding": query_vector,
+            "match_threshold": 0.4,
+            "match_count": limit
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.post(db_url, headers=self.headers, json=payload) as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                    else:
+                        print(f"❌ match_media RPC failed: {resp.status} - {await resp.text()}")
+                        return []
+            except Exception as e:
+                print(f"❌ Request failed: {e}")
+                return []

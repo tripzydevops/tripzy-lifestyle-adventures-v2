@@ -33,13 +33,22 @@ const HomePage = () => {
   const [selectedLang, setSelectedLang] = useState<string>("all");
 
   // Streaming State
-  const [streamState, setStreamState] = useState({
+  const [streamState, setStreamState] = useState<{
+    status: string;
+    analysis: any;
+    visuals: any[];
+    text: string;
+    posts: any[];
+    isDone: boolean;
+    consensus: any;
+  }>({
     status: "",
     analysis: null,
     visuals: [],
     text: "",
     posts: [],
     isDone: false,
+    consensus: null,
   });
 
   const isFirstRender = useRef(true);
@@ -58,6 +67,7 @@ const HomePage = () => {
       text: "",
       posts: [],
       isDone: false,
+      consensus: null,
     });
 
     try {
@@ -82,6 +92,9 @@ const HomePage = () => {
                 break;
               case "visuals":
                 newState.visuals = event.data;
+                break;
+              case "consensus":
+                newState.consensus = event.data;
                 break;
               case "token":
                 newState.text += event.data;
