@@ -102,6 +102,32 @@ class ResearchAgent:
         response = await asyncio.to_thread(self.model.generate_content, prompt)
         return response.text
 
+    async def scout_patents(self, features: List[str]) -> str:
+        """
+        Scouts for existing patents related to specific architectural features.
+        """
+        patent_report = ""
+        
+        for feature in features:
+            decision = await self.analyze_query_needs(f"patents for {feature}")
+            print(f"⚖️ Patent Scout Decision for '{feature}': {decision}")
+            
+            search_query = f"patents google patents wipo {feature} autonomous agent ai system method 2024 2025"
+            
+            if self.tavily and decision == "LIVE_SEARCH_REQUIRED":
+                try:
+                    response = await self.tavily.search(query=search_query, search_depth="advanced")
+                    patent_report += f"\n### Patent Search: {feature}\n"
+                    for result in response['results']:
+                        patent_report += f"- **Source:** {result['url']}\n  - **Snippet:** {result['content']}\n"
+                except Exception as e:
+                    print(f"Tavily Patent Search Failed: {e}")
+                    patent_report += f"\n### {feature}: Search Failed (Internal Logic Only)\n"
+            else:
+                patent_report += f"\n### {feature}: Internal Knowledge Check (No Live Search)\n"
+
+        return patent_report
+    
     async def verify_latest_standards(self, proposed_tech: str) -> Dict[str, Any]:
         """
         Verifies if a proposed technology or architectual pattern is still considered optimal.

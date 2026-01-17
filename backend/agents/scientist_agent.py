@@ -7,6 +7,9 @@ import google.generativeai as genai
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
+# Collaborative Agency: Import the Scout
+from backend.agents.research_agent import research_agent
+
 class ScientistAgent:
     """
     The Scientific Validator: Responsible for executing empirical test suites 
@@ -56,20 +59,140 @@ class ScientistAgent:
     async def generate_grant_report(self, milestones: List[Dict[str, Any]]) -> str:
         """
         Aggregates multiple milestones into a higher-level R&D Progress Report for grant agencies.
+        Collaborates with ResearchAgent to ensure compliance with latest academic standards.
         """
-        filename = f"GRANT_PROGRESS_REPORT_{datetime.now().strftime('%Y%Q%m')}.md"
+        filename = f"GRANT_PROGRESS_REPORT_{datetime.now().strftime('%Y%m%d')}.md"
         filepath = os.path.join(self.reports_dir, filename)
         
+        # 1. Collaborative Agency: Consult the Scout for latest standards
+        print("   [Scientist] Consulting ResearchAgent for latest IEEE/ACM Grant Reporting Standards...")
+        standards_report = await research_agent.scout_best_practices("IEEE software engineering grant report structure 2026")
+        
         prompt = f"""
-        You are the Lead R&D Scientist. 
-        Recent Milestones: {json.dumps(milestones)}
+        You are the Lead Chief Scientist for the Tripzy Autonomous Reasoning Engine (ARRE). 
         
-        Instructions:
-        1. Summarize the technical progress of the project for a grant audit.
-        2. Focus on Innovation, Technical Challenges Overcome, and Empirical Successes.
-        3. Use formal, scientific language.
+        **Objective:** Write a comprehensive, academic-level "Grant Progress Report" (IEEE/ACM Transaction style).
         
-        Format your response in professional Markdown.
+        **LATEST ACADEMIC STANDARDS (Provided by Research Scout):**
+        {standards_report}
+        
+        **Objective:** Write a comprehensive, academic-level "Grant Progress Report" (IEEE/ACM Transaction style).
+        
+        **Input Data (Milestones):** 
+        {json.dumps(milestones, indent=2)}
+        
+        **System Architecture Context (The "Brain" you are validating):**
+        - **Paradigm:** "Autonomous Agent-Based Recommendation Engine" aimed at the "Cold Start" problem.
+        - **Architecture:** 3-Layer Plug-and-Play (Hub-and-Spoke).
+          - **Layer 1 (Signals):** Signal Collection Module (Front-End/API).
+          - **Layer 2 (Reasoning):** The Council of 11 Agents (Orchestrated by Graph).
+          - **Layer 3 (Data):** Supabase (Relational + Vector).
+        - **Key Innovation:** "Cross-Domain Transfer" (inferring travel prefs from lifestyle) and "Self-Healing/Self-Documenting" loops.
+
+        **Instructions:**
+        1. **Tone:** Highly formal, academic, and empirical. Use terms like "Stochastic Orchestration," "Vector-Space Alignment," and "Heuristic Optimizations."
+        2. **Structure:**
+           - **Abstract:** High-level summary of the R&D breakthrough.
+           - **1. Introduction:** Define the "Cold Start" problem and our Agentic solution.
+           - **2. Methodological Framework:** Detail the 3-Layer Architecture and the "Council of Agents" (mention specific agents like Memory, Scribe, Consensus).
+           - **3. Empirical Validation:** Analyze the milestones. Discuss the "Watcher" restoration as a "Self-Adaptive Mechanism."
+           - **4. Discussion & Future Work:** Implications for Autonomous Software Engineering.
+        3. **Length:** Comprehensive. Do not summarize briefly. Expand on the engineering complexity.
+        
+        **Format:** Professional Markdown.
+        """
+        
+        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        report_content = response.text
+        
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(report_content)
+            
+        return filepath
+
+    async def generate_benchmark_report(self, current_architecture_summary: str) -> str:
+        """
+        Uses the Research Agent to find industry standards, then compares our architecture against them.
+        Returns path to the Benchmark Report.
+        """
+        filename = f"INDUSTRY_BENCHMARK_{datetime.now().strftime('%Y%m%d')}.md"
+        filepath = os.path.join(self.reports_dir, filename)
+        
+        print("   [Scientist] Commissioning Research Scout for Industry Standards Audit...")
+        # 1. Research Phase
+        industry_standards = await research_agent.scout_best_practices("state of the art autonomous ai agent architecture patterns 2026 self-healing reflection")
+        
+        # 2. Analysis Phase
+        prompt = f"""
+        You are the Lead Auditor for the Tripzy ARRE Project.
+        
+        **Objective:** Generate a "Gap Analysis & Benchmarking Report" comparing our system to Industry Best Practices.
+        
+        **OUR CURRENT ARCHITECTURE:**
+        {current_architecture_summary}
+        
+        **INDUSTRY STANDARDS (Research Scout Findings):**
+        {industry_standards}
+        
+        **Instructions:**
+        1. Compare "Us vs. Them". Where do we excel? Where do we lag?
+        2. Specifically evaluate our "3-Layer Hub-and-Spoke" vs. common patterns (e.g., Swarm, DAG, Hierarchical).
+        3. Rate our specific innovations: "Cross-Domain Transfer" and "Self-Healing Watcher".
+        4. Provide a "Competitive Advantage Score" (0-100%).
+        
+        **Structure:**
+        - Executive Summary
+        - Industry Landscape 2026
+        - Comparative Analysis (Strengths/Weaknesses)
+        - Gap Analysis (Missing Features)
+        - Conclusion
+        
+        Format as professional Markdown.
+        """
+        
+        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        report_content = response.text
+        
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(report_content)
+            
+        return filepath
+
+    async def generate_patent_report(self, innovations: List[str]) -> str:
+        """
+        Conducts a Patent Landscape Analysis on our key innovations.
+        """
+        filename = f"PATENT_LANDSCAPE_{datetime.now().strftime('%Y%m%d')}.md"
+        filepath = os.path.join(self.reports_dir, filename)
+        
+        print("   [Scientist] Commissioning Research Scout for Patent Prior Art Search...")
+        patent_data = await research_agent.scout_patents(innovations)
+        
+        prompt = f"""
+        You are the Intellectual Property (IP) Analyst for Tripzy ARRE.
+        
+        **Objective:** Generate a "Patent Landscape & Freedom-to-Operate" Initial Assessment.
+        
+        **INNOVATIONS TO SCREEN:**
+        {json.dumps(innovations, indent=2)}
+        
+        **SEARCH RESULTS (Prior Art):**
+        {patent_data}
+        
+        **Instructions:**
+        1. Analyze the search results for competing patents.
+        2. Identify "Crowded Art" areas (e.g., is "Reflection" heavily patented by Big Tech?).
+        3. Identify "White Space" opportunities where we might file.
+        4. Assess risk: High/Medium/Low overlap with existing IP.
+        
+        **Structure:**
+        - Executive IP Summary
+        - Detailed Analysis per Innovation (Cross-Domain, Reflection, Watcher)
+        - Potential Assignees (Google, Microsoft, OpenAI, etc.)
+        - Risk Assessment
+        - Recommendations for Defensive Publication or Filing
+        
+        Format as professional Markdown.
         """
         
         response = await asyncio.to_thread(self.model.generate_content, prompt)
