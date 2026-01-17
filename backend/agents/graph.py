@@ -15,6 +15,12 @@ from backend.agents.visual_intelligence_agent import visual_agent
 from backend.agents.consensus_agent import judge_agent as consensus_agent
 from backend.utils.usage_monitor import monitor
 
+# ARRE R&D Council
+from backend.agents.memory_agent import memory_agent
+from backend.agents.research_agent import research_agent
+from backend.agents.scribe_agent import scribe_agent
+from backend.agents.scientist_agent import scientist_agent
+
 # --- Configuration ---
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
@@ -193,8 +199,18 @@ class Agent:
         Manually runs the Analyze -> Retrieve -> Recommend pipeline.
         With User Memory and Visual Search.
         """
-        print(f"--- Running Agent for {state['session_id']} ---")
-        
+        # 0. R&D Scout (Check latest best practices BEFORE build if it's a new architectural topic)
+        if state.get("is_architectural_new"):
+            scout_report = await research_agent.scout_best_practices(state["query"])
+            print(f"--- R&D Scout Report ---\n{scout_report}")
+            state["scout_report"] = scout_report
+
+        # 0b. R&D Memory (Check for past solutions)
+        related_problems = await memory_agent.find_related_problems(state["query"])
+        if related_problems:
+             print(f"--- Found {len(related_problems)} related solutions in Memory ---")
+             state["related_knowledge"] = related_problems
+
         # 1. Fetch Signals
         signals = await supabase_fetch_signals(state["session_id"])
         state["signals"] = signals
@@ -204,7 +220,6 @@ class Agent:
         state["analysis"] = analysis
         
         # 2b. SAVE Memory (Persist Vibe)
-        # We fire and forget this logic for speed, or await it
         await supabase_save_profile(state["session_id"], state.get("user_id"), analysis)
         
         # 3. Retrieve Context (Layer 3)
@@ -212,7 +227,6 @@ class Agent:
         print(f"--- Retrieving Content for: {search_q} ---")
         
         # Parallel Retrieval Strategy
-        # If UI directive implies visual ("immersion"), we fetch images too
         tasks = [supabase_retrieve_context(search_q, analysis.get('lifestyleVibe'))]
         
         is_visual_intent = analysis.get("ui_directive") in ["immersion", "visual"] or \
@@ -232,6 +246,15 @@ class Agent:
         state["recommendation"]["constraints"] = analysis.get("constraints")
         state["recommendation"]["lifestyleVibe"] = analysis.get("lifestyleVibe")
         
+        # 5. R&D Scribe & Scientist (Post-Build Hooks)
+        if state.get("task_complete"):
+             # Scribe logs the milestone
+             await scribe_agent.track_milestone(state["query"], state)
+             
+             # Scientist validates if tests were provided
+             if state.get("test_results"):
+                  await scientist_agent.run_empirical_suite(state["query"], state["test_results"])
+
         return state
 
     async def analyze_user(self, query: str, signals: List[dict]):
