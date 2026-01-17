@@ -27,25 +27,65 @@ class ResearchAgent:
             self.tavily = None
             print("Warning: Tavily API Key missing. ResearchAgent will rely on internal logic.")
 
+    async def analyze_query_needs(self, query: str) -> str:
+        """
+        Analyzes if a query requires live web data or if internal knowledge is sufficient.
+        Returns: 'LIVE_SEARCH_REQUIRED' or 'INTERNAL_KNOWLEDGE_SUFFICIENT'
+        """
+        prompt = f"""
+        ACT AS: Research Cost Guard.
+        QUERY: "{query}"
+
+        DECISION LOGIC:
+        - Does it ask for current events, prices, openings, or post-2025 info? -> LIVE_SEARCH_REQUIRED
+        - Is it about specific local businesses that might close? -> LIVE_SEARCH_REQUIRED
+        - Is it a general travel question, history, or culture? -> INTERNAL_KNOWLEDGE_SUFFICIENT
+        - Is it about broad coding practices (unless very new)? -> INTERNAL_KNOWLEDGE_SUFFICIENT
+
+        OUTPUT ONE STRING ONLY:
+        LIVE_SEARCH_REQUIRED
+        or
+        INTERNAL_KNOWLEDGE_SUFFICIENT
+        """
+        try:
+            response = await asyncio.to_thread(self.model.generate_content, prompt)
+            decision = response.text.strip()
+            # Safety fallback if model output is messy
+            if "LIVE" in decision: return "LIVE_SEARCH_REQUIRED"
+            return "INTERNAL_KNOWLEDGE_SUFFICIENT"
+        except Exception:
+            # On error, default to internal to save cost/time
+            return "INTERNAL_KNOWLEDGE_SUFFICIENT"
+
     async def scout_best_practices(self, topic: str) -> str:
         """
         Scouts the web for the latest state-of-the-art patterns for a given topic.
-        Returns a concise summary of recommendations.
+        Uses Cost Guard to avoid unnecessary API calls.
         """
+        # 1. Cost Guard Check
+        decision = await self.analyze_query_needs(topic)
+        print(f"💰 Cost Guard Decision for '{topic}': {decision}")
+
         search_query = f"best practices for {topic} 2026 technical implementation guide architecture"
-        
         search_results = ""
-        if self.tavily:
-            # Perform real-time async search
-            response = await self.tavily.search(query=search_query, search_depth="advanced")
-            for result in response['results']:
-                search_results += f"Source: {result['url']}\nContent: {result['content']}\n\n"
+
+        # 2. Execution
+        if self.tavily and decision == "LIVE_SEARCH_REQUIRED":
+            try:
+                # Perform real-time async search
+                response = await self.tavily.search(query=search_query, search_depth="advanced")
+                for result in response['results']:
+                    search_results += f"Source: {result['url']}\nContent: {result['content']}\n\n"
+            except Exception as e:
+                print(f"Tavily Search Failed: {e}")
+                search_results = "Live search failed. Relying on internal knowledge."
         else:
-            search_results = "No live web search available. Relying on pre-trained knowledge."
+            search_results = "Internal Knowledge Mode (Cost Guard Optimized or No Key)."
 
         prompt = f"""
         You are the Research Scout (part of the ARRE Engine). 
         Topic: {topic}
+        Context Mode: {decision}
         
         Search Results/Context:
         {search_results}

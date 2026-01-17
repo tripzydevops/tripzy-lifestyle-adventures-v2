@@ -6,4 +6,7 @@ aiohttp
 google-generativeai
 Pillow
 supabase
+tavily-python
 
+
+watchdog
