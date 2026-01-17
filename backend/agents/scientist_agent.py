@@ -4,6 +4,8 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import google.generativeai as genai
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 class ScientistAgent:
     """
@@ -14,11 +16,8 @@ class ScientistAgent:
         self.gemini_key = os.getenv("VITE_GEMINI_API_KEY")
         self.reports_dir = "docs/reports"
         
-        if not self.gemini_key:
-            raise ValueError("Missing Gemini API Key for ScientistAgent")
-            
-        genai.configure(api_key=self.gemini_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        genai.configure(api_key=self.gemini_key, transport='rest')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
         
         # Ensure the reports directory exists
         if not os.path.exists(self.reports_dir):
@@ -46,7 +45,7 @@ class ScientistAgent:
         Format your response in professional Markdown.
         """
         
-        response = self.model.generate_content(prompt)
+        response = await asyncio.to_thread(self.model.generate_content, prompt)
         report_content = response.text
         
         with open(filepath, "w", encoding="utf-8") as f:
@@ -73,7 +72,7 @@ class ScientistAgent:
         Format your response in professional Markdown.
         """
         
-        response = self.model.generate_content(prompt)
+        response = await asyncio.to_thread(self.model.generate_content, prompt)
         report_content = response.text
         
         with open(filepath, "w", encoding="utf-8") as f:

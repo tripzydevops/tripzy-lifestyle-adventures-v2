@@ -2,7 +2,9 @@ import os
 import asyncio
 from typing import List, Dict, Any, Optional
 import google.generativeai as genai
-from tavily import TavilyClient # Assuming we have Tavily access for real-time web search
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
+from tavily import AsyncTavilyClient # Using async client for non-blocking research
 
 class ResearchAgent:
     """
@@ -11,16 +13,16 @@ class ResearchAgent:
     """
     def __init__(self):
         self.gemini_key = os.getenv("VITE_GEMINI_API_KEY")
-        self.tavily_key = os.getenv("TAVILY_API_KEY") # User to provide if missing, but we design for it
+        self.tavily_key = os.getenv("TAVILY_API_KEY")
         
         if not self.gemini_key:
             raise ValueError("Missing Gemini API Key for ResearchAgent")
             
-        genai.configure(api_key=self.gemini_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        genai.configure(api_key=self.gemini_key, transport='rest')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
         
         if self.tavily_key:
-            self.tavily = TavilyClient(api_key=self.tavily_key)
+            self.tavily = AsyncTavilyClient(api_key=self.tavily_key)
         else:
             self.tavily = None
             print("Warning: Tavily API Key missing. ResearchAgent will rely on internal logic.")
@@ -34,8 +36,8 @@ class ResearchAgent:
         
         search_results = ""
         if self.tavily:
-            # Perform real-time search
-            response = self.tavily.search(query=search_query, search_depth="advanced")
+            # Perform real-time async search
+            response = await self.tavily.search(query=search_query, search_depth="advanced")
             for result in response['results']:
                 search_results += f"Source: {result['url']}\nContent: {result['content']}\n\n"
         else:
@@ -57,7 +59,7 @@ class ResearchAgent:
         Format your response in professional Markdown.
         """
         
-        response = self.model.generate_content(prompt)
+        response = await asyncio.to_thread(self.model.generate_content, prompt)
         return response.text
 
     async def verify_latest_standards(self, proposed_tech: str) -> Dict[str, Any]:
@@ -80,7 +82,7 @@ class ResearchAgent:
         }}
         """
         
-        response = self.model.generate_content(prompt)
+        response = await asyncio.to_thread(self.model.generate_content, prompt)
         import json
         text = response.text
         if "```json" in text:

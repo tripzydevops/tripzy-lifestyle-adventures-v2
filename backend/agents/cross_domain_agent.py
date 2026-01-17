@@ -1,6 +1,7 @@
 
 import os
 import json
+import asyncio
 import google.generativeai as genai
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
@@ -11,7 +12,7 @@ from backend.utils.usage_monitor import monitor
 
 # --- Configuration ---
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_KEY)
+genai.configure(api_key=GEMINI_KEY, transport='rest')
 model = genai.GenerativeModel('gemini-2.0-flash')
 
 # --- Structured Data Models (Pydantic) ---
@@ -80,7 +81,7 @@ class CrossDomainTransferAgent:
         """
 
         try:
-            response = await self.model.generate_content_async(prompt)
+            response = await asyncio.to_thread(self.model.generate_content, prompt)
             text = response.text
             
             # Extract JSON from markdown if needed

@@ -4,6 +4,8 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from supabase import create_client, Client
 import google.generativeai as genai
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 class MemoryAgent:
     """
@@ -19,13 +21,15 @@ class MemoryAgent:
             raise ValueError("Missing environment variables for MemoryAgent")
             
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
-        genai.configure(api_key=self.gemini_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        genai.configure(api_key=self.gemini_key, transport='rest')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
         self.embed_model = "models/text-embedding-004"
 
     async def get_embedding(self, text: str) -> List[float]:
         """Generates embedding for the given text using Gemini."""
-        result = genai.embed_content(
+        # Use asyncio.to_thread for stable non-blocking execution
+        result = await asyncio.to_thread(
+            genai.embed_content,
             model=self.embed_model,
             content=text,
             task_type="retrieval_document"
@@ -56,7 +60,7 @@ class MemoryAgent:
             "tech_stack": ["...", "..."]
         }}
         """
-        response = self.model.generate_content(prompt)
+        response = await asyncio.to_thread(self.model.generate_content, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()

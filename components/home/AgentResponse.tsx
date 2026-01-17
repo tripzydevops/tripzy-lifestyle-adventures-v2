@@ -1,11 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import {
-  Sparkles,
-  Image as ImageIcon,
-  MapPin,
-  Brain,
-  Loader2,
-} from "lucide-react";
+import { Sparkles, Image as ImageIcon } from "lucide-react";
+import AgentChecklist, { AgentStep } from "./AgentChecklist";
 
 interface AgentResponseProps {
   streamState: {
@@ -15,7 +10,9 @@ interface AgentResponseProps {
     text: string;
     posts: any[];
     isDone: boolean;
+    isDone: boolean;
     consensus?: any;
+    steps?: AgentStep[];
   };
 }
 
@@ -34,42 +31,12 @@ const AgentResponse: React.FC<AgentResponseProps> = ({ streamState }) => {
   return (
     <div className="w-full max-w-4xl mx-auto my-8 space-y-6">
       {/* 1. Status Bar / Brain Activity */}
-      <div className="flex items-center gap-3 bg-navy-800/50 p-4 rounded-xl border border-white/10 animate-fade-in">
-        {streamState.isDone ? (
-          <div className="bg-green-500/20 p-2 rounded-full">
-            <Sparkles className="w-5 h-5 text-green-400" />
-          </div>
-        ) : (
-          <div className="bg-gold/20 p-2 rounded-full animate-pulse">
-            <Brain className="w-5 h-5 text-gold" />
-          </div>
-        )}
-        <div className="flex-1">
-          <p className="text-white font-medium text-sm">
-            {streamState.isDone
-              ? "Recommendation Ready"
-              : streamState.status || "Agent Active"}
-          </p>
-          {streamState.analysis?.lifestyleVibe && (
-            <div className="flex gap-2 mt-1">
-              <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-white/70">
-                Vibe: {streamState.analysis.lifestyleVibe}
-              </span>
-              {streamState.analysis.constraints?.map((c: string) => (
-                <span
-                  key={c}
-                  className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-200"
-                >
-                  {c}
-                </span>
-              ))}
-            </div>
-          )}
+      {/* 1. Neural Council Activity (Checklist) */}
+      {streamState.steps && streamState.steps.length > 0 && (
+        <div className="animate-fade-in">
+          <AgentChecklist steps={streamState.steps} />
         </div>
-        {!streamState.isDone && (
-          <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
-        )}
-      </div>
+      )}
 
       {/* 2. Visual Gallery (If Found) */}
       {streamState.visuals.length > 0 && (

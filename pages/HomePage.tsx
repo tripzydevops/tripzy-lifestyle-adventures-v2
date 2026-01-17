@@ -8,6 +8,18 @@ import { postService } from "../services/postService";
 import SEO from "../components/common/SEO";
 import Pagination from "../components/common/Pagination";
 import { Play, ArrowRight, Sparkles, MapPin, ExternalLink } from "lucide-react";
+import {
+  Play,
+  ArrowRight,
+  Sparkles,
+  MapPin,
+  ExternalLink,
+  Globe,
+  Brain,
+  User,
+  Scale,
+  PenTool,
+} from "lucide-react";
 import { useLanguage } from "../localization/LanguageContext";
 import { useTripzy } from "../hooks/useTripzy";
 
@@ -19,6 +31,7 @@ const TRIPZY_APP_URL =
 
 import { youtubeService, YoutubeVideo } from "../services/youtubeService";
 import AgentResponse from "../components/home/AgentResponse";
+import { AgentStep } from "../components/home/AgentChecklist";
 
 const HomePage = () => {
   const { t } = useLanguage();
@@ -41,6 +54,7 @@ const HomePage = () => {
     posts: any[];
     isDone: boolean;
     consensus: any;
+    steps: AgentStep[];
   }>({
     status: "",
     analysis: null,
@@ -49,6 +63,38 @@ const HomePage = () => {
     posts: [],
     isDone: false,
     consensus: null,
+    steps: [
+      {
+        id: "scout",
+        label: "Scouting Global Trends",
+        icon: <Globe className="w-4 h-4" />,
+        status: "waiting",
+      },
+      {
+        id: "memory",
+        label: "Consulting Memory Bank",
+        icon: <Brain className="w-4 h-4" />,
+        status: "waiting",
+      },
+      {
+        id: "profiler",
+        label: "Analyzing Intent & Vibe",
+        icon: <User className="w-4 h-4" />,
+        status: "waiting",
+      },
+      {
+        id: "judge",
+        label: "Validating Authenticity",
+        icon: <Scale className="w-4 h-4" />,
+        status: "waiting",
+      },
+      {
+        id: "writer",
+        label: "Crafting Recommendation",
+        icon: <PenTool className="w-4 h-4" />,
+        status: "waiting",
+      },
+    ],
   });
 
   const isFirstRender = useRef(true);
@@ -67,7 +113,40 @@ const HomePage = () => {
       text: "",
       posts: [],
       isDone: false,
+      isDone: false,
       consensus: null,
+      steps: [
+        {
+          id: "scout",
+          label: "Scouting Global Trends",
+          icon: <Globe className="w-4 h-4" />,
+          status: "waiting",
+        },
+        {
+          id: "memory",
+          label: "Consulting Memory Bank",
+          icon: <Brain className="w-4 h-4" />,
+          status: "waiting",
+        },
+        {
+          id: "profiler",
+          label: "Analyzing Intent & Vibe",
+          icon: <User className="w-4 h-4" />,
+          status: "waiting",
+        },
+        {
+          id: "judge",
+          label: "Validating Authenticity",
+          icon: <Scale className="w-4 h-4" />,
+          status: "waiting",
+        },
+        {
+          id: "writer",
+          label: "Crafting Recommendation",
+          icon: <PenTool className="w-4 h-4" />,
+          status: "waiting",
+        },
+      ],
     });
 
     try {
@@ -87,16 +166,39 @@ const HomePage = () => {
               case "status":
                 newState.status = event.data;
                 break;
+              case "agent_start":
+                newState.steps = newState.steps.map((s) =>
+                  s.id === event.agent ? { ...s, status: "active" } : s,
+                );
+                break;
+              case "agent_complete":
+                newState.steps = newState.steps.map((s) =>
+                  s.id === event.agent ? { ...s, status: "done" } : s,
+                );
+                break;
               case "analysis":
                 newState.analysis = event.data;
+                newState.steps = newState.steps.map((s) =>
+                  s.id === "profiler" ? { ...s, status: "done" } : s,
+                );
+                // Also start the next logical step if needed? No, backend sends events.
                 break;
               case "visuals":
                 newState.visuals = event.data;
                 break;
               case "consensus":
                 newState.consensus = event.data;
+                newState.steps = newState.steps.map((s) =>
+                  s.id === "judge" ? { ...s, status: "done" } : s,
+                );
                 break;
               case "token":
+                if (newState.text === "") {
+                  // First token, writer is active
+                  newState.steps = newState.steps.map((s) =>
+                    s.id === "writer" ? { ...s, status: "active" } : s,
+                  );
+                }
                 newState.text += event.data;
                 break;
               case "posts":
@@ -108,6 +210,9 @@ const HomePage = () => {
               case "done":
                 newState.isDone = true;
                 newState.status = "Complete";
+                newState.steps = newState.steps.map((s) =>
+                  s.id === "writer" ? { ...s, status: "done" } : s,
+                );
                 setIsSearching(false);
                 break;
               case "error":

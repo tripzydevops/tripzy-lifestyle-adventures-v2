@@ -20,6 +20,10 @@ from backend.agents.memory_agent import memory_agent
 from backend.agents.research_agent import research_agent
 from backend.agents.scribe_agent import scribe_agent
 from backend.agents.scientist_agent import scientist_agent
+from backend.agents.profiler_agent import profiler_agent
+from backend.agents.media_guardian import media_guardian
+from backend.agents.seo_scout import seo_scout
+from backend.agents.ux_architect import ux_architect
 
 # --- Configuration ---
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
@@ -30,7 +34,7 @@ if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
     print("Warning: Missing environment variables")
 
 # Initialize Gemini
-genai.configure(api_key=GEMINI_KEY)
+genai.configure(api_key=GEMINI_KEY, transport='rest')
 model = genai.GenerativeModel('gemini-2.0-flash')
 
 # --- Lightweight Supabase Client (No Compilation Needed) ---
@@ -122,7 +126,7 @@ async def supabase_retrieve_context(query_text: str, vibe_filter: str):
     # 1. Embed query using Gemini
     embed_model = genai.GenerativeModel('models/text-embedding-004')
     try:
-        embedding_res = genai.embed_content(
+        embedding_res = await asyncio.to_thread(genai.embed_content,
             model="models/text-embedding-004",
             content=query_text,
             task_type="retrieval_query"
@@ -196,16 +200,17 @@ async def supabase_retrieve_context(query_text: str, vibe_filter: str):
 class Agent:
     async def ainvoke(self, state: Dict[str, Any]):
         """
+        Consolidated non-streaming execution of the agent pipeline.
         Manually runs the Analyze -> Retrieve -> Recommend pipeline.
-        With User Memory and Visual Search.
+        With User Memory, Proactive Research, Visual Search, and Consensus Judge.
         """
-        # 0. R&D Scout (Check latest best practices BEFORE build if it's a new architectural topic)
-        if state.get("is_architectural_new"):
-            scout_report = await research_agent.scout_best_practices(state["query"])
-            print(f"--- R&D Scout Report ---\n{scout_report}")
-            state["scout_report"] = scout_report
+        # 0. R&D Scout (Proactive Autonomy: Scout best practices at the start of every request)
+        print(f"--- R&D Scout initiating proactive research for: {state['query']} ---")
+        scout_report = await research_agent.scout_best_practices(state["query"])
+        state["scout_report"] = scout_report
 
-        # 0b. R&D Memory (Check for past solutions)
+        # 0b. R&D Memory (Check for past solutions proactively)
+        print("--- Consulting Memory for related knowledge ---")
         related_problems = await memory_agent.find_related_problems(state["query"])
         if related_problems:
              print(f"--- Found {len(related_problems)} related solutions in Memory ---")
@@ -216,7 +221,7 @@ class Agent:
         state["signals"] = signals
         
         # 2. Analyze User
-        analysis = await self.analyze_user(state["query"], signals)
+        analysis = await self.analyze_user(state["query"], signals, state.get("user_id", "anonymous"))
         state["analysis"] = analysis
         
         # 2b. SAVE Memory (Persist Vibe)
@@ -234,11 +239,18 @@ class Agent:
                            
         if is_visual_intent:
              print("--- Visual Intent Detected: Fetching Images ---")
-             tasks.append(supabase_retrieve_visuals(search_q))
+             tasks.append(supabase_retrieve_visuals(search_q, analysis.get('lifestyleVibe')))
         
         results = await asyncio.gather(*tasks)
         retrieved_items = results[0]
         visual_items = results[1] if len(results) > 1 else []
+        
+        state["retrieved_items"] = retrieved_items
+        state["visual_items"] = visual_items
+
+        # --- R&D Phase 3: Consensus Judge ---
+        consensus = await consensus_agent.validate_alignment(analysis, retrieved_items, visual_items)
+        analysis["consensus"] = consensus.model_dump()
         
         # 4. Generate Recommendation
         rec = await self.generate_recommendation(state["query"], analysis, retrieved_items, visual_items)
@@ -247,17 +259,26 @@ class Agent:
         state["recommendation"]["lifestyleVibe"] = analysis.get("lifestyleVibe")
         
         # 5. R&D Scribe & Scientist (Post-Build Hooks)
-        if state.get("task_complete"):
-             # Scribe logs the milestone
-             await scribe_agent.track_milestone(state["query"], state)
-             
-             # Scientist validates if tests were provided
-             if state.get("test_results"):
-                  await scientist_agent.run_empirical_suite(state["query"], state["test_results"])
+        # We always trigger Scribe and SEO Scout for R&D visibility now
+        print("--- ScribeAgent: Logging Milestone ---")
+        await scribe_agent.track_milestone(state["query"], state)
+        
+        # Scientist validates if tests were provided
+        if state.get("test_results"):
+             print("--- ScientistAgent: Running Empirical Suite ---")
+             await scientist_agent.run_empirical_suite(state["query"], state["test_results"])
+        
+        # SEO Scout audits the final recommendation for AI Visibility
+        print("--- SEO Scout: Auditing Content for AIO ---")
+        aio_report = await seo_scout.audit_content_for_aio(str(state["recommendation"]))
+        state["aio_report"] = aio_report
+        
+        # Media Guardian triggers a self-healing cycle (Background)
+        asyncio.create_task(media_guardian.heal_media_library())
 
         return state
 
-    async def analyze_user(self, query: str, signals: List[dict]):
+    async def analyze_user(self, query: str, signals: List[dict], user_id: str = "anonymous"):
         """
         R&D Entry point for Intent Analysis.
         Now leverages the Cross-Domain Transfer Agent for solving Cold Start problems.
@@ -266,6 +287,15 @@ class Agent:
         
         # Call the specialized Cross-Domain Agent
         persona = await cross_domain_agent.infer_persona(query, signals)
+        
+        # --- R&D Phase 2: Profiler & UX Architect ---
+        # Analyze interaction friction before finalizing persona
+        if signals:
+            ux_report = await ux_architect.analyze_interaction_signals(signals)
+            print(f"--- UX Architect Insights ---\n{ux_report}")
+            
+        # Update the User Soul (Universal Bridge)
+        await profiler_agent.update_user_soul(user_id, signals)
         
         # Archival/R&D Logging: Map persona back to analysis structure
         analysis = persona.model_dump()
@@ -332,7 +362,7 @@ class Agent:
         """
         
         try:
-            response = await model.generate_content_async(prompt)
+            response = await asyncio.to_thread(model.generate_content, prompt)
             text = response.text
             if "```json" in text:
                 text = text.split("```json")[1].split("```")[0].strip()
@@ -348,48 +378,6 @@ class Agent:
                 "confidence": 0.5
             }
 
-
-    async def ainvoke(self, state: Dict[str, Any]):
-        """
-        Non-streaming execution of the agent pipeline.
-        Used for APIs and tests.
-        """
-        signals = await supabase_fetch_signals(state["session_id"])
-        analysis = await self.analyze_user(state["query"], signals)
-        
-        # Save Memory
-        await supabase_save_profile(state["session_id"], state.get("user_id"), analysis)
-        
-        search_q = analysis.get('intent') or state['query']
-        
-        tasks = [supabase_retrieve_context(search_q, analysis.get('lifestyleVibe'))]
-        is_visual_intent = analysis.get("ui_directive") in ["immersion", "visual"] or \
-                           any(k in search_q.lower() for k in ["look like", "photo", "image", "view", "scene"])
-        
-        if is_visual_intent:
-            tasks.append(supabase_retrieve_visuals(search_q, analysis.get('lifestyleVibe')))
-        
-        results = await asyncio.gather(*tasks)
-        retrieved_items = results[0]
-        visual_items = results[1] if len(results) > 1 else []
-
-        # --- R&D Phase 3: Consensus Judge ---
-        consensus = await consensus_agent.validate_alignment(analysis, retrieved_items, visual_items)
-        analysis["consensus"] = consensus.model_dump()
-        
-        # Generate the non-streaming recommendation
-        recommendation = await self.generate_recommendation(state["query"], analysis, retrieved_items, visual_items)
-        
-        # Add the analysis vibe back for frontend consistency
-        recommendation["lifestyleVibe"] = analysis.get("lifestyleVibe")
-        
-        return {
-            "analysis": analysis,
-            "retrieved_items": retrieved_items,
-            "visual_items": visual_items,
-            "recommendation": recommendation
-        }
-
     async def astream(self, state: Dict[str, Any]):
         """
         Streamed version of the pipeline. Yields events as they happen.
@@ -401,6 +389,19 @@ class Agent:
         - done: Final completion
         """
         try:
+            # 0. R&D Scout (Proactive Autonomy)
+            yield json.dumps({"type": "agent_start", "agent": "scout", "data": "R&D Scout initiating research..."}) + "\n"
+            scout_report = await research_agent.scout_best_practices(state["query"])
+            state["scout_report"] = scout_report
+            yield json.dumps({"type": "agent_complete", "agent": "scout", "data": "Research Complete"}) + "\n"
+
+            # 0b. R&D Memory (Check for past solutions)
+            yield json.dumps({"type": "agent_start", "agent": "memory", "data": "Consulting Memory..."}) + "\n"
+            related_problems = await memory_agent.find_related_problems(state["query"])
+            if related_problems:
+                 state["related_knowledge"] = related_problems
+            yield json.dumps({"type": "agent_complete", "agent": "memory", "data": f"Found {len(related_problems) if related_problems else 0} insights"}) + "\n"
+
             # 1. Start Support
             yield json.dumps({"type": "status", "data": "Reading Signals..."}) + "\n"
             signals = await supabase_fetch_signals(state["session_id"])

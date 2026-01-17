@@ -1,6 +1,7 @@
 
 import os
 import json
+import asyncio
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 import google.generativeai as genai
@@ -11,7 +12,7 @@ from backend.utils.usage_monitor import monitor
 
 # --- Configuration ---
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_KEY)
+genai.configure(api_key=GEMINI_KEY, transport='rest')
 model = genai.GenerativeModel('gemini-2.0-flash')
 
 class ConsensusResult(BaseModel):
@@ -78,7 +79,7 @@ class ConsensusAgent:
         """
 
         try:
-            response = await model.generate_content_async(prompt)
+            response = await asyncio.to_thread(model.generate_content, prompt)
             data = response.text
             if "```json" in data:
                 data = data.split("```json")[1].split("```")[0].strip()

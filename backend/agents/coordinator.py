@@ -13,7 +13,7 @@ class TravelReasoningAgent:
             print("Warning: Missing environment variables for TravelReasoningAgent")
             
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
-        genai.configure(api_key=self.gemini_key)
+        genai.configure(api_key=self.gemini_key, transport='rest')
         self.model = genai.GenerativeModel('gemini-pro')
 
     async def get_user_signals(self, session_id: str) -> List[Dict[str, Any]]:
@@ -58,7 +58,7 @@ class TravelReasoningAgent:
         """
         
         try:
-            response = self.model.generate_content(prompt)
+            response = await asyncio.to_thread(self.model.generate_content, prompt)
             # In a real app, we'd parse the JSON more robustly
             import json
             # Extract JSON from response text (Gemini sometimes adds markdown blocks)

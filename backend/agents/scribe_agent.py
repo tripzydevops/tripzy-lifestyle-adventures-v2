@@ -4,6 +4,8 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import google.generativeai as genai
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 class ScribeAgent:
     """
@@ -14,11 +16,8 @@ class ScribeAgent:
         self.gemini_key = os.getenv("VITE_GEMINI_API_KEY")
         self.docs_dir = "docs/rd_archive"
         
-        if not self.gemini_key:
-            raise ValueError("Missing Gemini API Key for ScribeAgent")
-            
-        genai.configure(api_key=self.gemini_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        genai.configure(api_key=self.gemini_key, transport='rest')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
         
         # Ensure the docs directory exists
         if not os.path.exists(self.docs_dir):
@@ -46,7 +45,7 @@ class ScribeAgent:
         Format your response in professional Markdown.
         """
         
-        response = self.model.generate_content(prompt)
+        response = await asyncio.to_thread(self.model.generate_content, prompt)
         log_content = response.text
         
         with open(filepath, "w", encoding="utf-8") as f:
@@ -73,8 +72,7 @@ class ScribeAgent:
         }}
         """
         
-        response = self.model.generate_content(prompt)
-        import json
+        response = await asyncio.to_thread(self.model.generate_content, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
