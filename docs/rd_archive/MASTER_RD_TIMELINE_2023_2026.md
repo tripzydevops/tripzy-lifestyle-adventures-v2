@@ -73,6 +73,9 @@ _The Intelligence Revolution: High-Rigor Reasoning and 2026 Intelligence Standar
 
 - [**Process:** Specialized Intelligence R&D (Consensus/UX/SEO)](file:///C:/Users/elif/.gemini/antigravity/brain/d9101b13-bff4-4740-85b3-5c5be216d3a1/implementation_plan.md)
 - [**Feature:** Psychographic Behavioral Architecture](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/backend/agents/cross_domain_agent.py)
+- [**Validation:** Persona Definition & R&D 2.0 Audit](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/rd*archive/DESIGN_LOG_PERSONA_DEFINITION*&\_VALIDATION_20260119.md)
+- [**Validation:** Full System Integration & Sovereignty](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/rd_archive/DESIGN_LOG_FULL_SYSTEM_INTEGRATION_VALIDATION_20260119.md)
+- [**Validation:** Autonomous Persona Refinement Logic](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/rd*archive/DESIGN_LOG_PERSONA_REFINEMENT*&\_TRAVEL_ITINERARY_CONSTRAINTS_20260119.md)
 - [**Test:** R&D 2.0 Scientific Validation Report](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/reports/R&D_2.0_INTELLIGENCE_UPGRADE_VALIDATION_REPORT_20260119.md)
 
 ---
