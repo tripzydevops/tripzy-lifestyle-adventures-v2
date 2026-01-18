@@ -29,6 +29,10 @@ graph TD
             UX["UxArchitect"]
             PROFILER["ProfilerAgent"]
         end
+
+        subgraph "Meta-Agents (Development Workflow)"
+            AUDITOR["CodeReviewAgent<br/><i>The Auditor</i>"]
+        end
     end
 
     subgraph "Layer 3: Data Infrastructure"

@@ -1,109 +1,179 @@
+"""
+Visual Intelligence Backfill Pipeline
+Production-grade batch processor for adding AI descriptions and embeddings to media items.
+"""
+
+import sys
+# FORCE UTF-8 ENCODING for Windows compatibility
+sys.stdout.reconfigure(encoding='utf-8')
 
 import asyncio
 import os
-import io
 import aiohttp
+import google.generativeai as genai
 from dotenv import load_dotenv, find_dotenv
 from utils.visual_memory import VisualMemory
+from utils.async_utils import retry_async, retry_sync_in_thread
 
-# Load Env
+# --- Configuration ---
 load_dotenv(find_dotenv())
 
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 
+EMBEDDING_MODEL = "models/text-embedding-004"
+BATCH_SIZE = 5  # Conservative for vision API
+COOLDOWN_SECONDS = 1.5
+
 if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
     print("❌ Missing API Keys")
     exit(1)
 
+genai.configure(api_key=GEMINI_KEY)
 visual_memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY)
 
-async def backfill():
-    print("🧠 Starting Visual Intelligence Backfill...")
+
+# --- Helpers ---
+async def fetch_pending_items(session: aiohttp.ClientSession, limit: int = BATCH_SIZE) -> list:
+    """Fetch media items that need visual intelligence."""
+    url = f"{SUPABASE_URL}/rest/v1/media_library?select=id,public_url,title,semantic_tags&embedding=is.null&limit={limit}"
+    async with session.get(url, headers=visual_memory.headers) as resp:
+        if resp.status != 200:
+            raise Exception(f"Fetch failed: {await resp.text()}")
+        return await resp.json()
+
+
+async def update_item_intelligence(
+    session: aiohttp.ClientSession,
+    item_id: str,
+    ai_description: str,
+    embedding: list
+) -> bool:
+    """Update a single item with AI data."""
+    url = f"{SUPABASE_URL}/rest/v1/media_library?id=eq.{item_id}"
+    payload = {"ai_description": ai_description, "embedding": embedding}
+    async with session.patch(url, headers=visual_memory.headers, json=payload) as resp:
+        if resp.status not in (200, 204):
+            print(f"❌ Failed to save {item_id}: {await resp.text()}")
+            return False
+        return True
+
+
+def generate_vision_description_sync(webp_data: bytes) -> str:
+    """Synchronous vision call - runs in thread pool."""
+    response = visual_memory.model_vision.generate_content([
+        "Describe this image in detail for a travel blog visual search engine. Identify the location/style/vibe.",
+        {"mime_type": "image/webp", "data": webp_data}
+    ])
+    return response.text
+
+
+def generate_embedding_sync(text: str) -> list:
+    """Synchronous embedding call - runs in thread pool."""
+    result = genai.embed_content(
+        model=EMBEDDING_MODEL,
+        content=text,
+        task_type="retrieval_document"
+    )
+    return result['embedding']
+
+
+# --- Core Processing ---
+async def process_single_item(session: aiohttp.ClientSession, item: dict) -> bool:
+    """Process a single media item with retry logic."""
+    item_id = item['id']
+    title = item.get('title', 'Unknown')
     
-    # 1. Fetch items needing intelligence
-    url = f"{SUPABASE_URL}/rest/v1/media_library?select=id,public_url,title,semantic_tags&embedding=is.null"
-    headers = visual_memory.headers
+    print(f"\n[{title}] Processing...")
+    
+    try:
+        # 1. Download image
+        image_data = await visual_memory.processor.download_image(item['public_url'])
+        if not image_data:
+            print(f"   ❌ Download failed")
+            return False
+        
+        # 2. Optimize image
+        webp_data, _, _ = visual_memory.processor.optimize_image(image_data)
+        
+        # 3. Generate vision description (with retry, in thread)
+        print(f"   👀 Analyzing image...")
+        ai_desc = await retry_sync_in_thread(
+            generate_vision_description_sync,
+            webp_data,
+            max_retries=3
+        )
+        print(f"      → {ai_desc[:50]}...")
+        
+        # 4. Generate embedding (with retry, in thread)
+        print(f"   🧠 Vectorizing...")
+        tags = item.get('semantic_tags') or []
+        text_to_embed = f"{title} {ai_desc} {' '.join(tags)}"
+        embedding = await retry_sync_in_thread(
+            generate_embedding_sync,
+            text_to_embed,
+            max_retries=3
+        )
+        
+        # 5. Save to database
+        success = await retry_async(
+            update_item_intelligence,
+            session, item_id, ai_desc, embedding,
+            max_retries=3
+        )
+        
+        if success:
+            print(f"   ✅ Saved.")
+        return success
+        
+    except Exception as e:
+        print(f"   ⚠️ Error processing {item_id}: {e}")
+        return False
+
+
+async def process_next_batch(session: aiohttp.ClientSession) -> int:
+    """Process one batch. Returns number of successfully processed items."""
+    print("🔄 Fetching next batch...")
+    
+    try:
+        items = await retry_async(fetch_pending_items, session, BATCH_SIZE)
+    except Exception as e:
+        print(f"❌ Failed to fetch: {e}")
+        return 0
+    
+    if not items:
+        return 0
+    
+    print(f"📚 Found {len(items)} items to process.")
+    
+    # Process items concurrently within batch
+    tasks = [process_single_item(session, item) for item in items]
+    results = await asyncio.gather(*tasks)
+    
+    return sum(results)
+
+
+async def backfill():
+    """Main loop: Process all pending items in batches."""
+    print(f"🧠 Starting Visual Intelligence Backfill (Batch Size: {BATCH_SIZE})...")
+    total_processed = 0
     
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as resp:
-            if resp.status != 200:
-                print(f"❌ Failed to fetch items: {await resp.text()}")
-                return
-            items = await resp.json()
-
-    print(f"📚 Found {len(items)} images to analyze.")
-
-    for item in items:
-        print(f"\n[{item['title']}] Analyzing...")
-        
-        try:
-            # Download Image
-            image_data = await visual_memory.processor.download_image(item['public_url'])
-            if not image_data:
-                print("   ❌ Download failed")
-                continue
-                
-            # Optimize (to ensure format matches what vision expects, though we could send raw)
-            # Actually, let's just use the raw bytes if they are valid, or optimize to be safe/consistent
-            webp_data, _, _ = visual_memory.processor.optimize_image(image_data)
+        while True:
+            count = await process_next_batch(session)
             
-            # Generate AI Data
-            ai_desc = None
-            embedding = None
+            if count == 0:
+                print("✅ No more pending items. Job complete.")
+                break
             
-            # Vision
-            print("   👀 Looking at image...")
-            response = visual_memory.model_vision.generate_content([
-                "Describe this image in detail for a travel blog visual search engine. Identify the location/style/vibe.",
-                {"mime_type": "image/webp", "data": webp_data}
-            ])
-            ai_desc = response.text
-            print(f"      -> {ai_desc[:50]}...")
-
-            # Embedding
-            print("   🧠 Thinking (Vectorizing)...")
-            tags = item.get('semantic_tags') or []
-            text_to_embed = f"{item['title']} {ai_desc} {' '.join(tags)}"
+            total_processed += count
             
-            embed_result = visual_memory.genai.embed_content(
-                model=visual_memory.model_embedding,
-                content=text_to_embed,
-                task_type="retrieval_document"
-            )
-            embedding = embed_result['embedding']
+            print(f"⏳ Cooldown {COOLDOWN_SECONDS}s...")
+            await asyncio.sleep(COOLDOWN_SECONDS)
+    
+    print(f"\n🎉 ALL DONE! Total items processed: {total_processed}")
 
-            # Update DB
-            update_payload = {
-                "ai_description": ai_desc,
-                "embedding": embedding
-            }
-            
-            patch_url = f"{SUPABASE_URL}/rest/v1/media_library?id=eq.{item['id']}"
-            async with aiohttp.ClientSession() as session:
-                async with session.patch(patch_url, headers=headers, json=update_payload) as resp:
-                    if resp.status in [200, 204]:
-                        print("   ✅ Intelligence Saved.")
-                    else:
-                        print(f"   ❌ Save failed: {resp.status}")
-
-
-        except Exception as e:
-            print(f"   ⚠️ Error: {e}")
-            
-        await asyncio.sleep(1) # Rate limit kindness
 
 if __name__ == "__main__":
-    import google.generativeai as genai 
-    # Quick hack because visual_memory instance has genai configured but the class doesn't expose the module directly usually
-    # But wait, visual_memory.py imports genai at top level? No, inside class init? 
-    # Let's just fix the accessing of genai in the loop. 
-    # visual_memory.model_vision is available.
-    # visual_memory.model_embedding is a string.
-    # We need to call genai.embed_content. 
-    # So we need to import genai here too.
-    genai.configure(api_key=GEMINI_KEY) # Re-configure to be safe or just use the module
-    visual_memory.genai = genai # Attach it for the loop logic above if I kept it
-    
     asyncio.run(backfill())
