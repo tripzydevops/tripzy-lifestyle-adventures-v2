@@ -2,7 +2,8 @@
 import os
 import json
 import asyncio
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv, find_dotenv
@@ -11,10 +12,7 @@ load_dotenv(find_dotenv())
 from backend.utils.usage_monitor import monitor
 from backend.utils.async_utils import retry_sync_in_thread
 
-# --- Configuration ---
-GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_KEY, transport='rest')
-model = genai.GenerativeModel('gemini-2.0-flash')
+# Model configured via centralized genai_client (gemini-3.0-flash)
 
 # --- Structured Data Models (Pydantic) ---
 
@@ -34,7 +32,7 @@ class CrossDomainTransferAgent:
     """
     
     def __init__(self):
-        self.model = model
+        pass  # Uses centralized genai_client
 
     async def infer_persona(self, query: str, signals: List[dict] = []) -> TravelPersona:
         """
@@ -82,7 +80,7 @@ class CrossDomainTransferAgent:
         """
 
         try:
-            response = await retry_sync_in_thread(self.model.generate_content, prompt)
+            response = await retry_sync_in_thread(generate_content_sync, prompt)
             text = response.text
             
             # Extract JSON from markdown if needed
@@ -95,7 +93,7 @@ class CrossDomainTransferAgent:
             
             # --- Phase 5: Financial Observability ---
             if hasattr(response, 'usage_metadata'):
-                await monitor.log_usage("CrossDomainAgent", "gemini-2.0-flash", response.usage_metadata, "CDA-Session")
+                await monitor.log_usage("CrossDomainAgent", "gemini-3.0-flash", response.usage_metadata, "CDA-Session")
                 
             return TravelPersona(**data)
             

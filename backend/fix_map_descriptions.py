@@ -2,7 +2,8 @@ import asyncio
 import os
 import aiohttp
 import json
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -11,9 +12,7 @@ SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 
-genai.configure(api_key=GEMINI_KEY)
-# Use a fast model for descriptions
-model = genai.GenerativeModel('gemini-2.0-flash-exp')
+# Uses centralized genai_client (gemini-3.0-flash)
 
 async def generate_description(point_name, map_context):
     prompt = f"""
@@ -31,15 +30,15 @@ async def generate_description(point_name, map_context):
     
     for attempt in range(retries):
         try:
-            response = await model.generate_content_async(prompt)
+            response = await asyncio.to_thread(generate_content_sync, prompt)
             return response.text.strip()
         except Exception as e:
             if "429" in str(e):
-                print(f"      ⚠️ Rate Limit (429). Waiting {delay}s...")
+                print(f"      Warning: Rate Limit (429). Waiting {delay}s...")
                 await asyncio.sleep(delay)
                 delay *= 2 # Exponential backoff
             else:
-                print(f"      ⚠️ Gemini Gen Failed: {e}")
+                print(f"      Warning: Gemini Gen Failed: {e}")
                 return None
     return None
 

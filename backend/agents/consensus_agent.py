@@ -4,17 +4,15 @@ import json
 import asyncio
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from dotenv import load_dotenv
 
 load_dotenv()
 from backend.utils.usage_monitor import monitor
 from backend.utils.async_utils import retry_sync_in_thread
 
-# --- Configuration ---
-GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_KEY, transport='rest')
-model = genai.GenerativeModel('gemini-2.0-flash')
+# Model configured via centralized genai_client (gemini-3.0-flash)
 
 class ConsensusResult(BaseModel):
     consensus_score: float = Field(description="Match strength between persona and results (0.0 to 1.0)")
@@ -80,7 +78,7 @@ class ConsensusAgent:
         """
 
         try:
-            response = await retry_sync_in_thread(model.generate_content, prompt)
+            response = await retry_sync_in_thread(generate_content_sync, prompt)
             data = response.text
             if "```json" in data:
                 data = data.split("```json")[1].split("```")[0].strip()
@@ -91,7 +89,7 @@ class ConsensusAgent:
             
             # --- Phase 5: Financial Observability ---
             if hasattr(response, 'usage_metadata'):
-                await monitor.log_usage("ConsensusAgent", "gemini-2.0-flash", response.usage_metadata, persona.get("session_id"))
+                await monitor.log_usage("ConsensusAgent", "gemini-3.0-flash", response.usage_metadata, persona.get("session_id"))
             
             return ConsensusResult(**parsed)
         except Exception as e:

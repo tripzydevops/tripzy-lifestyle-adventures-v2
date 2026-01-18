@@ -98,13 +98,10 @@ async def backfill():
 
                     # Embedding
                     text_to_embed = f"{clean_caption} {ai_desc} {' '.join(semantic_tags)}"
-                    import google.generativeai as genai
-                    embed_result = genai.embed_content(
-                        model=visual_memory.model_embedding,
-                        content=text_to_embed,
-                        task_type="retrieval_document"
-                    )
-                    embedding = embed_result['embedding']
+                    # SDK Migration: Using centralized genai_client
+                    from backend.utils.genai_client import embed_content_sync
+                    embed_result = embed_content_sync(text_to_embed)
+                    embedding = embed_result.embeddings[0].values
 
                     # Save to media_library
                     lib_payload = {
@@ -156,6 +153,5 @@ async def backfill():
     print("\n✨ Backfill complete!")
 
 if __name__ == "__main__":
-    import google.generativeai as genai
-    genai.configure(api_key=GEMINI_KEY)
+    # Uses centralized genai_client (gemini-3.0-flash)
     asyncio.run(backfill())

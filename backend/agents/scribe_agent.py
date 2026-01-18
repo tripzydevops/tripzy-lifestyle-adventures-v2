@@ -3,7 +3,8 @@ import json
 import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 from backend.utils.async_utils import retry_sync_in_thread
@@ -17,8 +18,7 @@ class ScribeAgent:
         self.gemini_key = os.getenv("VITE_GEMINI_API_KEY")
         self.docs_dir = "docs/rd_archive"
         
-        genai.configure(api_key=self.gemini_key, transport='rest')
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        # Uses centralized genai_client (gemini-3.0-flash)
         
         # Ensure the docs directory exists
         if not os.path.exists(self.docs_dir):
@@ -51,7 +51,7 @@ class ScribeAgent:
         Format your response in professional Markdown.
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         log_content = response.text
         
         def save_file():
@@ -88,7 +88,7 @@ class ScribeAgent:
         }}
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()

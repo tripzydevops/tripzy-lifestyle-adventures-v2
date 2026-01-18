@@ -3,7 +3,8 @@ import json
 import asyncio
 import logging
 from typing import List, Dict, Any, Optional
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from dotenv import load_dotenv, find_dotenv
 from tavily import AsyncTavilyClient
 from backend.utils.async_utils import retry_sync_in_thread, retry_async
@@ -27,10 +28,11 @@ class SEOScout:
         
         # Initialize Gemini
         if self.gemini_key:
-            genai.configure(api_key=self.gemini_key, transport='rest')
-            self.model = genai.GenerativeModel('gemini-2.0-flash')
-            logger.info("[INIT] Gemini model ready.")
+            # Uses centralized genai_client (gemini-3.0-flash)
+            self._gemini_ready = True
+            logger.info("[INIT] Gemini model ready via centralized client.")
         else:
+            self._gemini_ready = False
             logger.warning("[INIT] VITE_GEMINI_API_KEY missing.")
 
         # Initialize Tavily
@@ -44,7 +46,7 @@ class SEOScout:
 
     async def audit_content_for_aio(self, content_text: str) -> Dict[str, Any]:
         """Audits content for AI Visibility with robust error handling and timeouts."""
-        if not hasattr(self, 'model'):
+        if not self._gemini_ready:
              return {"aio_score": 0, "error": "Gemini API key missing"}
 
         logger.info("Starting AIO content audit...")
@@ -75,7 +77,7 @@ class SEOScout:
         try:
             # Use retry_sync_in_thread for Gemini SDK (synchronous blocking call)
             # This ensures a 60s timeout and jittered retries on 5xx errors.
-            response = await retry_sync_in_thread(self.model.generate_content, prompt)
+            response = await retry_sync_in_thread(generate_content_sync, prompt)
             return self._extract_json(response.text)
         except Exception as e:
             logger.error(f"Error during content audit: {str(e)}")
@@ -92,14 +94,14 @@ class SEOScout:
             # Use retry_async for the non-blocking Tavily client
             res = await retry_async(self.tavily.search, query=f"emerging travel trends and keywords for {topic} 2026", search_depth="advanced")
             
-            if not hasattr(self, 'model'):
+            if not self._gemini_ready:
                  return ["Error: Gemini Key missing"]
 
             # Extract keywords using Gemini
             context = "\n".join([r['content'] for r in res['results']])
             prompt = f"Extract the top 5 high-intent, emerging semantic keywords from this context: {context}. Return as a JSON list of strings."
             
-            response = await retry_sync_in_thread(self.model.generate_content, prompt)
+            response = await retry_sync_in_thread(generate_content_sync, prompt)
             return self._extract_json(response.text)
         except Exception as e:
             logger.error(f"Error during keyword scouting: {str(e)}")

@@ -1,7 +1,8 @@
 import os
 import asyncio
 from typing import List, Dict, Any, Optional
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from dotenv import load_dotenv, find_dotenv
 from tavily import AsyncTavilyClient
 from backend.utils.async_utils import retry_sync_in_thread, retry_async
@@ -19,9 +20,8 @@ class ResearchAgent:
         
         if not self.gemini_key:
             raise ValueError("Missing Gemini API Key for ResearchAgent")
-            
-        genai.configure(api_key=self.gemini_key, transport='rest')
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        
+        # Uses centralized genai_client (gemini-3.0-flash)
         
         if self.tavily_key:
             self.tavily = AsyncTavilyClient(api_key=self.tavily_key)
@@ -47,7 +47,7 @@ class ResearchAgent:
         INTERNAL_KNOWLEDGE_SUFFICIENT
         """
         try:
-            response = await retry_sync_in_thread(self.model.generate_content, prompt)
+            response = await retry_sync_in_thread(generate_content_sync, prompt)
             decision = response.text.strip()
             if "LIVE" in decision: return "LIVE_SEARCH_REQUIRED"
             return "INTERNAL_KNOWLEDGE_SUFFICIENT"
@@ -91,7 +91,7 @@ class ResearchAgent:
         Format your response in professional Markdown.
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         return response.text
 
     async def scout_patents(self, features: List[str]) -> str:
@@ -137,7 +137,7 @@ class ResearchAgent:
         """
         
         import json
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()

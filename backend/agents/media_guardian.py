@@ -4,7 +4,8 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from supabase import create_client, Client
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 from backend.utils.async_utils import retry_sync_in_thread
@@ -20,8 +21,7 @@ class MediaGuardian:
         self.gemini_key = os.getenv("VITE_GEMINI_API_KEY")
         
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
-        genai.configure(api_key=self.gemini_key, transport='rest')
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        # Uses centralized genai_client (gemini-3.0-flash)
 
     async def generate_accessible_alt_text(self, image_url: str) -> str:
         """
@@ -44,7 +44,7 @@ class MediaGuardian:
         
         # Note: In a real environment, we'd need to fetch the image bytes or use a Gemini model that supports URL media
         # For this SDK logic, we assume the model handles the analysis.
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         return response.text.strip()
 
     async def audit_image_quality(self, image_url: str) -> Dict[str, Any]:
@@ -66,7 +66,7 @@ class MediaGuardian:
         }}
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()

@@ -3,7 +3,8 @@ import json
 import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
@@ -21,8 +22,7 @@ class ScientistAgent:
         self.gemini_key = os.getenv("VITE_GEMINI_API_KEY")
         self.reports_dir = "docs/reports"
         
-        genai.configure(api_key=self.gemini_key, transport='rest')
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        # Uses centralized genai_client (gemini-3.0-flash)
         
         # Ensure the reports directory exists
         if not os.path.exists(self.reports_dir):
@@ -50,7 +50,7 @@ class ScientistAgent:
         Format your response in professional Markdown.
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         report_content = response.text
         
         with open(filepath, "w", encoding="utf-8") as f:
@@ -107,7 +107,7 @@ class ScientistAgent:
         **Format:** Professional Markdown.
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         report_content = response.text
         
         with open(filepath, "w", encoding="utf-8") as f:
@@ -155,7 +155,7 @@ class ScientistAgent:
         Format as professional Markdown.
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         report_content = response.text
         
         with open(filepath, "w", encoding="utf-8") as f:
@@ -200,7 +200,7 @@ class ScientistAgent:
         Format as professional Markdown.
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         report_content = response.text
         
         with open(filepath, "w", encoding="utf-8") as f:
@@ -230,7 +230,7 @@ class ScientistAgent:
         Format your response in professional Markdown as a "Chief Scientist's Audit".
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         return response.text
 
     async def analyze_travel_metadata(self, post: Dict[str, Any], scout_report: str) -> Dict[str, Any]:
@@ -268,7 +268,7 @@ class ScientistAgent:
         }}
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         text = response.text
         
         # Clean JSON response

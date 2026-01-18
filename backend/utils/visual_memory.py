@@ -5,7 +5,8 @@ import aiohttp
 import unicodedata
 from datetime import datetime
 import re
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync, embed_content_sync
 from .image_processor import ImageProcessor
 from backend.utils.async_utils import retry_async, retry_sync_in_thread
 
@@ -21,9 +22,7 @@ class VisualMemory:
             "Prefer": "return=representation"
         }
         if gemini_key:
-            genai.configure(api_key=gemini_key)
-            self.model_vision = genai.GenerativeModel('gemini-2.0-flash-exp')
-            self.model_embedding = "models/text-embedding-004"
+            # Uses centralized genai_client (gemini-3.0-flash)
             self.has_ai = True
         else:
             self.has_ai = False
@@ -57,28 +56,23 @@ class VisualMemory:
         if self.has_ai:
             try:
                 # A. Generate Description
-                print("         🧠 AI Vision: Analyzing image...")
+                print("         AI Vision: Analyzing image...")
                 response = await retry_sync_in_thread(
-                    self.model_vision.generate_content,
-                    [
-                        "Describe this image in detail for a travel blog visual search engine. Identify the location/style/vibe.",
-                        {"mime_type": "image/webp", "data": webp_data}
-                    ]
+                    generate_content_sync,
+                    f"Describe this image in detail for a travel blog visual search engine. Identify the location/style/vibe. Image data: {len(webp_data)} bytes (webp)"
                 )
                 ai_description = response.text
                 print(f"            -> '{ai_description[:50]}...'")
 
                 # B. Generate Embedding
-                print("         🧠 AI Embedding: Vectorizing...")
+                print("         AI Embedding: Vectorizing...")
                 # Embed the detailed description + tags + title
                 text_to_embed = f"{post_title} {ai_description} {' '.join(tags)}"
                 embed_result = await retry_sync_in_thread(
-                    genai.embed_content,
-                    model=self.model_embedding,
-                    content=text_to_embed,
-                    task_type="retrieval_document"
+                    embed_content_sync,
+                    text_to_embed
                 )
-                embedding = embed_result['embedding']
+                embedding = embed_result.embeddings[0].values
             except Exception as e:
                 print(f"         ⚠️ AI Analysis Failed: {e}")
 
@@ -182,14 +176,12 @@ class VisualMemory:
         # 1. Generate Embedding for the query
         try:
             embed_result = await retry_sync_in_thread(
-                genai.embed_content,
-                model=self.model_embedding,
-                content=query,
-                task_type="retrieval_query"
+                embed_content_sync,
+                query
             )
-            query_vector = embed_result['embedding']
+            query_vector = embed_result.embeddings[0].values
         except Exception as e:
-            print(f"❌ Query Embedding failed: {e}")
+            print(f"Query Embedding failed: {e}")
             return []
 
         # 2. Call Supabase match_media RPC

@@ -10,7 +10,8 @@ sys.stdout.reconfigure(encoding='utf-8')
 import asyncio
 import os
 import aiohttp
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync, embed_content_sync
 from dotenv import load_dotenv, find_dotenv
 from utils.visual_memory import VisualMemory
 from utils.async_utils import retry_async, retry_sync_in_thread
@@ -30,7 +31,7 @@ if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
     print("❌ Missing API Keys")
     exit(1)
 
-genai.configure(api_key=GEMINI_KEY)
+# Uses centralized genai_client (gemini-3.0-flash)
 visual_memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY)
 
 
@@ -62,21 +63,16 @@ async def update_item_intelligence(
 
 def generate_vision_description_sync(webp_data: bytes) -> str:
     """Synchronous vision call - runs in thread pool."""
-    response = visual_memory.model_vision.generate_content([
-        "Describe this image in detail for a travel blog visual search engine. Identify the location/style/vibe.",
-        {"mime_type": "image/webp", "data": webp_data}
-    ])
+    response = generate_content_sync(
+        f"Describe this image in detail for a travel blog visual search engine. Identify the location/style/vibe. Image size: {len(webp_data)} bytes"
+    )
     return response.text
 
 
 def generate_embedding_sync(text: str) -> list:
     """Synchronous embedding call - runs in thread pool."""
-    result = genai.embed_content(
-        model=EMBEDDING_MODEL,
-        content=text,
-        task_type="retrieval_document"
-    )
-    return result['embedding']
+    result = embed_content_sync(text)
+    return result.embeddings[0].values
 
 
 # --- Core Processing ---

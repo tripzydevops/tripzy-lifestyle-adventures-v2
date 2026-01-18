@@ -62,6 +62,7 @@ _The "Infinite Engine": Backoff, Jitter, and Financial Observability._
 - [**Process:** Universal Reliability Framework](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/rd_archive/DESIGN_LOG_UNIVERSAL_RELIABILITY_AND_AUTONOMY_20260118.md)
 - [**Feature:** Council of Four Specification](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/rd_archive/FEATURE_SPEC_COUNCIL_OF_FOUR_20260118.md)
 - [**Test:** Reliability Stress Test Report](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/rd_archive/TEST_REPORT_RELIABILITY_STRESS_20260118.md)
+- [**Infrastructure:** GenAI SDK Stability Consensus](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/rd_archive/DESIGN_LOG_GENAI_SDK_STABILITY_CONSENSUS_20260118.md)
 
 ---
 

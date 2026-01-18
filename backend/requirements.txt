@@ -3,7 +3,7 @@ uvicorn
 python-dotenv
 
 aiohttp
-google-generativeai
+google-genai
 Pillow
 supabase
 tavily-python

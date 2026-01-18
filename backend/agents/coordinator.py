@@ -1,6 +1,7 @@
 import os
 from supabase import create_client, Client
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from typing import List, Dict, Any
 from backend.utils.async_utils import retry_sync_in_thread
 
@@ -14,8 +15,7 @@ class TravelReasoningAgent:
             print("Warning: Missing environment variables for TravelReasoningAgent")
             
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
-        genai.configure(api_key=self.gemini_key, transport='rest')
-        self.model = genai.GenerativeModel('gemini-pro')
+        # Uses centralized genai_client (gemini-3.0-flash)
 
     async def get_user_signals(self, session_id: str) -> List[Dict[str, Any]]:
         # Fetch signals for the last 24 hours for this session
@@ -59,7 +59,7 @@ class TravelReasoningAgent:
         """
         
         try:
-            response = await retry_sync_in_thread(self.model.generate_content, prompt)
+            response = await retry_sync_in_thread(generate_content_sync, prompt)
             # In a real app, we'd parse the JSON more robustly
             import json
             # Extract JSON from response text (Gemini sometimes adds markdown blocks)

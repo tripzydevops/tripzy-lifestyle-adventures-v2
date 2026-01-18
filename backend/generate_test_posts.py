@@ -5,7 +5,8 @@ import json
 import re
 import time
 import aiohttp
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
 from utils.visual_memory import VisualMemory
@@ -25,8 +26,7 @@ if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
 
 # Initialize
 visual_memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY)
-genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel('gemini-2.0-flash-exp')
+# Uses centralized genai_client (gemini-3.0-flash)
 
 TEST_POSTS = [
     {"title": "Dubai: The City of the Future", "lang": "en", "category": "Luxury", "tags": ["Dubai", "UAE", "Luxury", "Architecture"]},
@@ -117,17 +117,15 @@ async def generate_content_ai(post):
     """
     
     try:
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.GenerationConfig(
-                response_mime_type="application/json"
-            )
-        )
+        response = generate_content_sync(prompt)
         txt = response.text.strip()
+        if "```json" in txt:
+            txt = txt.split("```json")[1].split("```")[0].strip()
+        elif "```" in txt:
+            txt = txt.split("```")[1].split("```")[0].strip()
         return json.loads(txt)
     except Exception as e:
-        print(f"🔥 AI Generation Error: {e}")
-        print(f"Raw Output start: {response.text[:100]}...")
+        print(f"AI Generation Error: {e}")
         raise e
 
 async def post_process_content(content):

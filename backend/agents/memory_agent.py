@@ -3,7 +3,8 @@ import json
 import asyncio
 from typing import List, Dict, Any, Optional
 from supabase import create_client, Client
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync, embed_content_sync
 from dotenv import load_dotenv, find_dotenv
 from backend.utils.async_utils import retry_sync_in_thread
 
@@ -23,19 +24,15 @@ class MemoryAgent:
             raise ValueError("Missing environment variables for MemoryAgent")
             
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
-        genai.configure(api_key=self.gemini_key, transport='rest')
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
-        self.embed_model = "models/text-embedding-004"
+        # Uses centralized genai_client (gemini-3.0-flash)
 
     async def get_embedding(self, text: str) -> List[float]:
         """Generates embedding for the given text using Gemini with retries."""
         result = await retry_sync_in_thread(
-            genai.embed_content,
-            model=self.embed_model,
-            content=text,
-            task_type="retrieval_document"
+            embed_content_sync,
+            text
         )
-        return result['embedding']
+        return result.embeddings[0].values
 
     async def summarize_problem(self, conversation_context: str) -> Dict[str, Any]:
         """Uses Gemini to extract a structured summary with retries and timeout."""
@@ -63,7 +60,7 @@ class MemoryAgent:
             "category": "..."
         }}
         """
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         text = response.text
         
         # Robust parsing

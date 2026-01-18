@@ -2,7 +2,8 @@ import os
 import asyncio
 import aiohttp
 import json
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import embed_content_sync
 from dotenv import load_dotenv, find_dotenv
 
 # Load Env
@@ -16,9 +17,7 @@ if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
     print("❌ Missing API Keys")
     exit(1)
 
-# Initialize Gemini
-genai.configure(api_key=GEMINI_KEY)
-embed_model = genai.GenerativeModel('models/text-embedding-004')
+# Uses centralized genai_client (gemini-3.0-flash)
 
 async def test_rpc_function():
     print("🧪 Testing RPC Function: match_posts\n")
@@ -27,14 +26,10 @@ async def test_rpc_function():
     test_query = "sunny beach vacation with relaxation"
     print(f"📝 Test Query: '{test_query}'")
     
-    print("🔄 Generating embedding...")
-    embedding_res = genai.embed_content(
-        model="models/text-embedding-004",
-        content=test_query,
-        task_type="retrieval_query"
-    )
-    query_vector = embedding_res['embedding']
-    print(f"✅ Generated {len(query_vector)}-dimensional vector\n")
+    print("Generating embedding...")
+    embedding_res = embed_content_sync(test_query)
+    query_vector = embedding_res.embeddings[0].values
+    print(f"Generated {len(query_vector)}-dimensional vector\n")
     
     # 2. Call the RPC function
     headers = {

@@ -5,7 +5,8 @@ import json
 import random
 from datetime import datetime
 import aiohttp
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import embed_content_sync
 from dotenv import load_dotenv, find_dotenv
 
 # Load Env
@@ -20,8 +21,7 @@ if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
     print("❌ Missing API Keys")
     exit(1)
 
-genai.configure(api_key=GEMINI_KEY)
-embed_model = genai.GenerativeModel('models/text-embedding-004')
+# Uses centralized genai_client (gemini-3.0-flash)
 
 POST_TITLE = "İstanbul'da Bir Gün: Tarihi Yarımada ve Boğaz Rotası (2026)"
 POST_SLUG = "istanbulda-bir-gun-tarihi-yarimada-ve-bogaz-rotasi-2026"
@@ -114,14 +114,10 @@ class SupabaseClient:
 
 async def generate_embedding(text):
     try:
-        result = await embed_model.embed_content_async(
-            model="models/text-embedding-004",
-            content=text[:8000],
-            task_type="retrieval_document"
-        )
-        return result['embedding']
+        result = embed_content_sync(text[:8000])
+        return result.embeddings[0].values
     except Exception as e:
-        print(f"⚠️ Embedding failed: {e}")
+        print(f"Warning: Embedding failed: {e}")
         return None
 
 async def main():

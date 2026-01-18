@@ -2,7 +2,8 @@ import os
 import json
 import re
 import asyncio
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from dotenv import load_dotenv, find_dotenv
 from dataclasses import dataclass, field
 from typing import List
@@ -14,9 +15,8 @@ api_key = os.getenv("VITE_GEMINI_API_KEY")
 
 if not api_key:
     # Use a dummy key if not found to avoid crash, but warn
-    print("⚠️ CRITICAL: VITE_GEMINI_API_KEY is missing from .env file!")
-else:
-    genai.configure(api_key=api_key)
+    print("Warning: VITE_GEMINI_API_KEY is missing from .env file!")
+# Uses centralized genai_client (gemini-3.0-flash)
 
 @dataclass
 class ReviewIssue:
@@ -32,8 +32,8 @@ class ReviewResult:
 
 class CodeReviewAgent:
     def __init__(self):
-        # We use 'gemini-2.0-flash' as it is the most stable current model
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        # Uses centralized genai_client (gemini-3.0-flash)
+        pass
 
     async def review_code(self, code: str, context: str = "") -> ReviewResult:
         prompt = f"""
@@ -58,7 +58,7 @@ class CodeReviewAgent:
         try:
             # Run blocking call in thread via utility with retry and timeout
             response = await retry_sync_in_thread(
-                self.model.generate_content,
+                generate_content_sync,
                 prompt
             )
         except Exception as e:

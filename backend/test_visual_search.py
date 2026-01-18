@@ -2,7 +2,8 @@
 import asyncio
 import os
 import aiohttp
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import embed_content_sync
 from dotenv import load_dotenv, find_dotenv
 
 # Load Env
@@ -16,19 +17,14 @@ if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
     print("❌ Missing API Keys")
     exit(1)
 
-genai.configure(api_key=GEMINI_KEY)
+# Uses centralized genai_client (gemini-3.0-flash)
 
 async def search_visual_memory(query: str):
     print(f"\n🧠 Search Query: '{query}'")
     
     # 1. Embed Query
-    model = "models/text-embedding-004"
-    result = genai.embed_content(
-        model=model,
-        content=query,
-        task_type="retrieval_query"
-    )
-    embedding = result['embedding']
+    result = embed_content_sync(query)
+    embedding = result.embeddings[0].values
     
     # 2. Call RPC
     rpc_url = f"{SUPABASE_URL}/rest/v1/rpc/match_media"

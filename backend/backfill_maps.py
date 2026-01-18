@@ -3,7 +3,8 @@ import asyncio
 import os
 import json
 import aiohttp
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -12,8 +13,7 @@ SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 
-genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel('gemini-2.0-flash-exp')
+# Uses centralized genai_client (gemini-3.0-flash)
 
 async def generate_map_data(title, content):
     prompt = f"""
@@ -44,13 +44,15 @@ async def generate_map_data(title, content):
     """
     
     try:
-        response = await model.generate_content_async(
-            prompt, 
-            generation_config=genai.types.GenerationConfig(response_mime_type="application/json")
-        )
-        return json.loads(response.text)
+        response = await asyncio.to_thread(generate_content_sync, prompt)
+        text = response.text
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0].strip()
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0].strip()
+        return json.loads(text)
     except Exception as e:
-        print(f"   ⚠️ Gemini Generation Failed: {e}")
+        print(f"   Warning: Gemini Generation Failed: {e}")
         return None
 
 async def backfill_maps():

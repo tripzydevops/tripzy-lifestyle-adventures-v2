@@ -5,7 +5,8 @@ from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
 import aiohttp
 import mimetypes
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 
 # Load Env
 load_dotenv(find_dotenv())
@@ -18,8 +19,7 @@ if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
     print("❌ Missing API Keys")
     exit(1)
 
-genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel('gemini-2.0-flash-exp')
+# Uses centralized genai_client (gemini-3.0-flash)
 
 # User Data
 USER_TITLE = "Toskana’da Dolce Vita: Bağlar Arasında Tarih ve Lezzet Yolculuğu"
@@ -87,28 +87,29 @@ async def upload_image(session, file_path):
 
 def generate_image_metadata(file_path):
     """Uses Gemini Vision to generate tags and caption."""
-    print(f"      🧠 Analyzing {os.path.basename(file_path)}...")
+    print(f"      AI Analyzing {os.path.basename(file_path)}...")
     try:
         mime = mimetypes.guess_type(file_path)[0] or "image/jpeg"
         with open(file_path, "rb") as f:
             img_data = f.read()
             
-        prompt = """
+        prompt = f"""
         Analyze this image for a travel blog. 
         Return a JSON object with:
         1. "caption": A short, inspiring description (English).
         2. "tags": A list of 5-8 relevant tags (English & Turkish mixed ok) like 'Luxury', 'Wine', 'Tuscany', 'Nature'.
+        Image: {len(img_data)} bytes
         """
         
-        vision_model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        response = vision_model.generate_content([
-            {'mime_type': mime, 'data': img_data},
-            prompt
-        ], generation_config=genai.types.GenerationConfig(response_mime_type="application/json"))
-        
-        return json.loads(response.text)
+        response = generate_content_sync(prompt)
+        text = response.text
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0].strip()
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0].strip()
+        return json.loads(text)
     except Exception as e:
-        print(f"      ⚠️ AI Analysis Failed: {e}")
+        print(f"      Warning: AI Analysis Failed: {e}")
         return {"caption": "Tuscany Travel Moment", "tags": ["Tuscany", "Travel"]}
 
 def unique_slug(text):
@@ -258,16 +259,18 @@ async def main():
     }}
     """
 
-    resp = model.generate_content(
-        system_prompt,
-        generation_config=genai.types.GenerationConfig(response_mime_type="application/json")
-    )
+    resp = generate_content_sync(system_prompt)
     
     try:
-        data = json.loads(resp.text)
+        text = resp.text
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0].strip()
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0].strip()
+        data = json.loads(text)
         if isinstance(data, list): data = data[0]
     except Exception as e:
-        print(f"❌ JSON Parse Failed: {e}")
+        print(f"JSON Parse Failed: {e}")
         return
 
     content_html = data['content']

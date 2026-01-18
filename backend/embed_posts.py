@@ -11,7 +11,8 @@ import aiohttp
 import logging
 import time
 from dotenv import load_dotenv, find_dotenv
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import embed_content_sync
 
 # Import shared async utilities
 from backend.utils.async_utils import (
@@ -43,7 +44,7 @@ if not SUPABASE_URL or not GEMINI_KEY:
     logger.error("❌ Missing API Keys. Check your .env file.")
     sys.exit(1)
 
-genai.configure(api_key=GEMINI_KEY, transport='rest')
+# Uses centralized genai_client (gemini-3.0-flash)
 
 # Initialize Rate Limiters
 db_limiter = GlobalRateLimiter("supabase_io", max_concurrent=5)
@@ -120,23 +121,18 @@ async def process_next_batch(supabase: SupabaseClient) -> int:
     try:
         async with ai_limiter:
             vectors_data = await retry_sync_in_thread(
-                genai.embed_content,
-                model=EMBEDDING_MODEL,
-                content=batch_texts,
-                task_type="retrieval_document",
-                title="Tripzy Post"
+                embed_content_sync,
+                batch_texts
             )
             
-            # Extract list of vectors
-            if 'embeddings' in vectors_data:
-                vectors = vectors_data['embeddings']
-            elif 'embedding' in vectors_data:
-                vectors = [vectors_data['embedding']]
+            # Extract list of vectors - new SDK uses .embeddings[].values
+            if hasattr(vectors_data, 'embeddings'):
+                vectors = [e.values for e in vectors_data.embeddings]
             else:
                 raise Exception("Unknown Gemini response format")
                 
     except Exception as e:
-        logger.error(f"❌ Gemini Error: {e}")
+        logger.error(f"Gemini Error: {e}")
         return 0
 
     if len(vectors) != len(posts):

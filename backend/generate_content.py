@@ -5,7 +5,8 @@ import json
 import random
 import time
 import aiohttp
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
 from utils.visual_memory import VisualMemory
@@ -27,8 +28,7 @@ if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
 # Initialize Visual Memory
 visual_memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY)
 
-# Initialize Gemini
-genai.configure(api_key=GEMINI_KEY)
+# Uses centralized genai_client (gemini-3.0-flash)
 # ... [Start of Config/Posts List remains same] ...
 
 # ... [SupabaseClient Class remains same] ...
@@ -160,7 +160,7 @@ async def post_process_images_in_content(content, post_title=""):
 
     return new_content
 
-model = genai.GenerativeModel('gemini-2.0-flash-exp')
+# Uses centralized genai_client (gemini-3.0-flash)
 
 POSTS_TO_GENERATE = [
     # English Posts
@@ -306,16 +306,16 @@ async def research_trending_topics(existing_titles):
     """
     
     try:
-        response = await model.generate_content_async(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                response_mime_type="application/json"
-            )
-        )
-        suggestions = json.loads(response.text)
+        response = await asyncio.to_thread(generate_content_sync, prompt)
+        text = response.text
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0].strip()
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0].strip()
+        suggestions = json.loads(text)
         return suggestions
     except Exception as e:
-        print(f"❌ Research failed: {e}")
+        print(f"Research failed: {e}")
         return []
 
 async def autonomous_mode():

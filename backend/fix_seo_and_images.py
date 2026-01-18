@@ -3,7 +3,8 @@ import asyncio
 import os
 import aiohttp
 import json
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from dotenv import load_dotenv, find_dotenv
 import random
 
@@ -14,9 +15,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABAS
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 UNSPLASH_KEY = os.getenv("VITE_UNSPLASH_ACCESS_KEY")
 
-genai.configure(api_key=GEMINI_KEY)
-# Using flash-exp, but with fallback logic if needed
-model = genai.GenerativeModel('gemini-2.0-flash-exp')
+# Uses centralized genai_client (gemini-3.0-flash)
 
 async def get_unsplash_image(query):
     url = f"https://api.unsplash.com/search/photos?query={query}&per_page=1&orientation=landscape"
@@ -50,13 +49,15 @@ async def generate_seo_metadata(title, content):
     """
     
     try:
-        response = await model.generate_content_async(
-            prompt,
-            generation_config=genai.types.GenerationConfig(response_mime_type="application/json")
-        )
-        return json.loads(response.text)
+        response = await asyncio.to_thread(generate_content_sync, prompt)
+        text = response.text
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0].strip()
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0].strip()
+        return json.loads(text)
     except Exception as e:
-        print(f"   ⚠️ Gemini SEO Gen Failed (likely rate limit): {e}")
+        print(f"   Warning: Gemini SEO Gen Failed (likely rate limit): {e}")
         return None
 
 async def fix_all():

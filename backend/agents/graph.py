@@ -3,7 +3,8 @@ import os
 import json
 import asyncio
 import aiohttp
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client instead of deprecated google.generativeai
+from backend.utils.genai_client import get_client, generate_content_sync, embed_content_sync, generate_content_stream_sync
 from typing import List, Dict, Any, Optional
 
 # Load env vars
@@ -39,9 +40,8 @@ if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
     print(error_msg)
     # Don't raise here to allow optional/partial failure in dev, but main.py should check this.
 
-# Initialize Gemini
-genai.configure(api_key=GEMINI_KEY, transport='rest')
-model = genai.GenerativeModel('gemini-2.0-flash')
+# Initialize Gemini via centralized client
+_genai_client = get_client()
 
 # --- Lightweight Supabase Client (No Compilation Needed) ---
 async def supabase_fetch_signals(session_id: str):
@@ -71,7 +71,7 @@ async def supabase_save_profile(session_id: str, user_id: Optional[str], analysi
     R&D Archival: Persists inferred user vibe and intent to Supabase (blog schema).
     """
     if not user_id:
-        print("⚠️ [Phase 5.3]: No user_id provided. Skipping persistent profile update.")
+        print("[WARNING] [Phase 5.3]: No user_id provided. Skipping persistent profile update.")
         return
 
     headers = {
@@ -129,15 +129,14 @@ async def supabase_retrieve_context(query_text: str, vibe_filter: str):
         "Content-Type": "application/json"
     }
     
-    # 1. Embed query using Gemini
-    embed_model = genai.GenerativeModel('models/text-embedding-004')
+    # 1. Embed query using new SDK via genai_client
     try:
-        embedding_res = await asyncio.to_thread(genai.embed_content,
-            model="models/text-embedding-004",
-            content=query_text,
-            task_type="retrieval_query"
+        embedding_res = await asyncio.to_thread(
+            embed_content_sync,
+            query_text
         )
-        query_vector = embedding_res['embedding']
+        # New SDK returns response object with .embeddings attribute
+        query_vector = embedding_res.embeddings[0].values
     except Exception as e:
         print(f"Embedding failed: {e}")
         return []
@@ -212,13 +211,29 @@ class Agent:
         """
         try:
             # 0. R&D Scout (Proactive Autonomy: Scout best practices at the start of every request)
+            # STABILITY FIX: Wrapped in timeout to prevent indefinite hangs
             print(f"--- R&D Scout initiating proactive research for: {state['query']} ---")
-            scout_report = await research_agent.scout_best_practices(state["query"])
+            try:
+                scout_report = await asyncio.wait_for(
+                    research_agent.scout_best_practices(state["query"]),
+                    timeout=30.0
+                )
+            except asyncio.TimeoutError:
+                print("[WARNING] Research Scout timed out after 30s - continuing without scout report")
+                scout_report = "Scout unavailable due to timeout"
             state["scout_report"] = scout_report
 
             # 0b. R&D Memory (Check for past solutions proactively)
+            # STABILITY FIX: Wrapped in timeout to prevent indefinite hangs
             print("--- Consulting Memory for related knowledge ---")
-            related_problems = await memory_agent.find_related_problems(state["query"])
+            try:
+                related_problems = await asyncio.wait_for(
+                    memory_agent.find_related_problems(state["query"]),
+                    timeout=30.0
+                )
+            except asyncio.TimeoutError:
+                print("[WARNING] Memory Agent timed out after 30s - continuing without memory lookup")
+                related_problems = []
             if related_problems:
                  print(f"--- Found {len(related_problems)} related solutions in Memory ---")
                  state["related_knowledge"] = related_problems
@@ -270,7 +285,14 @@ class Agent:
             async def run_background_agents(query, data):
                 try:
                     print("--- [Background] ScribeAgent: Logging Milestone ---")
-                    await scribe_agent.track_milestone(query, data)
+                    log_path = await scribe_agent.track_milestone(query, data)
+                    
+                    if log_path:
+                        print(f"--- [Background] MemoryAgent: Indexing New Milestone ({log_path}) ---")
+                        await memory_agent.index_problem(
+                            conversation_context=f"Architectural Milestone Reached: {query}\nEvidence: {log_path}",
+                            metadata={"source": "autonomous_scribe", "log_path": log_path}
+                        )
                     
                     if data.get("test_results"):
                         print("--- [Background] ScientistAgent: Running Empirical Suite ---")
@@ -279,7 +301,7 @@ class Agent:
                     print("--- [Background] SEO Scout: Auditing Content for AIO ---")
                     await seo_scout.audit_content_for_aio(str(data["recommendation"]))
                 except Exception as bge:
-                    print(f"⚠️ [Background Task Failure]: {bge}")
+                    print(f"[WARNING] [Background Task Failure]: {bge}")
 
             asyncio.create_task(run_background_agents(state["query"], state))
             
@@ -296,7 +318,7 @@ class Agent:
             print(f"--- Orchestrator Complete for session {state['session_id']} ---")
             return state
         except Exception as e:
-            print(f"🔥 [CRITICAL] Orchestrator Failure: {e}")
+            print(f"[CRITICAL] Orchestrator Failure: {e}")
             state["error"] = str(e)
             state["recommendation"] = {
                 "content": f"I'm sorry, I encountered a technical issue while processing your request for '{state['query']}'. Please try again in a moment.",
@@ -390,7 +412,7 @@ class Agent:
         
         try:
             from backend.utils.async_utils import retry_sync_in_thread
-            response = await retry_sync_in_thread(model.generate_content, prompt)
+            response = await retry_sync_in_thread(generate_content_sync, prompt)
             text = response.text
             if "```json" in text:
                 text = text.split("```json")[1].split("```")[0].strip()
@@ -417,15 +439,29 @@ class Agent:
         - done: Final completion
         """
         try:
-            # 0. R&D Scout (Proactive Autonomy)
+            # 0. R&D Scout (Proactive Autonomy) - STABILITY FIX: Timeout wrapper
             yield json.dumps({"type": "agent_start", "agent": "scout", "data": "R&D Scout initiating research..."}) + "\n"
-            scout_report = await research_agent.scout_best_practices(state["query"])
+            try:
+                scout_report = await asyncio.wait_for(
+                    research_agent.scout_best_practices(state["query"]),
+                    timeout=30.0
+                )
+            except asyncio.TimeoutError:
+                scout_report = "Scout unavailable due to timeout"
+                yield json.dumps({"type": "agent_timeout", "agent": "scout", "data": "Scout timed out"}) + "\n"
             state["scout_report"] = scout_report
             yield json.dumps({"type": "agent_complete", "agent": "scout", "data": "Research Complete"}) + "\n"
 
-            # 0b. R&D Memory (Check for past solutions)
+            # 0b. R&D Memory (Check for past solutions) - STABILITY FIX: Timeout wrapper
             yield json.dumps({"type": "agent_start", "agent": "memory", "data": "Consulting Memory..."}) + "\n"
-            related_problems = await memory_agent.find_related_problems(state["query"])
+            try:
+                related_problems = await asyncio.wait_for(
+                    memory_agent.find_related_problems(state["query"]),
+                    timeout=30.0
+                )
+            except asyncio.TimeoutError:
+                related_problems = []
+                yield json.dumps({"type": "agent_timeout", "agent": "memory", "data": "Memory timed out"}) + "\n"
             if related_problems:
                  state["related_knowledge"] = related_problems
             yield json.dumps({"type": "agent_complete", "agent": "memory", "data": f"Found {len(related_problems) if related_problems else 0} insights"}) + "\n"
@@ -500,8 +536,10 @@ class Agent:
         - Keep it concise.
         """
         
-        response = await model.generate_content_async(prompt, stream=True)
-        async for chunk in response:
+        # Use streaming via new SDK
+        response = await asyncio.to_thread(generate_content_stream_sync, prompt)
+        # Stream returns a sync generator, iterate in thread
+        for chunk in response:
             if chunk.text:
                 yield chunk.text
         
@@ -509,7 +547,7 @@ class Agent:
         # The usage metadata is typically available on the response object after the stream is fully consumed
         try:
             if hasattr(response, 'usage_metadata'):
-                 await monitor.log_usage("RecommendationEngine", "gemini-2.0-flash", response.usage_metadata, "Main-Stream")
+                 await monitor.log_usage("RecommendationEngine", "gemini-3.0-flash", response.usage_metadata, "Main-Stream")
         except:
             pass
 

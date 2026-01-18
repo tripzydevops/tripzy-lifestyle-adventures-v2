@@ -7,7 +7,8 @@ import random
 import aiohttp
 from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from utils.visual_memory import VisualMemory
 
 # Load Env
@@ -22,9 +23,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     print("❌ Missing Supabase Keys")
     exit(1)
 
-# Init Services
-model = genai.GenerativeModel('gemini-2.0-flash-exp')
-genai.configure(api_key=GEMINI_API_KEY)
+# Uses centralized genai_client (gemini-3.0-flash)
 visual_memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY, gemini_key=GEMINI_API_KEY)
 
 # Config
@@ -129,15 +128,17 @@ async def generate_high_quality_content(post):
     """
     
     try:
-        response = model.generate_content(
-            prompt, 
-            generation_config=genai.GenerationConfig(response_mime_type="application/json")
-        )
-        data = json.loads(response.text.strip())
+        response = generate_content_sync(prompt)
+        text = response.text.strip()
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0].strip()
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0].strip()
+        data = json.loads(text)
         if isinstance(data, list): data = data[0]
         return data
     except Exception as e:
-        print(f"🔥 AI Gen Error: {e}")
+        print(f"AI Gen Error: {e}")
         return None
 
 async def update_post(post_id, data, map_data, missing_images=False):

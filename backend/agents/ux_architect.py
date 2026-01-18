@@ -2,7 +2,8 @@ import os
 import json
 import asyncio
 from typing import List, Dict, Any, Optional
-import google.generativeai as genai
+# SDK Migration: Using centralized genai_client
+from backend.utils.genai_client import generate_content_sync
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 from backend.utils.async_utils import retry_sync_in_thread
@@ -14,9 +15,7 @@ class UXArchitect:
     """
     def __init__(self):
         self.gemini_key = os.getenv("VITE_GEMINI_API_KEY")
-        
-        genai.configure(api_key=self.gemini_key, transport='rest')
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        # Uses centralized genai_client (gemini-3.0-flash)
 
     async def analyze_interaction_signals(self, logs: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -46,7 +45,7 @@ class UXArchitect:
         Format your response in professional Markdown.
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
@@ -74,7 +73,7 @@ class UXArchitect:
         }}
         """
         
-        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
