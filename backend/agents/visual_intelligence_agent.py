@@ -1,8 +1,9 @@
-
 import os
 import json
 from typing import List, Dict, Any
 from pydantic import BaseModel, Field
+from backend.utils.genai_client import generate_content_sync
+from backend.utils.async_utils import retry_sync_in_thread
 from backend.utils.visual_memory import VisualMemory
 from dotenv import load_dotenv, find_dotenv
 
@@ -27,22 +28,44 @@ class VisualIntelligenceAgent:
     def __init__(self):
         self.memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY)
 
+    async def reason_visual_aesthetic(self, query: str, matches: List[Dict[str, Any]]) -> str:
+        """
+        Scientist-level Visual Audit: Analyzes retrieved scenes for 'Aesthetic Sophistication'
+        and alignment with the subtle undertones of the query.
+        """
+        prompt = f"""
+        ROLE: Lead Visual Architect (Tripzy ARRE).
+        QUERY: {query}
+        CANDIDATE_SCENES: {json.dumps(matches, indent=2)}
+        
+        TASK: Conduct an "Aesthetic Alignment Audit" for these candidate visuals.
+        
+        CRITERIA:
+        1. **Vibe Cohesion**: Do the colors, lighting, and composition match the emotional intent of the query?
+        2. **Sophistication Score**: Are these "Premium/Luxury" shots or generic placeholders?
+        3. **Aesthetic North Star**: Identify the single best match and explain WHY it captures the "Soul" of the request.
+        
+        OUTPUT:
+        Provide a concise R&D narrative explaining the visual strategy for this interaction.
+        """
+        
+        response = await retry_sync_in_thread(generate_content_sync, prompt)
+        return response.text
+
     async def discover_scenes(self, query: str, limit: int = 5) -> VisualAnalysis:
         """
-        Research-driven visual retrieval.
+        Research-driven visual retrieval with Aesthetic Auditing.
         """
-        print(f"--- Visual R&D: Discovering scenes for '{query}' ---")
+        print(f"--- [Visual R&D] Discovering and Auditing scenes for '{query}' ---")
         
-        # 1. Perform semantic search via VisualMemory
+        # 1. Perform semantic search via VisualMemory (Layer 3)
         matches = await self.memory.semantic_search(query, limit)
         
-        # 2. Add an R&D reasoning layer 
-        # (In a full implementation, we might pass these matches to an LLM 
-        # to select the TOP shots or explain the 'vibe' matches)
-        reasoning = (
-            f"Retrieved {len(matches)} scenes using semantic vector similarity. "
-            "Matches represent the closest aesthetic and topical alignment to the user intent."
-        )
+        if not matches:
+             return VisualAnalysis(query=query, matches=[], reasoning="No aesthetic matches found in Layer 3.")
+        
+        # 2. Add an R&D reasoning layer (Scientist-level Audit)
+        reasoning = await self.reason_visual_aesthetic(query, matches)
         
         return VisualAnalysis(
             query=query,

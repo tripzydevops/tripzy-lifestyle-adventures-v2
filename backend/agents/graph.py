@@ -11,9 +11,9 @@ from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
-from backend.agents.cross_domain_agent import agent as cross_domain_agent
+from backend.agents.cross_domain_agent import cross_domain_agent
 from backend.agents.visual_intelligence_agent import visual_agent
-from backend.agents.consensus_agent import judge_agent as consensus_agent
+from backend.agents.consensus_agent import consensus_agent
 from backend.utils.usage_monitor import monitor
 
 # ARRE R&D Council
@@ -297,6 +297,10 @@ class Agent:
                     if data.get("test_results"):
                         print("--- [Background] ScientistAgent: Running Empirical Suite ---")
                         await scientist_agent.run_empirical_suite(query, data["test_results"])
+                    
+                    # NEW: Autonomous Reporting Hook (Synthesis)
+                    print("--- [Background] ScientistAgent: Checking for Autonomous Synthesis Target ---")
+                    await scientist_agent.trigger_automatic_synthesis()
                     
                     print("--- [Background] SEO Scout: Auditing Content for AIO ---")
                     await seo_scout.audit_content_for_aio(str(data["recommendation"]))

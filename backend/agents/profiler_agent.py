@@ -25,30 +25,42 @@ class ProfilerAgent:
     async def infer_psychographic_archetype(self, user_id: str, signals: List[dict]) -> Dict[str, Any]:
         """
         Analyzes signals to map a user to a 2026 psychographic archetype.
-        Returns the archetype, score, and an XAI explanation.
+        Implements behavioral drift detection and emotional resonance tracking.
         """
-        signals_json = json.dumps(signals)
+        # Fetch historical archetypes for drift analysis
+        print(f"   [Profiler] 🧠 Analyzing Behavioral Soul for User: {user_id}")
         
+        historical_context = "No previous data."
+        try:
+             history = await retry_sync_in_thread(
+                 self.supabase.table("user_archetypes").select("psychographics").eq("user_id", user_id).limit(5).execute
+             )
+             if history.data:
+                 historical_context = json.dumps(history.data)
+        except Exception:
+             pass
+
         prompt = f"""
-        Analyze the following behavioral signals for user {user_id}. 
-        Signals: {signals_json}
+        ROLE: Senior Behavioral Architect (Tripzy ARRE).
+        USER_ID: {user_id}
+        CURRENT_SIGNALS: {json.dumps(signals)}
+        HISTORICAL_STATE: {historical_context}
         
-        Goal: Map the user to a 2026 Psychographic Archetype for the Travel Industry.
+        TASK: Synthesize the "User Soul" across three temporal dimensions.
         
-        Archetypes to consider:
-        - Digital Nomad (Efficiency, Fast WiFi, Work-Friendly)
-        - Luxury Adventurer (Exclusive, High-Touch, Unique Comfort)
-        - Eco-Conscious Explorer (Sustainability, Local Impact, Green Certs)
-        - Family Orchestrator (Safety, Kids-Friendly, Multi-Gen Ease)
-        - Hidden Gem Seeker (Authenticity, Off-the-beaten-path, Low Crowds)
+        DIMENSIONS:
+        1. **The Archetype**: Map to Digital Nomad, Luxury Adventurer, Eco-Explorer, Hidden Gem Seeker, or Family Orchestrator.
+        2. **The Behavioral Drift**: Is the user's intent shifting? (e.g., from "Budget" toward "Luxury" or "Fast" toward "Slow").
+        3. **The Emotional Anchor**: Identify the deep psychological driver (e.g., 'Validation', 'Serenity', 'Efficiency', 'Bragging Rights').
         
-        Return a JSON object:
+        RETURN (JSON ONLY):
         {{
             "archetype": "...",
             "confidence_score": 0.0-1.0,
-            "primary_motivations": ["...", "..."],
-            "vibe_shift_directive": "Concise UI instruction (e.g., 'Use high-contrast focus', 'Minimalist aesthetics')",
-            "xai_explanation": "Natural language explanation of WHY this archetype was chosen, focusing on specific signals."
+            "emotional_anchor": "...",
+            "drift_analysis": "Summary of behavioral shift",
+            "vibe_shift_directive": "UI prompt instruction",
+            "xai_explanation": "Why this soul-map was chosen"
         }}
         """
         
@@ -67,20 +79,18 @@ class ProfilerAgent:
         """
         archetype_data = await self.infer_psychographic_archetype(user_id, signals)
         
-        # Store in user_profiles (assuming a jsonb column for psychographics)
         data = {
             "user_id": user_id,
             "psychographics": archetype_data,
             "last_updated": "now()"
         }
         
-        # Upsert into a new table or existing profiles
         try:
             await retry_sync_in_thread(
                 self.supabase.table("user_archetypes").upsert(data).execute
             )
         except Exception as e:
-            print(f"⚠️ [ProfilerAgent] Could not persist soul to Supabase: {e}")
+            print(f"⚠️ [ProfilerAgent] Persistence failure: {e}")
         
         return archetype_data
 

@@ -36,18 +36,24 @@ class ScientistAgent:
         filepath = os.path.join(self.reports_dir, filename)
         
         prompt = f"""
-        You are the Scientific Validator (part of the ARRE Engine). 
-        Component: {component_name}
-        Raw Test Data: {json.dumps(test_results)}
+        ROLE: Lead Scientific Validator (Tripzy ARRE R&D).
+        COMPONENT: {component_name}
+        DATA_RESULTS: {test_results}
         
-        Instructions:
-        1. Analyze the test data for accuracy, latency, and reliability.
-        2. Generate a "Scientific Validation Report" in Markdown.
-        3. Include sections: Hypothesis, Experimental Setup, Results (with metrics), and Conclusion.
-        4. Focus on "Grant-Ready" language (empirical, objective, detailed).
-        5. Provide a "Scientific Confidence Score" (0-100%).
+        TASK: Conduct a rigorous empirical assessment of these test findings.
         
-        Format your response in professional Markdown.
+        PROCESS (Chain-of-Thought):
+        1. **Metric Decomposition**: Analyze latency, pass/fail ratios, and resource overhead.
+        2. **Baseline Comparison**: Determine if results drift from previous benchmarks.
+        3. **Adversarial Audit**: Search for hidden bottlenecks or missing edge cases (e.g., TTR).
+        
+        OUTPUT:
+        Assign a "Scientific Confidence Score" (weighted reliability/performance).
+        Format a professional Markdown report detailing:
+        - Hypothesis Acceptance/Rejection
+        - Metric Breakdown Table
+        - Technical Risks Analysis
+        - Actionable R&D Recommendations
         """
         
         response = await retry_sync_in_thread(generate_content_sync, prompt)
@@ -76,36 +82,26 @@ class ScientistAgent:
             milestones = await memory_agent.fetch_recent_knowledge(limit=15)
         
         prompt = f"""
-        You are the Lead Chief Scientist for the Tripzy Autonomous Reasoning Engine (ARRE). 
-        
-        **Objective:** Write a cumulative, academic-level "Grant Progress Report" (IEEE/ACM Transaction style).
-        
-        **LATEST ACADEMIC STANDARDS (Provided by Research Scout):**
-        {standards_report}
-        
-        **Input Data (Historical Milestones & Decisions):** 
-        {json.dumps(milestones, indent=2)}
-        
-        **System Architecture Context (The "Brain" you are validating):**
-        - **Paradigm:** "Autonomous Agent-Based Recommendation Engine" aimed at the "Cold Start" problem.
-        - **Architecture:** 3-Layer Plug-and-Play (Hub-and-Spoke).
-          - **Layer 1 (Signals):** Signal Collection Module (Front-End/API).
-          - **Layer 2 (Reasoning):** The Council of 11 Agents (Orchestrated by Graph).
-          - **Layer 3 (Data):** Supabase (Relational + Vector).
-        - **Key Innovation:** "Cross-Domain Transfer" (inferring travel prefs from lifestyle) and "Self-Healing/Self-Documenting" loops.
-
-        **Instructions:**
-        1. **Tone:** Highly formal, academic, and empirical. Use terms like "Stochastic Orchestration," "Vector-Space Alignment," and "Heuristic Optimizations."
-        2. **Structure:**
-           - **Abstract:** High-level summary of the R&D breakthrough.
-           - **1. Introduction:** Define the "Cold Start" problem and our Agentic solution.
-           - **2. Methodological Framework:** Detail the 3-Layer Architecture and the "Council of Agents" (mention specific agents like Memory, Scribe, Consensus).
-           - **3. Empirical Validation:** Analyze the milestones. Discuss the "Watcher" restoration as a "Self-Adaptive Mechanism."
-           - **4. Discussion & Future Work:** Implications for Autonomous Software Engineering.
-        3. **Length:** Comprehensive. Do not summarize briefly. Expand on the engineering complexity.
-        
-        **Format:** Professional Markdown.
-        """
+    ROLE: Lead Chief Scientist & Grant Architect (Tripzy ARRE).
+    OBJECTIVE: Write a cumulative, academic-level "Grant Progress Report" (IEEE/ACM Transaction style).
+    
+    **LATEST ACADEMIC STANDARDS (from Research Scout):**
+    {standards_report}
+    
+    **INPUT DATA (Milestones & Decisions):** 
+    {json.dumps(milestones, indent=2)}
+    
+    **INSTRUCTIONS:**
+    1. **Branding**: Use high-value proprietary nomenclature (e.g., 'Stochastic Agentic Orchestration', 'Cross-Domain Aesthetic Transfer').
+    2. **ROI Analysis**: Quantify engineering impact (Efficiency GAIN %, Maintenance Cost REDUCTION).
+    3. **Chain-of-Thought (XAI)**: Include internal reasoning for key architectural shifts (e.g., why 'retry_sync_in_thread' was chosen over pure async).
+    4. **Structural Rigor**: 
+       - Abstract (Breakthrough focus)
+       - Methodology (The 3-Layer Plug-and-Play Hub)
+       - Empirical Validation (Benchmarking against 2026 standards)
+       - Discussion (Future of Autonomous SE)
+    5. **Tone**: Highly formal, empirical, and strategic.
+    """
         
         response = await retry_sync_in_thread(generate_content_sync, prompt)
         report_content = response.text
@@ -174,30 +170,17 @@ class ScientistAgent:
         patent_data = await research_agent.scout_patents(innovations)
         
         prompt = f"""
-        You are the Intellectual Property (IP) Analyst for Tripzy ARRE.
+        ROLE: Intellectual Property (IP) Analyst & Tech Scout.
+        QUERY_CONTEXT: {json.dumps(patent_data)}
         
-        **Objective:** Generate a "Patent Landscape & Freedom-to-Operate" Initial Assessment.
+        TASK: Conduct a "Patent Landscape Analysis" for the proposed ARRE innovations.
         
-        **INNOVATIONS TO SCREEN:**
-        {json.dumps(innovations, indent=2)}
+        INSTRUCTIONS:
+        1. **Novelty Check**: Does the agentic graph orchestration conflict with existing WIPO/Google Patent filings?
+        2. **Inventive Step**: Highlight the specific "Cross-Domain Aesthetic Transfer" as a potential patentable asset.
+        3. **Freedom to Operate (FTO)**: Identify high-risk overlaps with big-tech travel patents.
         
-        **SEARCH RESULTS (Prior Art):**
-        {patent_data}
-        
-        **Instructions:**
-        1. Analyze the search results for competing patents.
-        2. Identify "Crowded Art" areas (e.g., is "Reflection" heavily patented by Big Tech?).
-        3. Identify "White Space" opportunities where we might file.
-        4. Assess risk: High/Medium/Low overlap with existing IP.
-        
-        **Structure:**
-        - Executive IP Summary
-        - Detailed Analysis per Innovation (Cross-Domain, Reflection, Watcher)
-        - Potential Assignees (Google, Microsoft, OpenAI, etc.)
-        - Risk Assessment
-        - Recommendations for Defensive Publication or Filing
-        
-        Format as professional Markdown.
+        Tone: Legalistic, precise, and protective.
         """
         
         response = await retry_sync_in_thread(generate_content_sync, prompt)
@@ -208,26 +191,30 @@ class ScientistAgent:
             
         return filepath
 
-    async def validate_task_change(self, task_summary: str, affected_files: List[str], diff_summary: str = "") -> str:
+    async def validate_task_change(self, task_summary: str, affected_files: List[str], diff_summary: str = "", current_state: Dict[str, Any] = {}) -> str:
         """
         R&D Audit: Provides a technical peer-review of a development change.
         Benchmarks it against the project's institutional standards.
         """
         prompt = f"""
-        You are the Chief Scientist for Tripzy ARRE. 
-        Audit this development change:
+        ROLE: Chief Scientist (R&D Audit).
+        ACTION_SUMMARY: {task_summary}
+        AGENT_STATE: {json.dumps(current_state)}
         
-        Task: {task_summary}
-        Affected Files: {', '.join(affected_files)}
-        Diff Context: {diff_summary}
+        TASK: Audit this development change for "Architectural Drift" or "Technical Debt."
         
-        Instructions:
-        1. Evaluate the change for technical soundess (e.g., does it avoid blocking calls? does it follow our async retry patterns?).
-        2. Benchmark against industry standards for "Autonomous Agent Architecture".
-        3. Provide a "Scientific Validity Score" (0-100%).
-        4. Identify potential "Experimenter Bias" or technical risks.
+        CRITERIA:
+        1. Does this change adhere to the 3-Layer Agent Architecture?
+        2. Does it introduce synchronous/blocking calls that could freeze the loop?
+        3. Is the logic "Self-Healing" or contributing to R&D autonomy?
         
-        Format your response in professional Markdown as a "Chief Scientist's Audit".
+        Return JSON:
+        {{
+            "is_valid": true | false,
+            "risk_level": "Low" | "Medium" | "High",
+            "justification": "Detailed scientific audit",
+            "required_correction": "What must be changed to meet the standard"
+        }}
         """
         
         response = await retry_sync_in_thread(generate_content_sync, prompt)
@@ -289,6 +276,60 @@ class ScientistAgent:
                 "meta_title": post['title'],
                 "meta_description": post['excerpt']
             }
+
+    async def trigger_automatic_synthesis(self) -> Optional[str]:
+        """
+        Autonomous R&D Hook: Checks institutional memory for 'Major Breakthrough' patterns
+        and automatically generates a high-level scientific report if detected.
+        """
+        print("   [Scientist] 🧠 Running Autonomous Synthesis Audit...")
+        
+        # 1. Fetch recent milestones from Memory
+        recent_milestones = await memory_agent.fetch_recent_knowledge(limit=10)
+        
+        if not recent_milestones:
+            print("   [Scientist] 🛑 Synthesis skipped: Insufficient institutional memory.")
+            return None
+            
+        # 2. Heuristic Audit: Look for 'Major Breakthrough' or 'Structural Refactor' patterns
+        prompt = f"""
+        ROLE: Chief Scientist (Autonomous R&D Hook).
+        CONTEXT (Recent Milestones):
+        {json.dumps(recent_milestones, indent=2)}
+        
+        TASK: Determine if these milestones represent a "Significant Phase Completion" or "Major Breakthrough" (e.g., R&D 2.0, SDK Migration, Core Reliability Refactor).
+        
+        RETURN (JSON ONLY):
+        {{
+            "is_major_breakthrough": boolean,
+            "reasoning": "Scientific justification for trigger",
+            "suggested_title": "Title for the cumulative report"
+        }}
+        """
+        
+        try:
+            response = await retry_sync_in_thread(generate_content_sync, prompt)
+            data = response.text
+            if "```json" in data:
+                data = data.split("```json")[1].split("```")[0].strip()
+            elif "```" in data:
+                data = data.split("```")[1].split("```")[0].strip()
+            
+            decision = json.loads(data if "{" in data else "{}")
+            
+            if decision.get("is_major_breakthrough"):
+                print(f"   [Scientist] 🚀 MAJOR BREAKTHROUGH DETECTED: {decision.get('reasoning')}")
+                # Trigger the high-level grant report automatically
+                report_path = await self.generate_grant_report(recent_milestones)
+                print(f"   [Scientist] ✅ SUCCESS: Autonomous Report Generated: {report_path}")
+                return report_path
+            else:
+                print("   [Scientist] 💤 Audit complete: No major synthesis required at this time.")
+                return None
+                
+        except Exception as e:
+            print(f"   [Scientist] ⚠️ Autonomous Synthesis Hook failed: {e}")
+            return None
 
 # Singleton instance
 scientist_agent = ScientistAgent()

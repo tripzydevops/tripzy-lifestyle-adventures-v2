@@ -37,27 +37,26 @@ class MemoryAgent:
     async def summarize_problem(self, conversation_context: str) -> Dict[str, Any]:
         """Uses Gemini to extract a structured summary with retries and timeout."""
         prompt = f"""
-        Analyze the following technical conversation/context and extract a structured problem-solution pair.
-        
-        Context:
+        ROLE: Lead Knowledge Architect (Tripzy ARRE).
+        CONTEXT:
         {conversation_context}
         
-        Return a JSON object with:
-        - problem_title: A concise, searchable title.
-        - description: What happened? What were the symptoms or the architectural goal?
-        - root_cause: The technical reason for the failure or the rationale for the change.
-        - solution: The exact steps, code fix, or architectural pattern used.
-        - tech_stack: List of relevant technologies.
-        - category: One of ["Architecture", "BugFix", "Optimization", "Security", "DevOps"].
+        TASK: Extract a structured "Technical Knowledge Core" from this context.
         
-        JSON Format:
+        OBJECTIVES:
+        1. **Problem Pattern**: Identify the *abstract* technical pattern (e.g., "Thread-Safe File I/O", "Non-Deterministic Model Response").
+        2. **Root Cause Audit**: Explain *why* the failure occurred at a system level.
+        3. **Cumulative Knowledge**: How does this solution prevent future recurring architectural debt?
+        
+        Return a JSON object with this structure:
         {{
-            "problem_title": "...",
-            "description": "...",
-            "root_cause": "...",
-            "solution": "...",
-            "tech_stack": ["...", "..."],
-            "category": "..."
+            "problem_title": "Searchable Core Title",
+            "description": "Functional summary of symptoms/goals",
+            "root_cause": "System-level abstractive root cause",
+            "solution": "Architectural fix or feature logic",
+            "tech_stack": ["Tag 1", "Tag 2"],
+            "category": "Architecture" | "BugFix" | "Optimization" | "Security" | "DevOps",
+            "pattern_hash": "A unique identifier for the technical pattern"
         }}
         """
         response = await retry_sync_in_thread(generate_content_sync, prompt)

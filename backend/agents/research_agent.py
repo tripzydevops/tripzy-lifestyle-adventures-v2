@@ -32,14 +32,14 @@ class ResearchAgent:
     async def analyze_query_needs(self, query: str) -> str:
         """Analyzes if a query requires live web data with retries."""
         prompt = f"""
-        ACT AS: Research Cost Guard.
+        ACT AS: Research Cost Guard & Tech Radar.
         QUERY: "{query}"
 
         DECISION LOGIC:
+        - Is this a coding question, library choice, or architectural pattern? -> LIVE_SEARCH_REQUIRED (Maintain 2026 compliance)
         - Does it ask for current events, prices, openings, or post-2025 info? -> LIVE_SEARCH_REQUIRED
         - Is it about specific local businesses that might close? -> LIVE_SEARCH_REQUIRED
         - Is it a general travel question, history, or culture? -> INTERNAL_KNOWLEDGE_SUFFICIENT
-        - Is it about broad coding practices (unless very new)? -> INTERNAL_KNOWLEDGE_SUFFICIENT
 
         OUTPUT ONE STRING ONLY:
         LIVE_SEARCH_REQUIRED

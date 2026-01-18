@@ -25,24 +25,24 @@ class UXArchitect:
         logs_json = json.dumps(logs)
         
         prompt = f"""
-        Analyze these UX interaction logs:
+        ROLE: Lead Interface Architect (Tripzy ARRE).
+        INPUT: Interaction Logs (Rage Clicks, Hesitation, Scroll)
         {logs_json}
         
-        Goal: Identify friction points and propose "Anticipatory UI" refinements.
+        TASK: Conduct a "Cognitive Load Audit" and propose "Anticipatory UI" shifts.
         
-        Focus on:
-        - Rage Clicks (Dead buttons or frustrating UX)
-        - Hesitation (Confusion in the flow)
-        - Scroll Depth (Where are we losing users?)
+        OBJECTIVES:
+        1. **Friction Hotspots**: Pinpoint exact coordinates or components causing rage clicks.
+        2. **Hesitation Mapping**: Where does the user pause? Is it "Healthy Exploration" or "Information Overload"?
+        3. **Anticipatory Fix**: Predict the user's next frustration and preempt it with a design shift.
         
-        Return a JSON object:
+        RETURN (JSON ONLY):
         {{
             "friction_points": ["...", "..."],
             "conversion_blockers": ["...", "..."],
-            "anticipatory_fix": "Specific UI instruction to preempt user confusion",
+            "anticipatory_fix": "Specific UI directive (e.g., 'Proactive Budget Tooltip on 3s stall')",
             "confidence_score": 0.0-1.0
         }}
-        Format your response in professional Markdown.
         """
         
         response = await retry_sync_in_thread(generate_content_sync, prompt)
@@ -59,17 +59,22 @@ class UXArchitect:
         Uses predictive heatmapping logic to estimate how a proposed layout will perform.
         """
         prompt = f"""
-        Analyze this proposed UI component structure:
-        {component_structure}
+        ROLE: Lead UX Auditor (Tripzy ARRE).
+        STRUCTURE: {component_structure}
         
-        Goal: Conduct a "Predictive Heatmap Analysis". 
+        TASK: Perform a "Predictive Heatmap Analysis" using the 2026 Visual Attention Framework.
         
-        Return a JSON object:
+        METRICS:
+        1. **Predicted Hotspots**: Where will Foveal focus land?
+        2. **Attention Leakage**: Are secondary CTAs drawing eyes away from the primary conversion goal?
+        3. **Visual Hierarchy Score**: 0.0-1.0 (How well does the scan-path match the business goal?).
+        
+        RETURN (JSON ONLY):
         {{
             "predicted_hotspots": ["...", "..."],
             "attention_leakage_points": ["...", "..."],
             "readability_score": 0.0-1.0,
-            "design_recommendation": "Specific shift to improve visual hierarchy"
+            "design_recommendation": "Specific structural shift to improve hierarchy"
         }}
         """
         

@@ -52,25 +52,25 @@ class SEOScout:
         logger.info("Starting AIO content audit...")
         
         prompt = f"""
-        Analyze the following content for 2026 AI Visibility (AIO) standards.
-        
-        Content:
+        ROLE: Lead Visibility Auditor (Tripzy ARRE).
+        CONTENT:
         {content_text}
         
-        Audit Criteria:
-        1. **Semantic Headings**: Are H2/H3 tags used to clearly group concepts?
-        2. **Direct Answer Efficiency**: Does it provide a direct, concise answer in the first 2 paragraphs?
-        3. **Natural Language Flow**: Is the tone conversational?
-        4. **Schema Potential**: Identify entities for JSON-LD.
-        5. **Citatability**: Is the data authoritative?
+        TASK: Conduct an "AIO & SGE Citatability Audit" (2026 Standards).
         
-        Return a JSON object:
+        EVALUATION VECTORS:
+        1. **SGE Readiness**: Is the data structured for AI-Search extraction? Are facts discrete and verifiable?
+        2. **Semantic Fluidity**: Does the heading structure adapt to multiple user intent profiles (Search/Chat/Voice)?
+        3. **Authority Matrix**: Is the citation potential high? (Authoritative tone + unique insights).
+        4. **Liquid SEO**: Will this content remain visible as search algorithms shift to "Intent-First" models?
+        
+        RETURN (JSON ONLY):
         {{
             "aio_score": 0.0-100.0,
             "strengths": ["...", "..."],
             "vulnerabilities": ["...", "..."],
-            "suggested_fix": "...",
-            "schema_recommendations": ["...", "..."]
+            "suggested_fix": "Strategic shift to improve SGE visibility",
+            "schema_recommendations": ["JSON-LD entities identified"]
         }}
         """
         

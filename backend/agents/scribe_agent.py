@@ -32,23 +32,24 @@ class ScribeAgent:
         filepath = os.path.join(self.docs_dir, filename)
         
         prompt = f"""
-        You are the Lead R&D Scribe (part of the ARRE Engine). 
-        Milestone: {milestone_name}
-        Log Type: {type}
-        Context/Task Summary: {task_context}
-        Technical Decisions: {', '.join(decisions)}
+        ACT AS: Lead R&D Scribe (Tripzy ARRE).
+        MILESTONE: {milestone_name}
+        TYPE: {type}
+        CONTEXT: {task_context}
+        DECISIONS: {', '.join(decisions)}
         
-        Instructions:
-        1. Write a professional, high-level R&D design log in Markdown.
-        2. Follow the institutional standard (similar to existing docs).
-        3. Include sections: 
-           - **Research Problem** (What technical debt or feature gap was addressed?)
-           - **Solution** (Architectural or logical approach)
-           - **Implementation Logic** (Specific files changed, patterns used like retry_sync_in_thread)
-           - **Empirical Verification** (How was it tested?)
-        4. Sign it as "Lead Scientist: Antigravity".
+        TASK: Write a professional R&D Design Log using the "Architectural Storytelling" framework.
         
-        Format your response in professional Markdown.
+        SECTIONS:
+        1. **Innovation Narrative**: Frame this milestone as a step toward "Autonomous Agentic Sovereignty." Use high-value strategic language.
+        2. **Research Problem**: Define the technical debt or feature gap addressed.
+        3. **Solution Architecture**: Explain the logical approach.
+        4. **Dependency Flow**: How does this change impact downstream agents (e.g., Scientist's validation scope or memory indexing)?
+        5. **Implementation Logic**: Highlight specific patterns (e.g., retry_sync_in_thread, Scout-integration).
+        6. **Empirical Verification**: Summary of tests conducted.
+        
+        SIGNATURE: "Lead Scientist: Antigravity"
+        Format: Professional Markdown.
         """
         
         response = await retry_sync_in_thread(generate_content_sync, prompt)
@@ -72,7 +73,7 @@ class ScribeAgent:
         prompt = f"""
         Analyze this task completion:
         Task: {task_summary}
-        State: {json.dumps(current_state)}
+        State: {json.dumps(current_state, default=str)}
         Mode: {"DEVELOPMENT" if is_dev_mode else "USER_SESSION"}
         
         Does this represent a "Significant Architectural Decision" or a "Major Implementation Phase" that requires a new R&D design log?

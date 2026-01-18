@@ -8,6 +8,7 @@ from dotenv import load_dotenv, find_dotenv
 from dataclasses import dataclass, field
 from typing import List
 from backend.utils.async_utils import retry_sync_in_thread
+from backend.agents.research_agent import research_agent
 
 # Load environment variables
 load_dotenv(find_dotenv())
@@ -36,19 +37,33 @@ class CodeReviewAgent:
         pass
 
     async def review_code(self, code: str, context: str = "") -> ReviewResult:
-        prompt = f"""
-        Act as a senior Python developer. Review this code:
+        """
+        Performs a senior-level code review, validated against latest 2026 standards 
+        from the Research Scout.
+        """
+        print(f"🕵️ Consulting Research Scout for 2026 standards in: {context}...")
+        scout_findings = await research_agent.scout_best_practices(f"coding patterns for {context or 'Python R&D'}")
         
+        prompt = f"""
+        ROLE: Senior R&D Auditor (Tripzy ARRE).
+        CODE_TO_REVIEW:
         ```python
         {code}
         ```
         
-        Context: {context}
+        CONTEXT: {context}
+        LATEST 2026 STANDARDS (from Research Scout):
+        {scout_findings}
+        
+        TASK:
+        1. Audit the code against standard Python PEP-8 and performance best practices.
+        2. Specifically verify if it adheres to the LATEST STANDARDS scouted above.
+        3. Identify any "2024 patterns" that are now considered legacy or high-risk.
         
         Return a raw JSON object with this structure (no markdown formatting):
         {{
             "score": <0-100>,
-            "issues": [{{"severity": "High", "category": "Logic", "description": "..."}}],
+            "issues": [{{"severity": "High", "category": "Standard Compliance", "description": "..."}}],
             "recommendation": "Pass or Fail"
         }}
         """
