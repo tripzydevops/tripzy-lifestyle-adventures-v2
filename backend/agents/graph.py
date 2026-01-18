@@ -25,13 +25,19 @@ from backend.agents.media_guardian import media_guardian
 from backend.agents.seo_scout import seo_scout
 from backend.agents.ux_architect import ux_architect
 
+import time
+last_heal_time = 0
+HEAL_COOLDOWN = 3600 # 1 hour cooldown for background maintenance
+
 # --- Configuration ---
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 
 if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
-    print("Warning: Missing environment variables")
+    error_msg = f"CRITICAL: Missing essential environment variables. Required: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_GEMINI_API_KEY. Found: URL={'Set' if SUPABASE_URL else 'Missing'}, KEY={'Set' if SUPABASE_KEY else 'Missing'}, GEMINI={'Set' if GEMINI_KEY else 'Missing'}"
+    print(error_msg)
+    # Don't raise here to allow optional/partial failure in dev, but main.py should check this.
 
 # Initialize Gemini
 genai.configure(api_key=GEMINI_KEY, transport='rest')
@@ -204,79 +210,100 @@ class Agent:
         Manually runs the Analyze -> Retrieve -> Recommend pipeline.
         With User Memory, Proactive Research, Visual Search, and Consensus Judge.
         """
-        # 0. R&D Scout (Proactive Autonomy: Scout best practices at the start of every request)
-        print(f"--- R&D Scout initiating proactive research for: {state['query']} ---")
-        scout_report = await research_agent.scout_best_practices(state["query"])
-        state["scout_report"] = scout_report
+        try:
+            # 0. R&D Scout (Proactive Autonomy: Scout best practices at the start of every request)
+            print(f"--- R&D Scout initiating proactive research for: {state['query']} ---")
+            scout_report = await research_agent.scout_best_practices(state["query"])
+            state["scout_report"] = scout_report
 
-        # 0b. R&D Memory (Check for past solutions proactively)
-        print("--- Consulting Memory for related knowledge ---")
-        related_problems = await memory_agent.find_related_problems(state["query"])
-        if related_problems:
-             print(f"--- Found {len(related_problems)} related solutions in Memory ---")
-             state["related_knowledge"] = related_problems
+            # 0b. R&D Memory (Check for past solutions proactively)
+            print("--- Consulting Memory for related knowledge ---")
+            related_problems = await memory_agent.find_related_problems(state["query"])
+            if related_problems:
+                 print(f"--- Found {len(related_problems)} related solutions in Memory ---")
+                 state["related_knowledge"] = related_problems
 
-        # 1. Fetch Signals
-        signals = await supabase_fetch_signals(state["session_id"])
-        state["signals"] = signals
-        
-        # 2. Analyze User
-        analysis = await self.analyze_user(state["query"], signals, state.get("user_id", "anonymous"))
-        state["analysis"] = analysis
-        
-        # 2b. SAVE Memory (Persist Vibe)
-        await supabase_save_profile(state["session_id"], state.get("user_id"), analysis)
-        
-        # 3. Retrieve Context (Layer 3)
-        search_q = analysis.get('intent') or state['query']
-        print(f"--- Retrieving Content for: {search_q} ---")
-        
-        # Parallel Retrieval Strategy
-        tasks = [supabase_retrieve_context(search_q, analysis.get('lifestyleVibe'))]
-        
-        is_visual_intent = analysis.get("ui_directive") in ["immersion", "visual"] or \
-                           any(k in search_q.lower() for k in ["look like", "photo", "image", "view", "scene"])
-                           
-        if is_visual_intent:
-             print("--- Visual Intent Detected: Fetching Images ---")
-             tasks.append(supabase_retrieve_visuals(search_q, analysis.get('lifestyleVibe')))
-        
-        results = await asyncio.gather(*tasks)
-        retrieved_items = results[0]
-        visual_items = results[1] if len(results) > 1 else []
-        
-        state["retrieved_items"] = retrieved_items
-        state["visual_items"] = visual_items
+            # 1. Fetch Signals
+            signals = await supabase_fetch_signals(state["session_id"])
+            state["signals"] = signals
+            
+            # 2. Analyze User
+            analysis = await self.analyze_user(state["query"], signals, state.get("user_id", "anonymous"))
+            state["analysis"] = analysis
+            
+            # 2b. SAVE Memory (Persist Vibe)
+            await supabase_save_profile(state["session_id"], state.get("user_id"), analysis)
+            
+            # 3. Retrieve Context (Layer 3)
+            search_q = analysis.get('intent') or state['query']
+            print(f"--- Retrieving Content for: {search_q} ---")
+            
+            # Parallel Retrieval Strategy
+            tasks = [supabase_retrieve_context(search_q, analysis.get('lifestyleVibe'))]
+            
+            is_visual_intent = analysis.get("ui_directive") in ["immersion", "visual"] or \
+                               any(k in search_q.lower() for k in ["look like", "photo", "image", "view", "scene"])
+                               
+            if is_visual_intent:
+                 print("--- Visual Intent Detected: Fetching Images ---")
+                 tasks.append(supabase_retrieve_visuals(search_q, analysis.get('lifestyleVibe')))
+            
+            results = await asyncio.gather(*tasks)
+            retrieved_items = results[0]
+            visual_items = results[1] if len(results) > 1 else []
+            
+            state["retrieved_items"] = retrieved_items
+            state["visual_items"] = visual_items
 
-        # --- R&D Phase 3: Consensus Judge ---
-        consensus = await consensus_agent.validate_alignment(analysis, retrieved_items, visual_items)
-        analysis["consensus"] = consensus.model_dump()
-        
-        # 4. Generate Recommendation
-        rec = await self.generate_recommendation(state["query"], analysis, retrieved_items, visual_items)
-        state["recommendation"] = rec
-        state["recommendation"]["constraints"] = analysis.get("constraints")
-        state["recommendation"]["lifestyleVibe"] = analysis.get("lifestyleVibe")
-        
-        # 5. R&D Scribe & Scientist (Post-Build Hooks)
-        # We always trigger Scribe and SEO Scout for R&D visibility now
-        print("--- ScribeAgent: Logging Milestone ---")
-        await scribe_agent.track_milestone(state["query"], state)
-        
-        # Scientist validates if tests were provided
-        if state.get("test_results"):
-             print("--- ScientistAgent: Running Empirical Suite ---")
-             await scientist_agent.run_empirical_suite(state["query"], state["test_results"])
-        
-        # SEO Scout audits the final recommendation for AI Visibility
-        print("--- SEO Scout: Auditing Content for AIO ---")
-        aio_report = await seo_scout.audit_content_for_aio(str(state["recommendation"]))
-        state["aio_report"] = aio_report
-        
-        # Media Guardian triggers a self-healing cycle (Background)
-        asyncio.create_task(media_guardian.heal_media_library())
+            # --- R&D Phase 3: Consensus Judge ---
+            consensus = await consensus_agent.validate_alignment(analysis, retrieved_items, visual_items)
+            analysis["consensus"] = consensus.model_dump()
+            
+            # 4. Generate Recommendation
+            rec = await self.generate_recommendation(state["query"], analysis, retrieved_items, visual_items)
+            state["recommendation"] = rec
+            state["recommendation"]["constraints"] = analysis.get("constraints")
+            state["recommendation"]["lifestyleVibe"] = analysis.get("lifestyleVibe")
+            
+            # 5. R&D Scribe & Scientist (Post-Build Hooks - OFF-LOADED TO BACKGROUND)
+            # These are critical for R&D but should NOT block the user-facing response.
+            async def run_background_agents(query, data):
+                try:
+                    print("--- [Background] ScribeAgent: Logging Milestone ---")
+                    await scribe_agent.track_milestone(query, data)
+                    
+                    if data.get("test_results"):
+                        print("--- [Background] ScientistAgent: Running Empirical Suite ---")
+                        await scientist_agent.run_empirical_suite(query, data["test_results"])
+                    
+                    print("--- [Background] SEO Scout: Auditing Content for AIO ---")
+                    await seo_scout.audit_content_for_aio(str(data["recommendation"]))
+                except Exception as bge:
+                    print(f"⚠️ [Background Task Failure]: {bge}")
 
-        return state
+            asyncio.create_task(run_background_agents(state["query"], state))
+            
+            # Media Guardian triggers a self-healing cycle (Background - Throttled)
+            global last_heal_time
+            current_time = time.time()
+            if current_time - last_heal_time > HEAL_COOLDOWN:
+                print(f"--- [Background] MediaGuardian: Initiating self-healing cycle (Cooldown: {HEAL_COOLDOWN}s) ---")
+                asyncio.create_task(media_guardian.heal_media_library())
+                last_heal_time = current_time
+            else:
+                print(f"--- [Background] MediaGuardian: Self-healing skipped (Last run: {int(current_time - last_heal_time)}s ago) ---")
+
+            print(f"--- Orchestrator Complete for session {state['session_id']} ---")
+            return state
+        except Exception as e:
+            print(f"🔥 [CRITICAL] Orchestrator Failure: {e}")
+            state["error"] = str(e)
+            state["recommendation"] = {
+                "content": f"I'm sorry, I encountered a technical issue while processing your request for '{state['query']}'. Please try again in a moment.",
+                "reasoning": "Fallback triggered due to internal exception.",
+                "confidence": 0.0
+            }
+            return state
 
     async def analyze_user(self, query: str, signals: List[dict], user_id: str = "anonymous"):
         """
@@ -362,7 +389,8 @@ class Agent:
         """
         
         try:
-            response = await asyncio.to_thread(model.generate_content, prompt)
+            from backend.utils.async_utils import retry_sync_in_thread
+            response = await retry_sync_in_thread(model.generate_content, prompt)
             text = response.text
             if "```json" in text:
                 text = text.split("```json")[1].split("```")[0].strip()

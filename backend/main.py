@@ -4,9 +4,28 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import uvicorn
 import os
+import signal
+import sys
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Startup Validation
+required_env_vars = ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY", "VITE_GEMINI_API_KEY"]
+missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+if missing_vars:
+    print(f"❌ CRITICAL ERROR: Missing required environment variables: {', '.join(missing_vars)}")
+    print("Please check your .env file or environment configuration.")
+    # In a real production environment, we might exit(1) here.
+    # For R&D, we'll log it prominently.
+
+def handle_exit(sig, frame):
+    print(f"Signal {sig} received. Shutting down gracefully...")
+    # Any specific cleanup for agents could go here
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, handle_exit)
+signal.signal(signal.SIGTERM, handle_exit)
 
 app = FastAPI(title="Tripzy Reasoning Engine API")
 
@@ -97,4 +116,11 @@ async def fix_seo_endpoint(post_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    # Exclude docs and rd_archive from reload to prevent loops when agents write files
+    uvicorn.run(
+        "backend.main:app", 
+        host="0.0.0.0", 
+        port=8000, 
+        reload=True,
+        reload_excludes=["*.md", "docs/*", "docs/rd_archive/*"]
+    )

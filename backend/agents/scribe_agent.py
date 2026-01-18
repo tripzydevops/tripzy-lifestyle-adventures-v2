@@ -54,8 +54,11 @@ class ScribeAgent:
         response = await retry_sync_in_thread(self.model.generate_content, prompt)
         log_content = response.text
         
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(log_content)
+        def save_file():
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(log_content)
+        
+        await asyncio.to_thread(save_file)
             
         return filepath
 

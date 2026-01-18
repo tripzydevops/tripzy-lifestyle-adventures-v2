@@ -233,5 +233,62 @@ class ScientistAgent:
         response = await retry_sync_in_thread(self.model.generate_content, prompt)
         return response.text
 
+    async def analyze_travel_metadata(self, post: Dict[str, Any], scout_report: str) -> Dict[str, Any]:
+        """
+        Extracts high-fidelity metadata from a travel blog post, considering multilingual context
+        and research scout findings.
+        """
+        print(f"🧪 [Scientist] Reasoning over metadata for: {post['title']}")
+        
+        prompt = f"""
+        Analyze this travel blog post and extract standardized metadata.
+        Handle multilingual content (Turkish/English) gracefully.
+        If the location is missing or "unknown", use the title and excerpt to infer the most likely City/Country.
+        
+        TITLE: {post['title']}
+        EXCERPT: {post['excerpt']}
+        CURRENT CATEGORY: {post['category']}
+        CURRENT LOCATION: {post['related_destination']}
+        LANG: {post['lang']}
+        RESEARCH CONTEXT: {scout_report[:1000]}
+        
+        INSTRUCTIONS:
+        1. Identify the 'related_destination' as a specific City, Region, or Country.
+        2. Assign a 'category' from: Destinations, Adventure, Culture, Food & Drink, Luxury, or Budget.
+        3. Generate 5-7 descriptive 'tags'.
+        4. Create SEO optimized 'meta_title' and 'meta_description'.
+        
+        RETURN JSON ONLY:
+        {{
+            "category": "...",
+            "related_destination": "...",
+            "tags": ["...", "..."],
+            "meta_title": "...",
+            "meta_description": "..."
+        }}
+        """
+        
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        text = response.text
+        
+        # Clean JSON response
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0].strip()
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0].strip()
+            
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            print(f"⚠️ [Scientist] JSON Parse Error: {e}")
+            # Fallback to current data or a minimal set
+            return {
+                "category": post.get('category', "Destinations"),
+                "related_destination": post.get('related_destination', "Unknown"),
+                "tags": post.get('tags', []),
+                "meta_title": post['title'],
+                "meta_description": post['excerpt']
+            }
+
 # Singleton instance
 scientist_agent = ScientistAgent()
