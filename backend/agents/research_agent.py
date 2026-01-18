@@ -3,13 +3,15 @@ import asyncio
 from typing import List, Dict, Any, Optional
 import google.generativeai as genai
 from dotenv import load_dotenv, find_dotenv
+from tavily import AsyncTavilyClient
+from backend.utils.async_utils import retry_sync_in_thread, retry_async
+
 load_dotenv(find_dotenv())
-from tavily import AsyncTavilyClient # Using async client for non-blocking research
 
 class ResearchAgent:
     """
     The Scout: Performs real-time web research and documentation analysis 
-    before any major build or architectural decision.
+    with robust retry and timeout safety.
     """
     def __init__(self):
         self.gemini_key = os.getenv("VITE_GEMINI_API_KEY")
@@ -28,10 +30,7 @@ class ResearchAgent:
             print("Warning: Tavily API Key missing. ResearchAgent will rely on internal logic.")
 
     async def analyze_query_needs(self, query: str) -> str:
-        """
-        Analyzes if a query requires live web data or if internal knowledge is sufficient.
-        Returns: 'LIVE_SEARCH_REQUIRED' or 'INTERNAL_KNOWLEDGE_SUFFICIENT'
-        """
+        """Analyzes if a query requires live web data with retries."""
         prompt = f"""
         ACT AS: Research Cost Guard.
         QUERY: "{query}"
@@ -48,32 +47,25 @@ class ResearchAgent:
         INTERNAL_KNOWLEDGE_SUFFICIENT
         """
         try:
-            response = await asyncio.to_thread(self.model.generate_content, prompt)
+            response = await retry_sync_in_thread(self.model.generate_content, prompt)
             decision = response.text.strip()
-            # Safety fallback if model output is messy
             if "LIVE" in decision: return "LIVE_SEARCH_REQUIRED"
             return "INTERNAL_KNOWLEDGE_SUFFICIENT"
         except Exception:
-            # On error, default to internal to save cost/time
             return "INTERNAL_KNOWLEDGE_SUFFICIENT"
 
     async def scout_best_practices(self, topic: str) -> str:
-        """
-        Scouts the web for the latest state-of-the-art patterns for a given topic.
-        Uses Cost Guard to avoid unnecessary API calls.
-        """
-        # 1. Cost Guard Check
+        """Scouts web for patterns with jittered retries and timeouts."""
         decision = await self.analyze_query_needs(topic)
         print(f"💰 Cost Guard Decision for '{topic}': {decision}")
 
         search_query = f"best practices for {topic} 2026 technical implementation guide architecture"
         search_results = ""
 
-        # 2. Execution
         if self.tavily and decision == "LIVE_SEARCH_REQUIRED":
             try:
-                # Perform real-time async search
-                response = await self.tavily.search(query=search_query, search_depth="advanced")
+                # Use retry_async for the non-blocking Tavily client
+                response = await retry_async(self.tavily.search, query=search_query, search_depth="advanced")
                 for result in response['results']:
                     search_results += f"Source: {result['url']}\nContent: {result['content']}\n\n"
             except Exception as e:
@@ -99,13 +91,11 @@ class ResearchAgent:
         Format your response in professional Markdown.
         """
         
-        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
         return response.text
 
     async def scout_patents(self, features: List[str]) -> str:
-        """
-        Scouts for existing patents related to specific architectural features.
-        """
+        """Scouts for patents with batch-level reliability."""
         patent_report = ""
         
         for feature in features:
@@ -116,7 +106,7 @@ class ResearchAgent:
             
             if self.tavily and decision == "LIVE_SEARCH_REQUIRED":
                 try:
-                    response = await self.tavily.search(query=search_query, search_depth="advanced")
+                    response = await retry_async(self.tavily.search, query=search_query, search_depth="advanced")
                     patent_report += f"\n### Patent Search: {feature}\n"
                     for result in response['results']:
                         patent_report += f"- **Source:** {result['url']}\n  - **Snippet:** {result['content']}\n"
@@ -129,9 +119,7 @@ class ResearchAgent:
         return patent_report
     
     async def verify_latest_standards(self, proposed_tech: str) -> Dict[str, Any]:
-        """
-        Verifies if a proposed technology or architectual pattern is still considered optimal.
-        """
+        """Verifies tech standards with structured retries."""
         scout_report = await self.scout_best_practices(proposed_tech)
         
         prompt = f"""
@@ -148,8 +136,8 @@ class ResearchAgent:
         }}
         """
         
-        response = await asyncio.to_thread(self.model.generate_content, prompt)
         import json
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()

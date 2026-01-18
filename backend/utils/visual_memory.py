@@ -7,6 +7,7 @@ from datetime import datetime
 import re
 import google.generativeai as genai
 from .image_processor import ImageProcessor
+from backend.utils.async_utils import retry_async, retry_sync_in_thread
 
 class VisualMemory:
     def __init__(self, supabase_url: str, supabase_key: str, gemini_key: str = None):
@@ -57,10 +58,13 @@ class VisualMemory:
             try:
                 # A. Generate Description
                 print("         🧠 AI Vision: Analyzing image...")
-                response = self.model_vision.generate_content([
-                    "Describe this image in detail for a travel blog visual search engine. Identify the location/style/vibe.",
-                    {"mime_type": "image/webp", "data": webp_data}
-                ])
+                response = await retry_sync_in_thread(
+                    self.model_vision.generate_content,
+                    [
+                        "Describe this image in detail for a travel blog visual search engine. Identify the location/style/vibe.",
+                        {"mime_type": "image/webp", "data": webp_data}
+                    ]
+                )
                 ai_description = response.text
                 print(f"            -> '{ai_description[:50]}...'")
 
@@ -68,7 +72,8 @@ class VisualMemory:
                 print("         🧠 AI Embedding: Vectorizing...")
                 # Embed the detailed description + tags + title
                 text_to_embed = f"{post_title} {ai_description} {' '.join(tags)}"
-                embed_result = genai.embed_content(
+                embed_result = await retry_sync_in_thread(
+                    genai.embed_content,
                     model=self.model_embedding,
                     content=text_to_embed,
                     task_type="retrieval_document"
@@ -104,11 +109,13 @@ class VisualMemory:
         headers["Content-Type"] = "image/webp"
         
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, data=data) as resp:
-                if resp.status not in [200, 201]:
-                    print(f"         ❌ Upload failed: {resp.status}")
-                    return False
-                return True
+            async def _upload():
+                async with session.post(url, headers=headers, data=data) as resp:
+                    if resp.status not in [200, 201]:
+                        print(f"         ❌ Upload failed: {resp.status}")
+                        return False
+                    return True
+            return await retry_async(_upload)
 
     async def _index_in_db(self, public_url, path, title, tags, width, height, size, original_source, ai_desc=None, embedding=None):
         db_url = f"{self.supabase_url}/rest/v1/media_library"
@@ -150,11 +157,16 @@ class VisualMemory:
                         "tags": tags or []
                     }
                     
-                    async with session.post(blog_url, headers=blog_headers, json=blog_payload) as blog_resp:
-                        if blog_resp.status >= 300:
-                             print(f"         ⚠️ Dual-write warning (blog.media): {blog_resp.status}")
-                        else:
-                             print(f"         ✅ Dual-write success: Synced to blog.media")
+                    async def _dual_write():
+                        async with session.post(blog_url, headers=blog_headers, json=blog_payload) as blog_resp:
+                            if blog_resp.status >= 300:
+                                 print(f"         ⚠️ Dual-write warning (blog.media): {blog_resp.status}")
+                                 return False
+                            else:
+                                 print(f"         ✅ Dual-write success: Synced to blog.media")
+                                 return True
+                    
+                    await retry_async(_dual_write)
                 except Exception as e:
                     print(f"         ⚠️ Dual-write failed: {e}")
 
@@ -169,7 +181,8 @@ class VisualMemory:
 
         # 1. Generate Embedding for the query
         try:
-            embed_result = genai.embed_content(
+            embed_result = await retry_sync_in_thread(
+                genai.embed_content,
                 model=self.model_embedding,
                 content=query,
                 task_type="retrieval_query"
@@ -188,13 +201,15 @@ class VisualMemory:
         }
         
         async with aiohttp.ClientSession() as session:
-            try:
+            async def _search():
                 async with session.post(db_url, headers=self.headers, json=payload) as resp:
                     if resp.status == 200:
                         return await resp.json()
                     else:
                         print(f"❌ match_media RPC failed: {resp.status} - {await resp.text()}")
                         return []
+            try:
+                return await retry_async(_search)
             except Exception as e:
                 print(f"❌ Request failed: {e}")
                 return []

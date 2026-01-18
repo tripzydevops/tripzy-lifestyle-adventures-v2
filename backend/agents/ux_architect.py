@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 import google.generativeai as genai
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
+from backend.utils.async_utils import retry_sync_in_thread
 
 class UXArchitect:
     """
@@ -45,7 +46,7 @@ class UXArchitect:
         Format your response in professional Markdown.
         """
         
-        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
@@ -73,7 +74,7 @@ class UXArchitect:
         }}
         """
         
-        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()

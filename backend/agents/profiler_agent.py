@@ -6,6 +6,7 @@ from supabase import create_client, Client
 import google.generativeai as genai
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
+from backend.utils.async_utils import retry_sync_in_thread
 
 class ProfilerAgent:
     """
@@ -51,7 +52,7 @@ class ProfilerAgent:
         }}
         """
         
-        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
@@ -75,7 +76,9 @@ class ProfilerAgent:
         
         # Upsert into a new table or existing profiles
         try:
-            self.supabase.table("user_archetypes").upsert(data).execute()
+            await retry_sync_in_thread(
+                self.supabase.table("user_archetypes").upsert(data).execute
+            )
         except Exception as e:
             print(f"⚠️ [ProfilerAgent] Could not persist soul to Supabase: {e}")
         

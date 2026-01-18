@@ -7,8 +7,10 @@ import google.generativeai as genai
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
-# Collaborative Agency: Import the Scout
+# Collaborative Agency: Import the Scout and Memory
 from backend.agents.research_agent import research_agent
+from backend.agents.memory_agent import memory_agent
+from backend.utils.async_utils import retry_sync_in_thread
 
 class ScientistAgent:
     """
@@ -48,7 +50,7 @@ class ScientistAgent:
         Format your response in professional Markdown.
         """
         
-        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
         report_content = response.text
         
         with open(filepath, "w", encoding="utf-8") as f:
@@ -68,17 +70,20 @@ class ScientistAgent:
         print("   [Scientist] Consulting ResearchAgent for latest IEEE/ACM Grant Reporting Standards...")
         standards_report = await research_agent.scout_best_practices("IEEE software engineering grant report structure 2026")
         
+        # 2. Institutional Memory: Pull historical context
+        if not milestones:
+            print("   [Scientist] Pulling historical technical milestones from institutional memory...")
+            milestones = await memory_agent.fetch_recent_knowledge(limit=15)
+        
         prompt = f"""
         You are the Lead Chief Scientist for the Tripzy Autonomous Reasoning Engine (ARRE). 
         
-        **Objective:** Write a comprehensive, academic-level "Grant Progress Report" (IEEE/ACM Transaction style).
+        **Objective:** Write a cumulative, academic-level "Grant Progress Report" (IEEE/ACM Transaction style).
         
         **LATEST ACADEMIC STANDARDS (Provided by Research Scout):**
         {standards_report}
         
-        **Objective:** Write a comprehensive, academic-level "Grant Progress Report" (IEEE/ACM Transaction style).
-        
-        **Input Data (Milestones):** 
+        **Input Data (Historical Milestones & Decisions):** 
         {json.dumps(milestones, indent=2)}
         
         **System Architecture Context (The "Brain" you are validating):**
@@ -102,7 +107,7 @@ class ScientistAgent:
         **Format:** Professional Markdown.
         """
         
-        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
         report_content = response.text
         
         with open(filepath, "w", encoding="utf-8") as f:
@@ -150,7 +155,7 @@ class ScientistAgent:
         Format as professional Markdown.
         """
         
-        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
         report_content = response.text
         
         with open(filepath, "w", encoding="utf-8") as f:
@@ -195,13 +200,38 @@ class ScientistAgent:
         Format as professional Markdown.
         """
         
-        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
         report_content = response.text
         
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(report_content)
             
         return filepath
+
+    async def validate_task_change(self, task_summary: str, affected_files: List[str], diff_summary: str = "") -> str:
+        """
+        R&D Audit: Provides a technical peer-review of a development change.
+        Benchmarks it against the project's institutional standards.
+        """
+        prompt = f"""
+        You are the Chief Scientist for Tripzy ARRE. 
+        Audit this development change:
+        
+        Task: {task_summary}
+        Affected Files: {', '.join(affected_files)}
+        Diff Context: {diff_summary}
+        
+        Instructions:
+        1. Evaluate the change for technical soundess (e.g., does it avoid blocking calls? does it follow our async retry patterns?).
+        2. Benchmark against industry standards for "Autonomous Agent Architecture".
+        3. Provide a "Scientific Validity Score" (0-100%).
+        4. Identify potential "Experimenter Bias" or technical risks.
+        
+        Format your response in professional Markdown as a "Chief Scientist's Audit".
+        """
+        
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
+        return response.text
 
 # Singleton instance
 scientist_agent = ScientistAgent()

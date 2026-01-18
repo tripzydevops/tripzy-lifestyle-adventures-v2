@@ -7,6 +7,7 @@ from supabase import create_client, Client
 import google.generativeai as genai
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
+from backend.utils.async_utils import retry_sync_in_thread
 
 class MediaGuardian:
     """
@@ -43,7 +44,7 @@ class MediaGuardian:
         
         # Note: In a real environment, we'd need to fetch the image bytes or use a Gemini model that supports URL media
         # For this SDK logic, we assume the model handles the analysis.
-        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
         return response.text.strip()
 
     async def audit_image_quality(self, image_url: str) -> Dict[str, Any]:
@@ -65,7 +66,7 @@ class MediaGuardian:
         }}
         """
         
-        response = await asyncio.to_thread(self.model.generate_content, prompt)
+        response = await retry_sync_in_thread(self.model.generate_content, prompt)
         text = response.text
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
@@ -80,7 +81,9 @@ class MediaGuardian:
         This is the "Self-Healing" logic.
         """
         # 1. List media with missing alt-text
-        res = self.supabase.table("media_library").select("*").is_("alt_text", "null").limit(10).execute()
+        res = await retry_sync_in_thread(
+            self.supabase.table("media_library").select("*").is_("alt_text", "null").limit(10).execute
+        )
         
         for item in res.data:
             print(f"--- Healing Media Asset: {item['id']} ---")
@@ -88,11 +91,13 @@ class MediaGuardian:
             quality = await self.audit_image_quality(item['url'])
             
             # 2. Update metadata
-            self.supabase.table("media_library").update({
-                "alt_text": alt_text,
-                "quality_report": quality,
-                "last_audited": "now()"
-            }).eq("id", item['id']).execute()
+            await retry_sync_in_thread(
+                self.supabase.table("media_library").update({
+                    "alt_text": alt_text,
+                    "quality_report": quality,
+                    "last_audited": "now()"
+                }).eq("id", item['id']).execute
+            )
             
         return len(res.data)
 

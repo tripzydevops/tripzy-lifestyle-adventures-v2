@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 from backend.utils.usage_monitor import monitor
+from backend.utils.async_utils import retry_sync_in_thread
 
 # --- Configuration ---
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
@@ -79,7 +80,7 @@ class ConsensusAgent:
         """
 
         try:
-            response = await asyncio.to_thread(model.generate_content, prompt)
+            response = await retry_sync_in_thread(model.generate_content, prompt)
             data = response.text
             if "```json" in data:
                 data = data.split("```json")[1].split("```")[0].strip()

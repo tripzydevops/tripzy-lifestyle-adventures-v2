@@ -9,6 +9,7 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 from backend.utils.usage_monitor import monitor
+from backend.utils.async_utils import retry_sync_in_thread
 
 # --- Configuration ---
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
@@ -81,7 +82,7 @@ class CrossDomainTransferAgent:
         """
 
         try:
-            response = await asyncio.to_thread(self.model.generate_content, prompt)
+            response = await retry_sync_in_thread(self.model.generate_content, prompt)
             text = response.text
             
             # Extract JSON from markdown if needed

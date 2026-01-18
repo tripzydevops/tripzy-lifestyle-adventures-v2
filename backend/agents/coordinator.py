@@ -2,6 +2,7 @@ import os
 from supabase import create_client, Client
 import google.generativeai as genai
 from typing import List, Dict, Any
+from backend.utils.async_utils import retry_sync_in_thread
 
 class TravelReasoningAgent:
     def __init__(self):
@@ -58,7 +59,7 @@ class TravelReasoningAgent:
         """
         
         try:
-            response = await asyncio.to_thread(self.model.generate_content, prompt)
+            response = await retry_sync_in_thread(self.model.generate_content, prompt)
             # In a real app, we'd parse the JSON more robustly
             import json
             # Extract JSON from response text (Gemini sometimes adds markdown blocks)

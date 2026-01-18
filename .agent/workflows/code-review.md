@@ -81,21 +81,25 @@ asyncio.run(review())
 "
 ```
 
-### 5. Document in DESIGN_LOG (if significant change)
+### 5. Institutional Audit (Consult the Council)
 
-Create `docs/rd_archive/DESIGN_LOG_YOUR_FEATURE.md` with:
+Institutionalize the change by triggering the **Scribe**, **Memory**, and **Scientist** agents. This automatically archives the design log and indexes the patterns.
 
-- Objective
-- Technical Detail
-- Empirical Validation
-- Impact Analysis
-- Status
+```bash
+python devtools/council_audit.py --task "DESCRIBE_YOUR_TASK" --files FILE1.py FILE2.py --diff "SUMMARY_OF_CHANGES"
+```
+
+The Council will:
+
+1. **Scientist**: Validate technical soundness and benchmark.
+2. **Scribe**: Generate a formal `docs/rd_archive/` design log.
+3. **Memory**: Index the problem/solution in Supabase.
 
 ## Quick Reference
 
-| Anti-Pattern     | What to Look For                | Fix                   |
-| ---------------- | ------------------------------- | --------------------- |
-| async-blocking   | sync SDK calls in async def     | `asyncio.to_thread()` |
-| missing-retry    | API calls without try/except    | `retry_async()`       |
-| missing-batching | for-loop with API call inside   | Batch API call        |
-| session-waste    | new aiohttp session per request | Reuse session         |
+| Anti-Pattern     | What to Look For                | Fix                      |
+| ---------------- | ------------------------------- | ------------------------ |
+| async-blocking   | sync SDK calls in async def     | `retry_sync_in_thread()` |
+| missing-retry    | API calls without try/except    | `retry_async()`          |
+| missing-batching | for-loop with API call inside   | Batch API call           |
+| session-waste    | new aiohttp session per request | Reuse session            |
