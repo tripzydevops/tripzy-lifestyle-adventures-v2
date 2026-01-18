@@ -128,6 +128,7 @@ class ScientistAgent:
         You are the Lead Auditor for the Tripzy ARRE Project.
         
         **Objective:** Generate a "Gap Analysis & Benchmarking Report" comparing our system to Industry Best Practices.
+        **Timestamp**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (UTC+3)
         
         **OUR CURRENT ARCHITECTURE:**
         {current_architecture_summary}
@@ -171,6 +172,7 @@ class ScientistAgent:
         
         prompt = f"""
         ROLE: Intellectual Property (IP) Analyst & Tech Scout.
+        **Timestamp**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (UTC+3)
         QUERY_CONTEXT: {json.dumps(patent_data)}
         
         TASK: Conduct a "Patent Landscape Analysis" for the proposed ARRE innovations.

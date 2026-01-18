@@ -48,6 +48,7 @@ class ScribeAgent:
         5. **Implementation Logic**: Highlight specific patterns (e.g., retry_sync_in_thread, Scout-integration).
         6. **Empirical Verification**: Summary of tests conducted.
         
+        **Timestamp**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (UTC+3)
         SIGNATURE: "Lead Scientist: Antigravity"
         Format: Professional Markdown.
         """
