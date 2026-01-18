@@ -58,12 +58,20 @@ A living document that synthesizes historical Supabase memory with 2026 industry
 > - **Autonomy**: "Council of Four" bridge provides live research + archival.
 > - **Infinite Memory**: Grant reports are now cumulative, pulling from the full R&D history.
 
-### Generated Institutional Records
+### Generated Institutional Records (Dual-Report Architecture)
+
+#### 📊 Cumulative Summaries (Big Picture)
 
 - [Cumulative Grant Progress Report](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/reports/GRANT_PROGRESS_REPORT_20260118.md)
 - [Industry Benchmark Analysis](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/reports/INDUSTRY_BENCHMARK_20260118.md)
 - [Patent Landscape Assessment](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/reports/PATENT_LANDSCAPE_20260118.md)
 
+#### 🛠️ Granular R&D Records (Process, Feature, Test)
+
+- [**Process:** Universal Reliability Design Log](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/rd_archive/DESIGN_LOG_UNIVERSAL_RELIABILITY_AND_AUTONOMY_20260118.md)
+- [**Feature:** Council of Four Specification](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/rd_archive/FEATURE_SPEC_COUNCIL_OF_FOUR_20260118.md)
+- [**Test:** Reliability Stress Test Report](file:///c:/Users/elif/OneDrive/Masaüstü/tripzy lifestlye adventures/docs/rd_archive/TEST_REPORT_RELIABILITY_STRESS_20260118.md)
+
 ---
 
-**Status:** Institutional Autonomy Verified. The R&D Council is now supervising the project.
+**Status:** Dual-Documentation Protocol Active. Both cumulative and standalone records are now generated for every R&D cycle.
