@@ -55,7 +55,7 @@ const mapStatusToSupabase = (status: PostStatus): string => {
 
 const mapStatusFromSupabase = (
   status: string,
-  publishedAt: string | null
+  publishedAt: string | null,
 ): PostStatus => {
   if (status === "published") {
     if (publishedAt && new Date(publishedAt) > new Date()) {
@@ -84,6 +84,9 @@ const mapPostFromSupabase = (data: any): Post => ({
   createdAt: data.created_at,
   updatedAt: data.updated_at,
   views: data.views || 0,
+  locationCity: data.location_city,
+  locationCountry: data.location_country,
+  locationRegion: data.location_region,
   metaTitle: data.meta_title,
   metaDescription: data.meta_description,
   metaKeywords: data.meta_keywords,
@@ -118,7 +121,7 @@ export const postService = {
     page: number = 1,
     limit: number = 20,
     searchQuery: string = "",
-    lang?: string
+    lang?: string,
   ): Promise<PaginatedPostsResponse> {
     let query = supabase
       .schema("blog")
@@ -127,7 +130,7 @@ export const postService = {
 
     if (searchQuery) {
       query = query.or(
-        `title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`
+        `title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`,
       );
     }
 
@@ -210,7 +213,7 @@ export const postService = {
       .schema("blog")
       .from("posts")
       .select(
-        "id, title, slug, views, category, created_at, status, author_id, published_at"
+        "id, title, slug, views, category, created_at, status, author_id, published_at",
       ) // Exclude content/excerpt
       .order("views", { ascending: false })
       .limit(limit);
@@ -226,7 +229,7 @@ export const postService = {
   async getPublishedPosts(
     page: number = 1,
     limit: number = POSTS_PER_PAGE,
-    lang?: string
+    lang?: string,
   ): Promise<PaginatedPostsResponse> {
     const now = new Date().toISOString();
 
@@ -263,7 +266,7 @@ export const postService = {
 
     const { data, error } = await query.range(
       (page - 1) * limit,
-      page * limit - 1
+      page * limit - 1,
     );
 
     if (error) {
@@ -282,7 +285,7 @@ export const postService = {
   async searchPosts(
     query: string,
     page: number = 1,
-    limit: number = POSTS_PER_PAGE
+    limit: number = POSTS_PER_PAGE,
   ): Promise<PaginatedPostsResponse> {
     if (!query) return { posts: [], totalPages: 0, totalCount: 0 };
     const now = new Date().toISOString();
@@ -325,7 +328,7 @@ export const postService = {
 
   async semanticSearchPosts(
     query: string,
-    matchCount: number = 6
+    matchCount: number = 6,
   ): Promise<Post[]> {
     if (!query) return [];
 
@@ -367,7 +370,7 @@ export const postService = {
     category: string,
     page: number = 1,
     limit: number = POSTS_PER_PAGE,
-    lang?: string
+    lang?: string,
   ): Promise<PaginatedPostsResponse> {
     const now = new Date().toISOString();
 
@@ -405,7 +408,7 @@ export const postService = {
 
     const { data, error } = await query.range(
       (page - 1) * limit,
-      page * limit - 1
+      page * limit - 1,
     );
 
     if (error) {
@@ -424,7 +427,7 @@ export const postService = {
   async getPostsByTag(
     tag: string,
     page: number = 1,
-    limit: number = POSTS_PER_PAGE
+    limit: number = POSTS_PER_PAGE,
   ): Promise<PaginatedPostsResponse> {
     const now = new Date().toISOString();
 
@@ -467,7 +470,7 @@ export const postService = {
   async getPostsByAuthorId(
     authorId: string,
     page: number = 1,
-    limit: number = POSTS_PER_PAGE
+    limit: number = POSTS_PER_PAGE,
   ): Promise<PaginatedPostsResponse> {
     const now = new Date().toISOString();
 
@@ -565,7 +568,7 @@ export const postService = {
   },
 
   async createPost(
-    postData: Omit<Post, "id" | "slug" | "createdAt" | "updatedAt" | "views">
+    postData: Omit<Post, "id" | "slug" | "createdAt" | "updatedAt" | "views">,
   ): Promise<Post> {
     const slug = slugify(postData.title);
 
@@ -603,6 +606,9 @@ export const postService = {
           ? new Date().toISOString()
           : null),
       embedding: embedding,
+      location_city: postData.locationCity,
+      location_country: postData.locationCountry,
+      location_region: postData.locationRegion,
       metadata: postData.intelligenceMetadata || {},
     };
 
@@ -649,6 +655,12 @@ export const postService = {
       supabaseUpdates.meta_keywords = updates.metaKeywords;
     if (updates.intelligenceMetadata !== undefined)
       supabaseUpdates.metadata = updates.intelligenceMetadata;
+    if (updates.locationCity !== undefined)
+      supabaseUpdates.location_city = updates.locationCity;
+    if (updates.locationCountry !== undefined)
+      supabaseUpdates.location_country = updates.locationCountry;
+    if (updates.locationRegion !== undefined)
+      supabaseUpdates.location_region = updates.locationRegion;
 
     // Update embedding if title or content changed
     if (updates.title || updates.content || updates.excerpt) {
@@ -658,9 +670,8 @@ export const postService = {
         const excerpt = updates.excerpt || currentPost?.excerpt || "";
         const content = updates.content || currentPost?.content || "";
         const textToEmbed = `${title} ${excerpt} ${content.substring(0, 1000)}`;
-        supabaseUpdates.embedding = await embeddingService.generateEmbedding(
-          textToEmbed
-        );
+        supabaseUpdates.embedding =
+          await embeddingService.generateEmbedding(textToEmbed);
       } catch (err) {
         console.warn("Failed to update embedding for post:", err);
       }

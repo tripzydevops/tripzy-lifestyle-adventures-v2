@@ -32,7 +32,12 @@ class MemoryAgent:
             embed_content_sync,
             text
         )
-        return result.embeddings[0].values
+        # Legacy SDK returns dict {'embedding': [...]}
+        if isinstance(result, dict) and 'embedding' in result:
+            return result['embedding']
+        # Fallback if structure changes
+        return result
+
 
     async def summarize_problem(self, conversation_context: str) -> Dict[str, Any]:
         """Uses Gemini to extract a structured summary with retries and timeout."""

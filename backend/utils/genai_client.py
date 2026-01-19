@@ -1,62 +1,50 @@
 """
-Centralized Google GenAI Client Wrapper
+Centralized Google GenAI Client Wrapper (Pure REST)
 
-This module provides a singleton client instance for the new google-genai SDK,
-replacing the deprecated google.generativeai package.
+This module provides a lightweight, dependency-free (except requests/aiohttp) client 
+for Gemini, avoiding the freezing issues encountered with google-genai and google-generativeai 
+SDKs on Python 3.14 (Windows) due to grpc/protobuf conflicts.
 
 Usage:
-    from backend.utils.genai_client import get_client, generate_content, embed_content
-    
-    # Direct client access
-    client = get_client()
-    response = client.models.generate_content(model='gemini-2.0-flash', contents='Hello')
-    
-    # Or use wrapper functions
-    response = await generate_content('Hello', model='gemini-2.0-flash')
-
-Based on official docs: https://ai.google.dev/gemini-api/docs/quickstart?lang=python
+    from backend.utils.genai_client import generate_content, embed_content
 """
 
 import os
+import json
 import asyncio
-from typing import Optional, Any
+import requests
+import aiohttp
+from typing import Optional, Any, Dict, List
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 
-# Singleton client instance
-_client = None
+BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
-# Default models - Updated to Gemini 2.0 Flash (Stable for Agents)
+# Default models
 DEFAULT_GENERATION_MODEL = "gemini-2.0-flash-exp"
 DEFAULT_EMBEDDING_MODEL = "text-embedding-004"
 
-
-def get_client():
-    """
-    Returns a singleton Gemini client instance.
-    The SDK automatically reads GEMINI_API_KEY from environment, but we use VITE_GEMINI_API_KEY.
-    """
-    global _client
-    if _client is None:
-        # Import here to allow graceful failure if package not installed
+class RestResponse:
+    def __init__(self, data: Dict[str, Any]):
+        self.data = data
+        self._text = self._extract_text()
+        
+    def _extract_text(self):
         try:
-            from google import genai
-        except ImportError:
-            raise ImportError(
-                "google-genai package not installed. Run: pip install -U google-genai"
-            )
-        
-        # Set the env var the SDK expects from our VITE_GEMINI_API_KEY
-        api_key = os.getenv("VITE_GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("Missing VITE_GEMINI_API_KEY environment variable")
-        
-        # The SDK reads from GEMINI_API_KEY by default
-        os.environ["GEMINI_API_KEY"] = api_key
-        _client = genai.Client()
-    return _client
+            return self.data['candidates'][0]['content']['parts'][0]['text']
+        except (KeyError, IndexError, TypeError):
+            return ""
 
+    @property
+    def text(self):
+        return self._text
+
+def get_api_key():
+    api_key = os.getenv("VITE_GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("Missing VITE_GEMINI_API_KEY")
+    return api_key
 
 def generate_content_sync(
     prompt: str,
@@ -64,16 +52,26 @@ def generate_content_sync(
     **kwargs
 ) -> Any:
     """
-    Synchronous content generation using the new SDK.
-    Returns the response object with .text attribute.
+    Synchronous content generation using requests.
     """
-    client = get_client()
-    return client.models.generate_content(
-        model=model,
-        contents=prompt,
-        **kwargs
-    )
-
+    key = get_api_key()
+    url = f"{BASE_URL}/{model}:generateContent?key={key}"
+    
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }]
+    }
+    
+    # Map kwargs to generationConfig if needed
+    # (Simplified for stability)
+    
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code != 200:
+        raise Exception(f"Gemini API Error {response.status_code}: {response.text}")
+        
+    return RestResponse(response.json())
 
 async def generate_content(
     prompt: str,
@@ -82,14 +80,25 @@ async def generate_content(
     **kwargs
 ) -> Any:
     """
-    Async content generation wrapper.
-    Runs the sync client call in a thread pool with timeout.
+    Async content generation wrapper using aiohttp.
     """
-    return await asyncio.wait_for(
-        asyncio.to_thread(generate_content_sync, prompt, model, **kwargs),
-        timeout=timeout
-    )
-
+    key = get_api_key()
+    url = f"{BASE_URL}/{model}:generateContent?key={key}"
+    
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }]
+    }
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=payload, timeout=timeout) as resp:
+            if resp.status != 200:
+                text = await resp.text()
+                raise Exception(f"Gemini API Error {resp.status}: {text}")
+            data = await resp.json()
+            return RestResponse(data)
 
 def embed_content_sync(
     text: str,
@@ -97,16 +106,41 @@ def embed_content_sync(
     **kwargs
 ) -> Any:
     """
-    Synchronous embedding generation using the new SDK.
-    Returns the response object with embeddings.
+    Synchronous embedding generation.
+    Returns: {'embedding': {'values': [...]}} to match expected structure somewhat, 
+    BUT we agreed to match Legacy SDK: {'embedding': [...]}?
+    
+    MemoryAgent expects: result['embedding'] (which acts as list of floats).
+    Legacy SDK returns: {'embedding': [0.1, ...]}
+    
+    REST API returns: {'embedding': {'values': [0.1, ...]}}
     """
-    client = get_client()
-    return client.models.embed_content(
-        model=model,
-        contents=text,
-        **kwargs
-    )
-
+    key = get_api_key()
+    url = f"{BASE_URL}/{model}:embedContent?key={key}"
+    
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "model": f"models/{model}",
+        "content": {
+            "parts": [{"text": text}]
+        }
+    }
+    
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code != 200:
+        raise Exception(f"Gemini API Error {response.status_code}: {response.text}")
+        
+    data = response.json()
+    # Normalize to match what MemoryAgent expects (after my recent patch)
+    # MemoryAgent expects: if 'embedding' in result: return result['embedding']
+    # And then .embeddings[0].values was the OLD OLD check.
+    
+    # Let's return exactly what match Legacy SDK structure:
+    # {'embedding': [float, ...]}
+    if 'embedding' in data and 'values' in data['embedding']:
+        return {'embedding': data['embedding']['values']}
+        
+    return data
 
 async def embed_content(
     text: str,
@@ -115,37 +149,16 @@ async def embed_content(
     **kwargs
 ) -> Any:
     """
-    Async embedding generation wrapper.
-    Runs the sync client call in a thread pool with timeout.
+    Async embedding wrapper.
     """
     return await asyncio.wait_for(
         asyncio.to_thread(embed_content_sync, text, model, **kwargs),
         timeout=timeout
     )
 
-
-def generate_content_stream_sync(
-    prompt: str,
-    model: str = DEFAULT_GENERATION_MODEL,
-    **kwargs
-):
-    """
-    Synchronous streaming content generation.
-    Returns an iterator that yields chunks.
-    """
-    client = get_client()
-    return client.models.generate_content_stream(
-        model=model,
-        contents=prompt,
-        **kwargs
-    )
-
-
 if __name__ == "__main__":
-    print("--- GenAI Client Health Check ---")
+    print("--- GenAI Client (REST) Health Check ---")
     try:
-        client = get_client()
-        print(f"Client initialized: {client}")
         print(f"Testing generation with model: {DEFAULT_GENERATION_MODEL}")
         response = generate_content_sync("Hello, are you online?", model="gemini-2.0-flash-exp")
         print(f"Response: {response.text}")

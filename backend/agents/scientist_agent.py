@@ -242,15 +242,21 @@ class ScientistAgent:
         RESEARCH CONTEXT: {scout_report[:1000]}
         
         INSTRUCTIONS:
-        1. Identify the 'related_destination' as a specific City, Region, or Country.
-        2. Assign a 'category' from: Destinations, Adventure, Culture, Food & Drink, Luxury, or Budget.
-        3. Generate 5-7 descriptive 'tags'.
-        4. Create SEO optimized 'meta_title' and 'meta_description'.
+        1. Identify the specific 'location_city' (e.g., Istanbul).
+        2. Identify the specific 'location_country' (e.g., Turkey).
+        3. Identify the 'location_region' if applicable (e.g., Marmara, Aegean, Tuscany).
+        4. Assign a 'category' from: Destinations, Adventure, Culture, Food & Drink, Luxury, or Budget.
+        5. Generate 5-7 descriptive 'tags'.
+        6. Create SEO optimized 'meta_title' and 'meta_description'.
+        
+        CRITICAL: If the post is in Turkish, translate the location fields to English for standardization, but use the Turkish context to ensure accuracy.
         
         RETURN JSON ONLY:
         {{
             "category": "...",
-            "related_destination": "...",
+            "location_city": "...",
+            "location_country": "...",
+            "location_region": "...",
             "tags": ["...", "..."],
             "meta_title": "...",
             "meta_description": "..."

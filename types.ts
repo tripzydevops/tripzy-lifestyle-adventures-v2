@@ -48,6 +48,9 @@ export interface Post {
   createdAt: string;
   updatedAt: string;
   views: number;
+  locationCity?: string;
+  locationCountry?: string;
+  locationRegion?: string;
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;

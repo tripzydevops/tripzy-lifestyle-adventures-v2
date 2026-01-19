@@ -1,4 +1,3 @@
-
 export type BlogStatus = "draft" | "published" | "archived";
 
 export interface BlogAuthor {
@@ -59,5 +58,8 @@ export interface BlogPost {
   };
   callToAction?: BlogCallToAction;
   status: BlogStatus;
+  locationCity?: string;
+  locationCountry?: string;
+  locationRegion?: string;
   language: string; // e.g. "en-US"
 }
