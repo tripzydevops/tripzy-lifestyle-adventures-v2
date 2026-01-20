@@ -22,7 +22,7 @@ load_dotenv(find_dotenv())
 BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 # Default models
-DEFAULT_GENERATION_MODEL = "gemini-2.0-flash-exp"
+DEFAULT_GENERATION_MODEL = "gemini-2.0-flash"
 DEFAULT_EMBEDDING_MODEL = "text-embedding-004"
 
 class RestResponse:
@@ -67,11 +67,14 @@ def generate_content_sync(
     # Map kwargs to generationConfig if needed
     # (Simplified for stability)
     
-    response = requests.post(url, headers=headers, json=payload)
+    
+    # Add explicit timeout to prevent hanging indefinitely
+    response = requests.post(url, headers=headers, json=payload, timeout=60)
     if response.status_code != 200:
         raise Exception(f"Gemini API Error {response.status_code}: {response.text}")
         
     return RestResponse(response.json())
+
 
 async def generate_content(
     prompt: str,
@@ -126,17 +129,13 @@ def embed_content_sync(
         }
     }
     
-    response = requests.post(url, headers=headers, json=payload)
+    # Add explicit timeout (30s) to prevent hanging during embedding
+    response = requests.post(url, headers=headers, json=payload, timeout=30)
     if response.status_code != 200:
         raise Exception(f"Gemini API Error {response.status_code}: {response.text}")
         
     data = response.json()
-    # Normalize to match what MemoryAgent expects (after my recent patch)
-    # MemoryAgent expects: if 'embedding' in result: return result['embedding']
-    # And then .embeddings[0].values was the OLD OLD check.
-    
-    # Let's return exactly what match Legacy SDK structure:
-    # {'embedding': [float, ...]}
+    # Normalize to match what MemoryAgent expects
     if 'embedding' in data and 'values' in data['embedding']:
         return {'embedding': data['embedding']['values']}
         

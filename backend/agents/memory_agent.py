@@ -120,15 +120,27 @@ class MemoryAgent:
         return result.data
 
     async def fetch_recent_knowledge(self, limit: int = 10) -> List[Dict[str, Any]]:
-        """Retrieves the latest technical milestones/entries from memory."""
-        result = await retry_sync_in_thread(
-            self.supabase.table("developer_knowledge")
-            .select("*")
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute
-        )
-        return result.data
+        """Retrieves the latest technical milestones from memory with timeout protection."""
+        # Use a localized timeout for DB operations
+        DB_TIMEOUT = 10.0 
+        
+        async def fetch():
+            result = self.supabase.table("developer_knowledge") \
+                .select("*") \
+                .order("created_at", desc=True) \
+                .limit(limit) \
+                .execute()
+            return result.data
+
+        try:
+            return await retry_sync_in_thread(
+                fetch,
+                timeout=DB_TIMEOUT,
+                max_retries=2
+            )
+        except Exception as e:
+            print(f"[WARNING] [Memory] Failed to fetch recent knowledge: {e}")
+            return []
 
 # Singleton instance
 memory_agent = MemoryAgent()

@@ -100,6 +100,14 @@ async def retry_async(
                 logger.error(f"[{correlation_id}] [ERROR] All {max_retries} attempts failed.")
                 raise last_error
 
+import concurrent.futures
+
+# --- Thread Pool Management ---
+# We use a dedicated thread pool to avoid exhausting the default global pool
+# which is used by many other libraries.
+MAX_WORKERS = 20
+_executor = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS, thread_name_prefix="tripzy_worker")
+
 async def run_sync_in_thread(
     func: Callable[..., T],
     *args,
@@ -107,9 +115,19 @@ async def run_sync_in_thread(
     **kwargs
 ) -> T:
     """
-    Run a synchronous blocking function in a thread pool with a timeout.
+    Run a synchronous blocking function in a dedicated thread pool with a timeout.
+    CRITICAL: The timeout here only stops the async await; the thread stays occupied 
+    if the synchronous function (func) doesn't have its own internal timeout.
     """
-    return await asyncio.wait_for(asyncio.to_thread(func, *args, **kwargs), timeout=timeout)
+    loop = asyncio.get_running_loop()
+    try:
+        return await asyncio.wait_for(
+            loop.run_in_executor(_executor, lambda: func(*args, **kwargs)),
+            timeout=timeout
+        )
+    except asyncio.TimeoutError:
+        logger.error(f"⏱️ thread operation timed out after {timeout}s")
+        raise
 
 async def retry_sync_in_thread(
     func: Callable[..., T],
