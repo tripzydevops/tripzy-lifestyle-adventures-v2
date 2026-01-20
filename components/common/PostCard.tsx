@@ -33,7 +33,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           const { results } = await unsplashService.searchPhotos(
             post.title + " travel aesthetic",
             1,
-            1
+            1,
           );
           if (results.length > 0) {
             setDisplayImg(results[0].url);
@@ -84,6 +84,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   displayImg ||
                   "https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=1000&auto=format&fit=crop"
                 }
+                loading="lazy"
                 alt={post.featuredMediaAlt || post.title}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 onError={(e) => {

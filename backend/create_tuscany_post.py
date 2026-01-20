@@ -222,39 +222,40 @@ async def main():
     {USER_DRAFT}
     
     INSTRUCTIONS:
-    1. **Maintain the Sections**: Keep the flow (Accommodation -> Wine -> Art -> Truffle -> Conclusion).
-    2. **Expand**: Add sensory details, historical context, and practical "Pro-Tips" to reach ~1500 words.
-    3. **Tone**: Ultra-luxury, "La Dolce Vita", slow travel, sophisticated.
-    4. **Images**: You MUST insert the exact placeholders `[IMAGE_1]`, `[IMAGE_2]`, `[IMAGE_3]`, `[IMAGE_4]`, `[IMAGE_5]`, `[IMAGE_6]` in the appropriate sections:
-       - Place [IMAGE_1] ("Entrance View") in the **Introduction** section.
-       - Place [IMAGE_2] ("Bedroom") in the **Accommodation** section.
-       - Place [IMAGE_3] ("Wine") in the **Wine** section.
-       - Place [IMAGE_4] ("Florence") in the **Art** section.
-       - Place [IMAGE_5] ("Food") in the **Truffle/Food** section.
-       - Place [IMAGE_6] ("Valley Sunrise") in the **Conclusion**.
+    1. **Role**: You are an elite travel editor for a "Conde Nast" style digital magazine.
+    2. **Layout Architecture** (CRITICAL):
+       - Do NOT output a simple wall of text.
+       - Use the following custom HTML classes to create a "State of the Art" layout:
+         - `<h2 class="magazine-h2">`: for main section headers.
+         - `<div class="magazine-pullquote"><p>Quote text</p></div>`: for impact statements.
+         - `<div class="magazine-pro-tip"><span class="tip-icon">💡</span><div class="tip-content"><strong>Pro Tip:</strong> Content</div></div>`: for practical advice.
+         - `<div class="magazine-highlights"><h4 class="highlights-title">Highlights</h4><ul><li>Item 1</li><li>Item 2</li></ul></div>`: for summaries.
+         - `<p class="drop-cap">`: For the very first paragraph of the article.
+    3. **Image Strategy**:
+       - You MUST insert the exact placeholders `[IMAGE_1]`, `[IMAGE_2]`, etc. inside `<figure class="magazine-figure">` tags.
+       - Distribute them logically to break up text density.
+    4. **Tone**: Immersive, sensory, ultra-luxury. Use "Visual Writing" (show, don't just tell).
     
     OUTPUT JSON FORMAT:
     {{
-        "content": "HTML Strng (use <h2 class='magazine-h2'>, <p>, <div class='magazine-pro-tip'>...)",
-        "excerpt": "150 chars summary",
-        "meta_title": "SEO Title",
-        "meta_description": "SEO Description",
+        "content": "HTML String with the specific classes above.",
+        "excerpt": "A magnetic, 150 char hook for the homepage.",
+        "meta_title": "SEO Title (60 chars max, high CTR)",
+        "meta_description": "SEO Description (160 chars max)",
         "map_data": {{
             "center_lat": 43.4, "center_lng": 11.1, "zoom": 9,
             "points": [
-                 {{ "title": "Val d'Orcia", "lat": 43.0, "lng": 11.6, "description": "UNESCO World Heritage landscape.", "category": "View" }},
-                 {{ "title": "Florence Duomo", "lat": 43.773, "lng": 11.256, "description": "Iconic cathedral.", "category": "History" }},
-                 {{ "title": "Siena", "lat": 43.318, "lng": 11.332, "description": "Medieval city heart.", "category": "History" }},
-                 {{ "title": "Chianti Region", "lat": 43.5, "lng": 11.3, "description": "Wine country.", "category": "Food" }}
+                 {{ "title": "Val d'Orcia", "lat": 43.0, "lng": 11.6, "description": "Unesco Sunset Spot", "category": "View" }},
+                 {{ "title": "Castello di Casole", "lat": 43.3, "lng": 11.0, "description": "Luxury Stay", "category": "Hotel" }}
             ]
         }},
         "intelligence_metadata": {{
             "intent": "Inspiration",
-            "lifestyleVibe": "Luxury",
-            "constraints": ["High Budget"],
-            "reasoning": "Tuscany represents the pinnacle of slow, luxury travel.",
-            "confidence": 0.95,
-            "meta_keywords": ["Toskana", "İtalya", "Lüks Tatil", "Şarap", "Balayı"]
+            "lifestyleVibe": "Old Money Aesthetic",
+            "constraints": ["Luxury Budget"],
+            "reasoning": "Curated for the traveler seeking depth and exclusivity.",
+            "confidence": 0.98,
+            "meta_keywords": ["Tuscany", "Luxury Travel", "Slow Life", "Italy 2026"]
         }}
     }}
     """

@@ -283,7 +283,12 @@ class Agent:
             state["visual_items"] = visual_items
 
             # --- R&D Phase 3: Consensus Judge ---
-            consensus = await consensus_agent.validate_alignment(analysis, retrieved_items, visual_items)
+            consensus = await consensus_agent.validate_alignment(
+                analysis, 
+                retrieved_items, 
+                visual_items,
+                state.get("scout_report", "No scout report available")
+            )
             analysis["consensus"] = consensus.model_dump()
             
             # 4. Generate Recommendation
@@ -511,7 +516,12 @@ class Agent:
 
             # 3b. Consensus Judge
             yield json.dumps({"type": "status", "data": "Verifying Consensus..."}) + "\n"
-            consensus = await consensus_agent.validate_alignment(analysis, retrieved_items, visual_items)
+            consensus = await consensus_agent.validate_alignment(
+                analysis, 
+                retrieved_items, 
+                visual_items,
+                state.get("scout_report", "No scout report available")
+            )
             analysis["consensus"] = consensus.model_dump()
             yield json.dumps({"type": "consensus", "data": analysis["consensus"]}) + "\n"
             

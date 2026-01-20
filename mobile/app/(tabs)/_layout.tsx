@@ -29,17 +29,31 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          title: "Home",
+          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="explore"
+        options={{
           title: "Explore",
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="compass" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabBarIcon name="search" color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="plan"
+        options={{
+          title: "Plan",
+          tabBarIcon: ({ color }) => <TabBarIcon name="map-o" color={color} />,
         }}
       />
 
       <Tabs.Screen
         name="brain"
         options={{
-          title: "Agent",
+          title: "Brain",
           tabBarIcon: ({ color }) => <TabBarIcon name="magic" color={color} />,
         }}
       />

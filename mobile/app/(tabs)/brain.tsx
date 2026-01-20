@@ -13,8 +13,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
-const BACKEND_URL =
-  process.env.EXPO_PUBLIC_BACKEND_URL || "http://10.0.2.2:8000";
+import { Config } from "@/constants/Config";
+import { StatusBar } from "expo-status-bar";
+
+const BACKEND_URL = Config.API_URL;
 
 interface StreamState {
   status: string;

@@ -94,6 +94,7 @@ VITE_GEMINI_API_KEY=your-gemini-api-key
 | ----------------------------------------------------- | ----------------------------------------------------------------- |
 | [📋 Project Artifact](docs/project_artifact.md)       | Complete project documentation, architecture, and database schema |
 | [🗺️ Implementation Plan](docs/implementation_plan.md) | Development roadmap with phases and task checklists               |
+| [🚀 Deployment Guide](docs/deployment_guide.md)       | Step-by-step instructions for Vercel and Cloud Run deployment     |
 
 ---
 

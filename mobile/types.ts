@@ -81,3 +81,19 @@ export interface MediaItem {
   sizeBytes?: number;
   tags?: string[];
 }
+
+export interface RecommendationRequest {
+  query?: string;
+  user_id?: string;
+  session_id: string;
+}
+
+export interface RecommendationResponse {
+  session_id: string;
+  user_id?: string;
+  persona: string;
+  intent: string;
+  recommendations: Post[];
+  reasoning: string;
+  suggested_next_steps: string[];
+}

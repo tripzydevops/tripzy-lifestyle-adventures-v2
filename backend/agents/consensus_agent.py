@@ -32,7 +32,8 @@ class ConsensusAgent:
         self, 
         persona: Any, 
         retrieved_items: List[Dict[str, Any]], 
-        visual_items: List[Dict[str, Any]]
+        visual_items: List[Dict[str, Any]],
+        scout_report: str = "No external best practices found."
     ) -> ConsensusResult:
         """
         Calculates consensus between the inferred persona and the actual data found.
@@ -66,12 +67,18 @@ class ConsensusAgent:
         
         VISUAL GALLERY (Aesthetic Context):
         {json.dumps(context['visual_gallery'], indent=2)}
+
+        BEST PRACTICE REPORT (Scout Agent):
+        {scout_report}
         
         EVALUATION CRITERIA:
         1. **Style Consistency**: Audit images against the persona's color palette (e.g., Luxury=Sleek/Gold, Adventure=Earth/Rugged).
         2. **Logical Cohesion**: Do the words and images form a singular, believable travel narrative?
         3. **Constraint Adherence**: Verify if density, pace, and vibe constraints are strictly met.
         4. **Structural Validation**: Ensure the psychological triggers in the content align with the inferred intent.
+        5. **Best Practice Compliance**: Ensure the recommendations do not violate the "Scout Report" (e.g., safety, verify latest standards).
+        
+
         
         OUTPUT FORMAT (JSON ONLY):
         {{
