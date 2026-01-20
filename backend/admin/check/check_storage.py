@@ -5,6 +5,7 @@ import os
 import asyncio
 import aiohttp
 import json
+from typing import List, Optional
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -12,7 +13,7 @@ load_dotenv(find_dotenv())
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
 
-async def list_bucket_files(path=""):
+async def list_bucket_files(path: str = "") -> List[str]:
     url = f"{SUPABASE_URL}/storage/v1/object/list/blog-media"
     headers = {
         "apikey": SUPABASE_KEY,
@@ -48,4 +49,13 @@ async def main():
     print(f"Content/ files: {content_files}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

@@ -1,4 +1,7 @@
 
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 import asyncio
 import os
 import aiohttp
@@ -20,7 +23,8 @@ UNSPLASH_KEY = os.getenv("VITE_UNSPLASH_ACCESS_KEY")
 async def get_unsplash_image(query):
     url = f"https://api.unsplash.com/search/photos?query={query}&per_page=1&orientation=landscape"
     headers = {"Authorization": f"Client-ID {UNSPLASH_KEY}"}
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         async with session.get(url, headers=headers) as resp:
             if resp.status == 200:
                 data = await resp.json()
@@ -68,7 +72,8 @@ async def fix_all():
         "Content-Profile": "blog"
     }
     
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         print("[SEARCH] Fetching Posts for Comprehensive Repair...")
         async with session.get(f"{SUPABASE_URL}/rest/v1/posts?select=*", headers=headers) as r:
             posts = await r.json()
@@ -130,4 +135,13 @@ async def fix_all():
             await asyncio.sleep(1)
 
 if __name__ == "__main__":
-    asyncio.run(fix_all())
+    try:
+        asyncio.run(fix_all())
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

@@ -3,6 +3,9 @@ Fix Emoji Encoding Issues Across Backend
 Replaces emoji characters with ASCII text markers to prevent UnicodeEncodeError on Windows cp1254 console.
 """
 
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 import os
 import re
 
@@ -92,6 +95,13 @@ def main():
     print("[START] Scanning backend directory for emoji characters...")
     
     backend_dir = "backend"
+    
+    # Validate backend directory exists
+    if not os.path.exists(backend_dir):
+        print(f"[ERROR] Backend directory not found: {backend_dir}")
+        print(f"[ERROR] Current working directory: {os.getcwd()}")
+        sys.exit(1)
+    
     total_fixed = 0
     files_fixed = 0
     
@@ -113,4 +123,13 @@ def main():
     print(f"[OK] Emoji cleanup complete!")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

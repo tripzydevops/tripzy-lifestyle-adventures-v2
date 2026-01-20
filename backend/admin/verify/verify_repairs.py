@@ -1,3 +1,6 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 import asyncio
 import os
 import aiohttp
@@ -25,7 +28,8 @@ HEADERS_BLOG = {
 async def main():
     print("[SEARCH] Verifying Post Repairs...")
     
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         # Fetch all posts
         url = f"{SUPABASE_URL}/rest/v1/posts?select=id,title,featured_image,content,status"
         async with session.get(url, headers=HEADERS_BLOG) as resp:
@@ -75,4 +79,13 @@ async def main():
     print("------------------------------------------------")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

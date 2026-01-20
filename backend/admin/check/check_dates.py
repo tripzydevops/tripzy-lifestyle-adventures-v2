@@ -38,4 +38,13 @@ async def check_dates():
                 print("   [ERROR] Post not found!")
                 
 if __name__ == "__main__":
-    asyncio.run(check_dates())
+    try:
+        asyncio.run(check_dates())
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

@@ -1,4 +1,7 @@
 
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 import os
 import asyncio
 import json
@@ -27,7 +30,8 @@ async def fix_maps():
         "Content-Profile": "blog"
     }
 
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         # Get count first (optional, but good for progress)
         # For simplicity in this script, we'll just loop until no results
         
@@ -106,4 +110,13 @@ async def fix_maps():
     print(f"[DONE] Fixed {total_fixed} map(s) total.")
 
 if __name__ == "__main__":
-    asyncio.run(fix_maps())
+    try:
+        asyncio.run(fix_maps())
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

@@ -1,4 +1,7 @@
 
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 import asyncio
 import aiohttp
 import os
@@ -17,7 +20,8 @@ async def verify_setup():
         "Authorization": f"Bearer {SUPABASE_KEY}"
     }
     
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         # 1. Check Table: developer_knowledge
         print("\n--- Checking Table: developer_knowledge ---")
         table_url = f"{SUPABASE_URL}/rest/v1/developer_knowledge?select=*&limit=5&order=created_at.desc"
@@ -61,4 +65,13 @@ async def verify_setup():
              print(f"[ERROR] RPC check exception: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(verify_setup())
+    try:
+        asyncio.run(verify_setup())
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

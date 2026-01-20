@@ -1,14 +1,12 @@
 
-import os
 import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
+import os
 import json
 import asyncio
 import aiohttp
 from dotenv import load_dotenv, find_dotenv
-
-# Fix Windows encoding for emojis
-if sys.platform == "win32":
-    sys.stdout.reconfigure(encoding='utf-8')
 
 load_dotenv(find_dotenv())
 
@@ -18,7 +16,8 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABAS
 async def main():
     print("[SEARCH] Analyzing 'blog.posts' counts...")
     
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         headers = {
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -112,4 +111,13 @@ async def main():
                 print(f"[ERROR] Failed to fetch data: {await resp.text()}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

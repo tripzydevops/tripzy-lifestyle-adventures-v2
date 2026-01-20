@@ -1,4 +1,7 @@
 
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 import asyncio
 import os
 import aiohttp
@@ -55,7 +58,8 @@ async def fix_seo():
         "Content-Profile": "blog"
     }
     
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         # 1. Fetch Posts
         print("[SEARCH] Fetching Posts for SEO Check...")
         async with session.get(f"{SUPABASE_URL}/rest/v1/posts?select=*", headers=headers) as r:
@@ -108,4 +112,13 @@ async def fix_seo():
             await asyncio.sleep(1)
 
 if __name__ == "__main__":
-    asyncio.run(fix_seo())
+    try:
+        asyncio.run(fix_seo())
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

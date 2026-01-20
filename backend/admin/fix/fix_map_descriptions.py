@@ -1,3 +1,6 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 import asyncio
 import os
 import aiohttp
@@ -51,7 +54,8 @@ async def fix_descriptions():
         "Range": "0-19" # Start with first batch
     }
     
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         offset = 0
         batch_size = 20
         total_fixed = 0
@@ -121,4 +125,13 @@ async def fix_descriptions():
     print(f"[DONE] Updated {total_fixed} maps with new descriptions.")
 
 if __name__ == "__main__":
-    asyncio.run(fix_descriptions())
+    try:
+        asyncio.run(fix_descriptions())
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

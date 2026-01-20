@@ -13,7 +13,6 @@ if not api_key:
     print("No API KEY found")
     exit()
 
-# Uses centralized genai_client (gemini-3.0-flash)
 try:
     print("Listing models...")
     client = get_client()
@@ -21,5 +20,4 @@ try:
         print(m.name)
 except Exception as e:
     print(f"Error: {e}")
-except Exception as e:
-    print(f"Error: {e}")
+

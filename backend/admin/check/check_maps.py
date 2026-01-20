@@ -4,6 +4,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 import asyncio
 import os
 import aiohttp
+from typing import List, Dict, Any
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -11,7 +12,7 @@ load_dotenv(find_dotenv())
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
 
-async def check_maps():
+async def check_maps() -> None:
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -48,4 +49,13 @@ async def check_maps():
             print("[OK] All posts have maps!")
 
 if __name__ == "__main__":
-    asyncio.run(check_maps())
+    try:
+        asyncio.run(check_maps())
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

@@ -1,7 +1,9 @@
 
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 import asyncio
 import os
-import sys
 from dotenv import load_dotenv, find_dotenv
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -37,4 +39,13 @@ async def test_judge():
         print(f"[ERROR] Consensus execution failed: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(test_judge())
+    try:
+        asyncio.run(test_judge())
+    except KeyboardInterrupt:
+        print("\n\n[CANCELLED] Script interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] Script failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
