@@ -37,7 +37,7 @@ async def inspect_posts():
         "Accept-Profile": "blog"
     }
     # Select key fields used in filtering
-    url = f"{SUPABASE_URL}/rest/v1/posts?select=id,title,location_city,location_country,tags,status,published_at"
+    url = f"{SUPABASE_URL}/rest/v1/posts?select=id,title,location_city,location_country,location_region,tags,status,published_at"
     
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=headers) as resp:
@@ -50,12 +50,14 @@ async def inspect_posts():
     
     missing_city = 0
     missing_country = 0
+    missing_region = 0
     missing_tags = 0
     
     print("\n--- Detailed Post Status ---")
     for p in posts:
         city = p.get('location_city')
         country = p.get('location_country')
+        region = p.get('location_region')
         tags = p.get('tags')
         status = p.get('status')
         pub_at = p.get('published_at')
@@ -70,6 +72,10 @@ async def inspect_posts():
         if not country:
             missing_country += 1
             status_msg.append("Missing Country")
+            is_missing = True
+        if not region:
+            missing_region += 1
+            status_msg.append("Missing Region")
             is_missing = True
         if not tags:
             missing_tags += 1
@@ -101,12 +107,13 @@ async def inspect_posts():
     print("\n--- Summary ---")
     print(f"Missing City: {missing_city}")
     print(f"Missing Country: {missing_country}")
+    print(f"Missing Region: {missing_region}")
     print(f"Missing Tags: {missing_tags}")
     
-    # Replicate main script logic exactly
+    # Replicate main script logic exactly (now updated for region too)
     to_refine = [
         p for p in posts 
-        if isinstance(p, dict) and (not p.get('location_city') or not p.get('location_country') or not p.get('tags'))
+        if isinstance(p, dict) and (not p.get('location_city') or not p.get('location_country') or not p.get('location_region') or not p.get('tags'))
     ]
     print(f"\nLogic verify - To Refine Count: {len(to_refine)}")
 

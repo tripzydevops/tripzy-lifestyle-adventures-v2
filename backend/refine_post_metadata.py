@@ -131,7 +131,7 @@ async def main():
     # Filter for those that actually need refinement
     # Now checking if granular fields are missing OR related_destination is missing
     to_refine = [
-        p for p in posts if isinstance(p, dict) and (not p.get('location_city') or not p.get('location_country') or not p.get('tags'))
+        p for p in posts if isinstance(p, dict) and (not p.get('location_city') or not p.get('location_country') or not p.get('location_region') or not p.get('tags'))
     ]
     
     print(f"[ICON] Found {len(to_refine)} posts requiring high-fidelity refinement.")

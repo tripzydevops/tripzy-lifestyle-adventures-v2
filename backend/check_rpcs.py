@@ -1,3 +1,5 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 import asyncio
 import aiohttp
@@ -13,7 +15,9 @@ async def list_rpcs():
         "Authorization": f"Bearer {os.getenv('VITE_SUPABASE_ANON_KEY')}"
     }
     
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         async with session.get(url, headers=headers) as r:
             if r.status != 200:
                 print(f"Error: {r.status}")

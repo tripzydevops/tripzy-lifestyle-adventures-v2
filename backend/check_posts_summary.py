@@ -1,3 +1,5 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 import os
 import aiohttp
@@ -15,7 +17,8 @@ async def main():
          "Accept-Profile": "blog",
         "Content-Profile": "blog"
     }
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         url = f"{SUPABASE_URL}/rest/v1/posts?select=title,status,lang,created_at,featured_image&order=created_at.desc&limit=5"
         async with session.get(url, headers=headers) as resp:
             posts = await resp.json()

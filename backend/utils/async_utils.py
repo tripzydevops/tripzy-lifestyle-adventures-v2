@@ -116,8 +116,20 @@ async def run_sync_in_thread(
 ) -> T:
     """
     Run a synchronous blocking function in a dedicated thread pool with a timeout.
+    
     CRITICAL: The timeout here only stops the async await; the thread stays occupied 
     if the synchronous function (func) doesn't have its own internal timeout.
+    
+    **SOLUTION**: Ensure all blocking I/O functions (e.g., requests.post) use proper
+    connection-level timeouts via timeout=(connect, read) tuples. This prevents the
+    thread from hanging indefinitely during TCP/SSL handshakes.
+    
+    Example:
+        # BAD - Only times out after connection established
+        requests.post(url, timeout=60)
+        
+        # GOOD - Times out during connection AND read
+        requests.post(url, timeout=(10, 60))
     """
     loop = asyncio.get_running_loop()
     try:
@@ -126,7 +138,7 @@ async def run_sync_in_thread(
             timeout=timeout
         )
     except asyncio.TimeoutError:
-        logger.error(f"⏱️ thread operation timed out after {timeout}s")
+        logger.error(f"⏱️ Thread operation timed out after {timeout}s. The underlying sync function may still be blocked.")
         raise
 
 async def retry_sync_in_thread(

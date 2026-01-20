@@ -1,3 +1,5 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 import asyncio
 import os
@@ -18,7 +20,8 @@ async def check_dates():
         "Content-Profile": "blog"
     }
     
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         # Fetch the specific post
         title = "Wildlife Safari in Kenya"
         print(f"[SEARCH] Checking post: {title}")

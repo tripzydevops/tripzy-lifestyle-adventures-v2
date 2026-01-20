@@ -1,3 +1,6 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 import os
 # SDK Migration: Using centralized genai_client
 from backend.utils.genai_client import get_client

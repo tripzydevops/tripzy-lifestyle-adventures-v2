@@ -1,3 +1,5 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 import asyncio
 import os
@@ -17,7 +19,8 @@ async def check_maps():
         "Content-Profile": "blog"
     }
     
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         # 1. Fetch Posts
         print("[SEARCH] Fetching Posts...")
         async with session.get(f"{SUPABASE_URL}/rest/v1/posts?select=id,title", headers=headers) as r:

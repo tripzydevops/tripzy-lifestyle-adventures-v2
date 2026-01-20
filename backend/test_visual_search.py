@@ -1,3 +1,5 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 import asyncio
 import os
@@ -39,7 +41,8 @@ async def search_visual_memory(query: str):
         "match_count": 3
     }
     
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=30.0)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         async with session.post(rpc_url, headers=headers, json=payload) as resp:
             if resp.status != 200:
                 print(f"[ERROR] Search Failed: {resp.status} - {await resp.text()}")

@@ -1,9 +1,10 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 import asyncio
 import os
 from dotenv import load_dotenv, find_dotenv
 
-import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Load env before importing agent to ensure keys are populated if available
