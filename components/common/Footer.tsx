@@ -230,6 +230,12 @@ const Footer = () => {
                 Terms
               </Link>
               <Link
+                to="/privacy"
+                className="text-slate-500 hover:text-gold transition-colors hidden md:inline-block"
+              >
+                Do Not Sell My Info
+              </Link>
+              <Link
                 to="/sitemap.xml"
                 className="text-slate-500 hover:text-gold transition-colors"
               >

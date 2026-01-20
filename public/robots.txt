@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /test-sdk
+
+Sitemap: https://tripzy.travel/sitemap.xml

@@ -28,6 +28,9 @@ import AIStudioPage from "./pages/admin/AIStudioPage";
 import AuthorPage from "./pages/AuthorPage";
 import PlanTripPage from "./pages/PlanTripPage";
 import SDKTestPage from "./pages/SDKTestPage";
+import NotFoundPage from "./pages/NotFoundPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfServicePage from "./pages/TermsOfServicePage";
 
 import { TripzyProvider } from "./hooks/useTripzy";
 
@@ -38,210 +41,238 @@ import CampaignEditorPage from "./pages/admin/CampaignEditorPage";
 import SEOHealthPage from "./pages/admin/SEOHealthPage";
 
 import ScrollToTop from "./components/common/ScrollToTop";
+import ErrorBoundary from "./components/common/ErrorBoundary";
+import Analytics from "./components/common/Analytics";
+import CookieConsent from "./components/common/CookieConsent";
+import { HelmetProvider } from "react-helmet-async";
 
 function App() {
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <LanguageProvider>
-        <ToastProvider>
-          <SettingsProvider>
-            <AuthProvider>
-              <TripzyProvider>
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/post/:postId" element={<PostDetailsPage />} />
-                  <Route path="/author/:authorSlug" element={<AuthorPage />} />
-                  <Route path="/about" element={<AboutPage />} />
-                  <Route path="/contact" element={<ContactPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/sitemap.xml" element={<Sitemap />} />
-                  <Route path="/search" element={<SearchPage />} />
-                  <Route path="/plan" element={<PlanTripPage />} />
-                  <Route path="/test-sdk" element={<SDKTestPage />} />
-                  <Route
-                    path="/category/:categoryName"
-                    element={<ArchivePage type="category" />}
-                  />
-                  <Route
-                    path="/tag/:tagName"
-                    element={<ArchivePage type="tag" />}
-                  />
+    <HelmetProvider>
+      <BrowserRouter>
+        <ErrorBoundary>
+          <ScrollToTop />
+          <LanguageProvider>
+            <ToastProvider>
+              <SettingsProvider>
+                <AuthProvider>
+                  <TripzyProvider>
+                    <Analytics />
+                    <CookieConsent />
+                    <Routes>
+                      {/* Public Routes */}
+                      <Route path="/" element={<HomePage />} />
+                      <Route
+                        path="/post/:postId"
+                        element={<PostDetailsPage />}
+                      />
+                      <Route
+                        path="/author/:authorSlug"
+                        element={<AuthorPage />}
+                      />
+                      <Route path="/about" element={<AboutPage />} />
+                      <Route path="/contact" element={<ContactPage />} />
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/sitemap.xml" element={<Sitemap />} />
+                      <Route path="/search" element={<SearchPage />} />
+                      <Route path="/plan" element={<PlanTripPage />} />
+                      <Route path="/test-sdk" element={<SDKTestPage />} />
+                      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                      <Route path="/terms" element={<TermsOfServicePage />} />
+                      <Route
+                        path="/category/:categoryName"
+                        element={<ArchivePage type="category" />}
+                      />
+                      <Route
+                        path="/tag/:tagName"
+                        element={<ArchivePage type="tag" />}
+                      />
 
-                  {/* Admin Routes */}
-                  <Route
-                    path="/admin"
-                    element={
-                      <ProtectedRoute
-                        allowedRoles={[
-                          UserRole.Administrator,
-                          UserRole.Editor,
-                          UserRole.Author,
-                        ]}
+                      {/* Admin Routes */}
+                      <Route
+                        path="/admin"
+                        element={
+                          <ProtectedRoute
+                            allowedRoles={[
+                              UserRole.Administrator,
+                              UserRole.Editor,
+                              UserRole.Author,
+                            ]}
+                          >
+                            <AdminLayout />
+                          </ProtectedRoute>
+                        }
                       >
-                        <AdminLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route
-                      index
-                      element={<Navigate to="dashboard" replace />}
-                    />
-                    <Route path="dashboard" element={<AdminDashboardPage />} />
-                    <Route path="posts" element={<ManagePostsPage />} />
-                    <Route path="posts/new" element={<EditPostPage />} />
-                    <Route
-                      path="posts/edit/:postId"
-                      element={<EditPostPage />}
-                    />
-                    <Route path="profile" element={<ProfilePage />} />
-                    <Route
-                      path="media"
-                      element={
-                        <ProtectedRoute
-                          allowedRoles={[
-                            UserRole.Administrator,
-                            UserRole.Editor,
-                            UserRole.Author,
-                          ]}
-                        >
-                          <ManageMediaPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="import"
-                      element={
-                        <ProtectedRoute
-                          allowedRoles={[
-                            UserRole.Administrator,
-                            UserRole.Editor,
-                          ]}
-                        >
-                          <ImportMediaPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="users"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.Administrator]}>
-                          <ManageUsersPage />
-                        </ProtectedRoute>
-                      }
-                    />
+                        <Route
+                          index
+                          element={<Navigate to="dashboard" replace />}
+                        />
+                        <Route
+                          path="dashboard"
+                          element={<AdminDashboardPage />}
+                        />
+                        <Route path="posts" element={<ManagePostsPage />} />
+                        <Route path="posts/new" element={<EditPostPage />} />
+                        <Route
+                          path="posts/edit/:postId"
+                          element={<EditPostPage />}
+                        />
+                        <Route path="profile" element={<ProfilePage />} />
+                        <Route
+                          path="media"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={[
+                                UserRole.Administrator,
+                                UserRole.Editor,
+                                UserRole.Author,
+                              ]}
+                            >
+                              <ManageMediaPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="import"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={[
+                                UserRole.Administrator,
+                                UserRole.Editor,
+                              ]}
+                            >
+                              <ImportMediaPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="users"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={[UserRole.Administrator]}
+                            >
+                              <ManageUsersPage />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                    <Route
-                      path="ai-studio"
-                      element={
-                        <ProtectedRoute
-                          allowedRoles={[
-                            UserRole.Administrator,
-                            UserRole.Editor,
-                            UserRole.Author,
-                          ]}
-                        >
-                          <AIStudioPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="seo-health"
-                      element={
-                        <ProtectedRoute
-                          allowedRoles={[
-                            UserRole.Administrator,
-                            UserRole.Editor,
-                          ]}
-                        >
-                          <SEOHealthPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="settings"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.Administrator]}>
-                          <SettingsPage />
-                        </ProtectedRoute>
-                      }
-                    />
+                        <Route
+                          path="ai-studio"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={[
+                                UserRole.Administrator,
+                                UserRole.Editor,
+                                UserRole.Author,
+                              ]}
+                            >
+                              <AIStudioPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="seo-health"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={[
+                                UserRole.Administrator,
+                                UserRole.Editor,
+                              ]}
+                            >
+                              <SEOHealthPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="settings"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={[UserRole.Administrator]}
+                            >
+                              <SettingsPage />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                    <Route
-                      path="newsletter-campaigns"
-                      element={
-                        <ProtectedRoute
-                          allowedRoles={[
-                            UserRole.Administrator,
-                            UserRole.Editor,
-                          ]}
-                        >
-                          <NewsletterCampaignsPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="newsletter/new"
-                      element={
-                        <ProtectedRoute
-                          allowedRoles={[
-                            UserRole.Administrator,
-                            UserRole.Editor,
-                          ]}
-                        >
-                          <CampaignEditorPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="newsletter/edit/:id"
-                      element={
-                        <ProtectedRoute
-                          allowedRoles={[
-                            UserRole.Administrator,
-                            UserRole.Editor,
-                          ]}
-                        >
-                          <CampaignEditorPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="subscribers"
-                      element={
-                        <ProtectedRoute
-                          allowedRoles={[
-                            UserRole.Administrator,
-                            UserRole.Editor,
-                          ]}
-                        >
-                          <ManageSubscribersPage />
-                        </ProtectedRoute>
-                      }
-                    />
+                        <Route
+                          path="newsletter-campaigns"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={[
+                                UserRole.Administrator,
+                                UserRole.Editor,
+                              ]}
+                            >
+                              <NewsletterCampaignsPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="newsletter/new"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={[
+                                UserRole.Administrator,
+                                UserRole.Editor,
+                              ]}
+                            >
+                              <CampaignEditorPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="newsletter/edit/:id"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={[
+                                UserRole.Administrator,
+                                UserRole.Editor,
+                              ]}
+                            >
+                              <CampaignEditorPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="subscribers"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={[
+                                UserRole.Administrator,
+                                UserRole.Editor,
+                              ]}
+                            >
+                              <ManageSubscribersPage />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                    <Route
-                      path="comments"
-                      element={
-                        <ProtectedRoute
-                          allowedRoles={[
-                            UserRole.Administrator,
-                            UserRole.Editor,
-                          ]}
-                        >
-                          <ManageCommentsPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                  </Route>
-                </Routes>
-              </TripzyProvider>
-            </AuthProvider>
-          </SettingsProvider>
-        </ToastProvider>
-      </LanguageProvider>
-    </BrowserRouter>
+                        <Route
+                          path="comments"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={[
+                                UserRole.Administrator,
+                                UserRole.Editor,
+                              ]}
+                            >
+                              <ManageCommentsPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                      </Route>
+
+                      {/* 404 Catch-all */}
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Routes>
+                  </TripzyProvider>
+                </AuthProvider>
+              </SettingsProvider>
+            </ToastProvider>
+          </LanguageProvider>
+        </ErrorBoundary>
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }
 

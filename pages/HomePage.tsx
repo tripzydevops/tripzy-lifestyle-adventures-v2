@@ -113,7 +113,6 @@ const HomePage = () => {
       text: "",
       posts: [],
       isDone: false,
-      isDone: false,
       consensus: null,
       steps: [
         {
@@ -276,7 +275,10 @@ const HomePage = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-navy-900">
-      <SEO />
+      <SEO
+        title="Home"
+        description="Discover personalized travel itineraries and lifestyle adventures with Tripzy's AI-powered planner."
+      />
       <Header />
 
       <main className="flex-grow">

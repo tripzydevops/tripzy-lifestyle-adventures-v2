@@ -1,92 +1,95 @@
-import React, { useEffect } from 'react';
-import { useSettings } from '../../hooks/useSettings';
-import { SITE_NAME } from '../../constants';
+import React from "react";
+import { Helmet } from "react-helmet-async";
 
 interface SEOProps {
-  title?: string;
+  title: string;
   description?: string;
   keywords?: string;
+  canonical?: string;
   ogImage?: string;
   ogVideo?: string;
-  type?: 'website' | 'article';
+  type?: string;
+  openGraph?: {
+    title?: string;
+    description?: string;
+    image?: string;
+    url?: string;
+    type?: "website" | "article";
+  };
+  twitter?: {
+    card?: "summary" | "summary_large_image";
+    title?: string;
+    description?: string;
+    image?: string;
+    creator?: string;
+  };
 }
 
-// Helper to set or create a meta tag
-const setMetaTag = (attr: 'name' | 'property', value: string, content: string) => {
-    if (!content) return;
-    let element = document.querySelector(`meta[${attr}="${value}"]`) as HTMLMetaElement;
-    if (!element) {
-        element = document.createElement('meta');
-        element.setAttribute(attr, value);
-        document.head.appendChild(element);
-    }
-    element.setAttribute('content', content);
-};
-
-const SEO: React.FC<SEOProps> = ({ 
-  title, 
-  description, 
-  keywords, 
-  ogImage, 
+/**
+ * Reusable SEO component for managing document head tags.
+ * Supports standard meta tags, OpenGraph, and Twitter cards.
+ */
+const SEO: React.FC<SEOProps> = ({
+  title,
+  description,
+  keywords,
+  canonical,
+  ogImage,
   ogVideo,
-  type = 'website' 
+  type,
+  openGraph,
+  twitter,
 }) => {
-  const { settings } = useSettings();
-  const siteName = settings?.siteName || SITE_NAME;
-  const siteTagline = settings?.tagline || 'Your guide to adventure.';
-  const baseUrl = window.location.origin + window.location.pathname;
+  const siteName = "Tripzy Lifestyle Adventures";
+  const defaultDescription =
+    "Your Gateway to Travel Inspiration. Discover personalized trip plans, hidden gems, and lifestyle adventures.";
+  const fullTitle = `${title} | ${siteName}`;
 
-  useEffect(() => {
-    const pageTitle = title ? `${title} | ${siteName}` : `${siteName} - ${siteTagline}`;
-    const pageDescription = description || siteTagline;
-    
-    // Standard tags
-    document.title = pageTitle;
-    setMetaTag('name', 'description', pageDescription);
-    
-    // Keywords
-    let metaKeywords = document.querySelector('meta[name="keywords"]');
-    if (keywords) {
-      if (!metaKeywords) {
-        metaKeywords = document.createElement('meta');
-        metaKeywords.setAttribute('name', 'keywords');
-        document.head.appendChild(metaKeywords);
-      }
-      metaKeywords.setAttribute('content', keywords);
-    } else if (metaKeywords) {
-      metaKeywords.remove();
-    }
-    
-    // Open Graph Tags
-    const finalOgImage = ogImage || settings?.seo?.ogImage;
-    setMetaTag('property', 'og:title', title || settings?.seo?.ogTitle || siteName);
-    setMetaTag('property', 'og:description', description || settings?.seo?.ogDescription || siteTagline);
-    setMetaTag('property', 'og:type', type);
-    setMetaTag('property', 'og:url', baseUrl);
-    setMetaTag('property', 'og:site_name', siteName);
-    
-    if (finalOgImage) {
-        setMetaTag('property', 'og:image', finalOgImage);
-        setMetaTag('property', 'og:image:width', '1200');
-        setMetaTag('property', 'og:image:height', '630');
-    }
+  return (
+    <Helmet>
+      {/* Standard Metadata */}
+      <title>{fullTitle}</title>
+      <meta name="description" content={description || defaultDescription} />
+      {keywords && <meta name="keywords" content={keywords} />}
+      {canonical && <link rel="canonical" href={canonical} />}
 
-    if (ogVideo) {
-        setMetaTag('property', 'og:video', ogVideo);
-        setMetaTag('property', 'og:video:type', 'video/mp4');
-    }
-    
-    // Twitter Card Tags
-    setMetaTag('name', 'twitter:card', 'summary_large_image');
-    setMetaTag('name', 'twitter:title', title || settings?.seo?.ogTitle || siteName);
-    setMetaTag('name', 'twitter:description', description || settings?.seo?.ogDescription || siteTagline);
-    if (finalOgImage) {
-        setMetaTag('name', 'twitter:image', finalOgImage);
-    }
+      {/* OpenGraph */}
+      <meta property="og:site_name" content={siteName} />
+      <meta property="og:title" content={openGraph?.title || title} />
+      <meta
+        property="og:description"
+        content={openGraph?.description || description || defaultDescription}
+      />
+      <meta property="og:type" content={openGraph?.type || type || "website"} />
+      {openGraph?.url && <meta property="og:url" content={openGraph.url} />}
 
-  }, [title, description, keywords, ogImage, ogVideo, type, settings, siteName, siteTagline, baseUrl]);
+      {(openGraph?.image || ogImage) && (
+        <meta property="og:image" content={openGraph?.image || ogImage} />
+      )}
 
-  return null; // This component does not render anything
+      {ogVideo && <meta property="og:video" content={ogVideo} />}
+
+      {/* Twitter */}
+      <meta
+        name="twitter:card"
+        content={twitter?.card || "summary_large_image"}
+      />
+      <meta name="twitter:title" content={twitter?.title || title} />
+      <meta
+        name="twitter:description"
+        content={twitter?.description || description || defaultDescription}
+      />
+      {(twitter?.image || openGraph?.image || ogImage) && (
+        <meta
+          name="twitter:image"
+          content={twitter?.image || openGraph?.image || ogImage}
+        />
+      )}
+      {twitter?.creator && (
+        <meta name="twitter:creator" content={twitter.creator} />
+      )}
+    </Helmet>
+  );
 };
 
 export default SEO;

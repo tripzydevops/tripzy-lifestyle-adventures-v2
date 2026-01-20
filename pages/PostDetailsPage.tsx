@@ -26,6 +26,7 @@ import PostContentRenderer from "../components/common/PostContentRenderer";
 
 import MapViewer from "../components/common/MapViewer";
 import { useLanguage } from "../localization/LanguageContext"; // Added import
+import PostDetailsSkeleton from "../components/common/PostDetailsSkeleton";
 
 const slugify = (text: string) => {
   const turkishMap: { [key: string]: string } = {
@@ -136,7 +137,7 @@ const PostDetailsPage = () => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             timeout: 5000,
           });
-        }
+        },
       );
       lat = position.coords.latitude;
       lng = position.coords.longitude;
@@ -173,7 +174,7 @@ const PostDetailsPage = () => {
                     featuredMediaUrl: results[0].url,
                     featuredMediaAlt: results[0].description,
                   }
-                : null
+                : null,
             );
           }
         } catch (e) {
@@ -251,15 +252,7 @@ const PostDetailsPage = () => {
   }, [post]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col min-h-screen bg-navy-950">
-        <Header />
-        <main className="flex-grow flex items-center justify-center">
-          <Spinner />
-        </main>
-        <Footer />
-      </div>
-    );
+    return <PostDetailsSkeleton />;
   }
 
   if (!post) {
@@ -455,7 +448,7 @@ const PostDetailsPage = () => {
                                         View on Maps <ExternalLink size={10} />
                                       </span>
                                     </a>
-                                  )
+                                  ),
                               )}
                             </div>
                           </div>

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
@@ -7,6 +7,12 @@ import os
 import signal
 import sys
 from dotenv import load_dotenv
+import datetime
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 load_dotenv()
 
@@ -31,7 +37,13 @@ def handle_exit(sig, frame):
 signal.signal(signal.SIGINT, handle_exit)
 signal.signal(signal.SIGTERM, handle_exit)
 
+# Initialize Rate Limiter
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="Tripzy Reasoning Engine API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Configure CORS
 app.add_middleware(
@@ -58,21 +70,34 @@ class ReasonedRecommendation(BaseModel):
     lifestyleVibe: Optional[str] = None
 
 @app.get("/")
-async def root():
+@limiter.limit("100/minute")
+async def root(request: Request):
     return {"status": "Tripzy Reasoning Engine (LangGraph) is active"}
+
+@app.get("/health")
+@limiter.limit("60/minute")
+async def health_check(request: Request):
+    return {
+        "status": "healthy",
+        "timestamp": datetime.datetime.now().isoformat(),
+        "version": "1.0.0"
+    }
 
 from fastapi.responses import StreamingResponse
 
 @app.post("/recommend", response_model=ReasonedRecommendation)
-async def get_recommendation(request: RecommendationRequest):
+@limiter.limit("10/minute")
+async def get_recommendation(request: Request, body: RecommendationRequest):
+    # Map body to request for logic compatibility if needed, or just use body directly
+    # Note: request is used by limiter, body is used by logic
     initial_state = {
-        "session_id": request.session_id,
-        "query": request.query,
+        "session_id": body.session_id,
+        "query": body.query,
         "signals": [],
         "analysis": {},
         "recommendation": {},
         "error": None,
-        "user_id": request.user_id
+        "user_id": body.user_id
     }
     
     # Run the graph
@@ -90,15 +115,16 @@ async def get_recommendation(request: RecommendationRequest):
     }
 
 @app.post("/recommend/stream")
-async def stream_recommendation(request: RecommendationRequest):
+@limiter.limit("10/minute")
+async def stream_recommendation(request: Request, body: RecommendationRequest):
     initial_state = {
-        "session_id": request.session_id,
-        "query": request.query,
+        "session_id": body.session_id,
+        "query": body.query,
         "signals": [],
         "analysis": {},
         "recommendation": {},
         "error": None,
-        "user_id": request.user_id
+        "user_id": body.user_id
     }
     
     async def event_generator():
