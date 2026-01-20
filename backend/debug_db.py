@@ -13,7 +13,7 @@ SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ Missing API Keys in environment")
+    print("[ERROR] Missing API Keys in environment")
     exit(1)
 
 async def check_posts():
@@ -37,7 +37,7 @@ async def check_posts():
             print(f"Found {len(posts)} posts.")
             for p in posts:
                 has_embed = p.get('embedding') is not None
-                print(f"- {p.get('title')} (Embedding: {'✅' if has_embed else '❌'})")
+                print(f"- {p.get('title')} (Embedding: {'[OK]' if has_embed else '[ERROR]'})")
 
 if __name__ == "__main__":
     asyncio.run(check_posts())

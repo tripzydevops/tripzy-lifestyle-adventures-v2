@@ -9,7 +9,7 @@ UNSPLASH_KEY = "H_HtnT7wcAmuk998PxXqgtd0tRB1pMLy9--9WafNfI0"
 
 async def fetch_unsplash_image(query):
     if not UNSPLASH_KEY:
-        print("❌ No Unsplash Key")
+        print("[ERROR] No Unsplash Key")
         return None
     
     url = f"https://api.unsplash.com/search/photos?query={query}&per_page=1&client_id={UNSPLASH_KEY}"
@@ -26,21 +26,21 @@ async def fetch_unsplash_image(query):
                             "credit": f"Photo by {img['user']['name']} on Unsplash"
                         }
                     else:
-                        print(f"⚠️ No results for {query}")
+                        print(f"[WARNING] No results for {query}")
                 else:
-                    print(f"❌ Error {resp.status}: {await resp.text()}")
+                    print(f"[ERROR] Error {resp.status}: {await resp.text()}")
     except Exception as e:
-        print(f"⚠️ Unsplash fetch failed for {query}: {e}")
+        print(f"[WARNING] Unsplash fetch failed for {query}: {e}")
     return None
 
 async def test():
     print(f"Testing Unsplash with key: {UNSPLASH_KEY[:5]}...")
     res = await fetch_unsplash_image("Paris Eiffel Tower")
     if res:
-        print(f"✅ Success! Found image: {res['url']}")
+        print(f"[OK] Success! Found image: {res['url']}")
         print(f"Alt: {res['alt']}")
     else:
-        print("❌ Failed to fetch image")
+        print("[ERROR] Failed to fetch image")
 
 if __name__ == "__main__":
     asyncio.run(test())

@@ -14,7 +14,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     exit()
 
 async def audit_media():
-    print("--- 🔍 Auditing Media Library ---")
+    print("--- [SEARCH] Auditing Media Library ---")
     
     url = f"{SUPABASE_URL}/rest/v1/media_library?select=*"
     headers = {
@@ -55,8 +55,8 @@ async def audit_media():
                         
                 print(f"\n--- Results ---")
                 total = len(media_items)
-                print(f"❌ Missing/Weak Alt Text: {missing_alt} / {total} ({(missing_alt/total)*100:.1f}%)" if total > 0 else "No items to analyze.")
-                print(f"✅ Labelled: {total - missing_alt}")
+                print(f"[ERROR] Missing/Weak Alt Text: {missing_alt} / {total} ({(missing_alt/total)*100:.1f}%)" if total > 0 else "No items to analyze.")
+                print(f"[OK] Labelled: {total - missing_alt}")
                 
                 if missing_alt > 0:
                     print("\nRecommendation: We should auto-label these images.")

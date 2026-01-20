@@ -57,12 +57,12 @@ async def fix_descriptions():
         total_fixed = 0
         
         while True:
-            print(f"🔍 Fetching Maps batch {offset}-{offset+batch_size}...")
+            print(f"[SEARCH] Fetching Maps batch {offset}-{offset+batch_size}...")
             batch_headers = {**headers, "Range": f"{offset}-{offset+batch_size-1}"}
             
             async with session.get(f"{SUPABASE_URL}/rest/v1/maps?select=*", headers=batch_headers) as r:
                 if r.status != 200:
-                    print(f"❌ Failed to fetch: {await r.text()}")
+                    print(f"[ERROR] Failed to fetch: {await r.text()}")
                     break
                     
                 maps = await r.json()
@@ -86,7 +86,7 @@ async def fix_descriptions():
                     
                     # If description is missing or too short (placeholder)
                     if not desc or len(desc) < 5:
-                        print(f"   🧠 Generating description for: {title}...")
+                        print(f"   [ICON] Generating description for: {title}...")
                         new_desc = await generate_description(title, map_item.get('name', 'Trip'))
                         if new_desc:
                             new_p['description'] = new_desc
@@ -97,7 +97,7 @@ async def fix_descriptions():
                     new_points.append(new_p)
                 
                 if is_dirty:
-                    print(f"   💾 Saving updates for: {map_item['name']}")
+                    print(f"   [SAVE] Saving updates for: {map_item['name']}")
                     update_url = f"{SUPABASE_URL}/rest/v1/maps?id=eq.{map_item['id']}"
                     # Use standard headers for update (no Range)
                     update_headers = {
@@ -109,10 +109,10 @@ async def fix_descriptions():
                     }
                     async with session.patch(update_url, headers=update_headers, json={"data": new_points}) as patch_resp:
                         if patch_resp.status in [200, 204]:
-                            print("      ✅ Saved.")
+                            print("      [OK] Saved.")
                             total_fixed += 1
                         else:
-                            print(f"      ❌ Save failed: {await patch_resp.text()}")
+                            print(f"      [ERROR] Save failed: {await patch_resp.text()}")
             
             offset += batch_size
             if len(maps) < batch_size:

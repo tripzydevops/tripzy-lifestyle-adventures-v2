@@ -15,7 +15,7 @@ from agents.graph import app_graph
 load_dotenv(find_dotenv())
 
 async def test_agent():
-    print("🧠 Testing Agent Logic Direct Invocation...")
+    print("[ICON] Testing Agent Logic Direct Invocation...")
     
     initial_state = {
         "session_id": "test-session-debug",
@@ -27,22 +27,22 @@ async def test_agent():
     }
     
     try:
-        print("   🏃 Running ainvoke()...")
+        print("   [ICON] Running ainvoke()...")
         result = await app_graph.ainvoke(initial_state)
         
-        print("\n✅ Agent Finished!")
+        print("\n[OK] Agent Finished!")
         
-        print("\n🧐 Analysis:")
+        print("\n[ICON] Analysis:")
         print(json.dumps(result.get('analysis'), indent=2))
         
-        print("\n🌟 Recommendation:")
+        print("\n[ICON] Recommendation:")
         rec = result.get('recommendation')
         print(f"Confidence: {rec.get('confidence')}")
         print(f"Thinking: {rec.get('reasoning')}")
         print(f"Content: {rec.get('content')[:200]}...")
         
     except Exception as e:
-        print(f"\n❌ Agent Failed: {e}")
+        print(f"\n[ERROR] Agent Failed: {e}")
         import traceback
         traceback.print_exc()
 

@@ -46,7 +46,7 @@ async def fetch_posts_to_refine():
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=headers) as resp:
             if resp.status != 200:
-                print(f"❌ [Error] Supabase API returned status {resp.status}")
+                print(f"[ERROR] [Error] Supabase API returned status {resp.status}")
                 error_body = await resp.text()
                 print(f"Details: {error_body}")
                 return []
@@ -67,23 +67,23 @@ async def update_post_metadata(post_id, updates):
             return resp.status in (200, 204)
 
 async def refine_post(post):
-    print(f"\n🏛️  [Refinement] Analyzing: {post['title']} ({post['lang']})")
+    print(f"\n[ICON]️  [Refinement] Analyzing: {post['title']} ({post['lang']})")
     
     # 1. Research Agent: Get Contextual Location & Tags
     location_signal = post.get('related_destination') or post['title']
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔍 [Scout] Verifying destination context for '{location_signal}'...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] [SEARCH] [Scout] Verifying destination context for '{location_signal}'...")
     try:
         scout_report = await research_agent.scout_best_practices(f"location information and travel tags for {location_signal}")
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🏁 [Scout] Report receive (len: {len(scout_report)})")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] [ICON] [Scout] Report receive (len: {len(scout_report)})")
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ [Scout] Failed: {e}")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] [ERROR] [Scout] Failed: {e}")
         scout_report = "Analysis failed."
 
     # 2. Scientist Agent: Metadata Validation & Extraction
     try:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🧪 [Scientist] Analyzing metadata...")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] [ICON] [Scientist] Analyzing metadata...")
         refined_data = await scientist_agent.analyze_travel_metadata(post, scout_report)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🏁 [Scientist] Analysis complete")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] [ICON] [Scientist] Analysis complete")
         
         # Mapping structured location back to top-level related_destination for backward compatibility
         city = refined_data.get("location_city", "")
@@ -101,30 +101,30 @@ async def refine_post(post):
         # (Already in refined_data as location_city, location_country, location_region)
 
         # 3. Memory Agent: Index this pattern
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 📚 [Memory] Indexing metadata pattern...")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] [ICON] [Memory] Indexing metadata pattern...")
         await memory_agent.index_problem(
             conversation_context=f"POST: {post['title']}\nREFINED: {json.dumps(refined_data)}",
             metadata={"task": "metadata_refinement", "post_id": post['id']}
         )
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🏁 [Memory] Indexing complete")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] [ICON] [Memory] Indexing complete")
         
         # 4. Save to DB
         # Ensure metadata contains the granular fields
         success = await update_post_metadata(post['id'], refined_data)
         if success:
-            print(f"✅ [Scribe] Metadata updated for {post['id']} ({refined_data.get('related_destination')})")
+            print(f"[OK] [Scribe] Metadata updated for {post['id']} ({refined_data.get('related_destination')})")
         return success
 
     except Exception as e:
-        print(f"⚠️ Failure refining post {post['id']}: {e}")
+        print(f"[WARNING] Failure refining post {post['id']}: {e}")
         return False
 
 async def main():
-    print(f"🚀 Starting R&D Council Metadata Refinement Pipeline...")
+    print(f"[START] Starting R&D Council Metadata Refinement Pipeline...")
     posts = await fetch_posts_to_refine()
     
     if not isinstance(posts, list):
-        print(f"❌ [Error] Expected a list of posts but received: {type(posts).__name__}")
+        print(f"[ERROR] [Error] Expected a list of posts but received: {type(posts).__name__}")
         print(f"Response data: {posts}")
         return
 
@@ -134,23 +134,23 @@ async def main():
         p for p in posts if isinstance(p, dict) and (not p.get('location_city') or not p.get('location_country') or not p.get('tags'))
     ]
     
-    print(f"💎 Found {len(to_refine)} posts requiring high-fidelity refinement.")
+    print(f"[ICON] Found {len(to_refine)} posts requiring high-fidelity refinement.")
     
     
     
     for i, post in enumerate(to_refine):
-        print(f"\n[{datetime.now().strftime('%H:%M:%S')}] ⏳ Starting Post {i+1}/{len(to_refine)}: {post['title']}")
+        print(f"\n[{datetime.now().strftime('%H:%M:%S')}] [WAIT] Starting Post {i+1}/{len(to_refine)}: {post['title']}")
         await refine_post(post)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Finished Post {i+1}/{len(to_refine)}")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] [OK] Finished Post {i+1}/{len(to_refine)}")
 
     # 5. Scribe: Draft final milestone report
-    print("\n📝 [Scribe] Archiving Refinement Milestone...")
+    print("\n[NOTE] [Scribe] Archiving Refinement Milestone...")
     await scribe_agent.track_milestone(
         "Automated Metadata Refinement with Council of Four",
         {"count": len(to_refine[:5]), "mode": "development", "status": "completed"}
     )
     
-    print("\n🎉 Refinement Cycle Complete.")
+    print("\n[SUCCESS] Refinement Cycle Complete.")
 
 if __name__ == "__main__":
     try:
@@ -158,19 +158,19 @@ if __name__ == "__main__":
     except Exception as e:
         import traceback
         error_msg = traceback.format_exc()
-        print(f"\n⚡ [CRITICAL] Pipeline crashed: {e}")
+        print(f"\n[ICON] [CRITICAL] Pipeline crashed: {e}")
         print(f"{error_msg}\n")
         
         # Emergency Memory Indexing
         try:
             from backend.agents.memory_agent import memory_agent
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] 🚨 [Memory] Indexing critical failure...")
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] [ICON] [Memory] Indexing critical failure...")
             asyncio.run(memory_agent.index_problem(
                 conversation_context=f"Pipeline Crash in refine_post_metadata.py\nError: {e}\nTraceback: {error_msg}",
                 metadata={"task": "pipeline_crash_log", "severity": "critical", "related_file": "refine_post_metadata.py"}
             ))
-            print("✅ Incident indexed.")
+            print("[OK] Incident indexed.")
         except Exception as mem_err:
-             print(f"⚠️ Could not index incident due to MemoryAgent failure: {mem_err}")
+             print(f"[WARNING] Could not index incident due to MemoryAgent failure: {mem_err}")
         
         exit(1)

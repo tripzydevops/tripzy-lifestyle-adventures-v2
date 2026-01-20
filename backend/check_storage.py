@@ -34,7 +34,7 @@ async def list_bucket_files(path=""):
                 return []
 
 async def main():
-    print("📂 Checking 'blog-media' bucket...")
+    print("[FOLDER] Checking 'blog-media' bucket...")
     
     # List root
     root_files = await list_bucket_files("")

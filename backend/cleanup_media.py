@@ -49,7 +49,7 @@ async def cleanup():
         delete_list = items[1:]
         
         print(f"\nProcessing Key: {key}")
-        print(f"  ✅ KEEPING: {keep['filename']} ({keep['created_at']})")
+        print(f"  [OK] KEEPING: {keep['filename']} ({keep['created_at']})")
         
         # 1. Update the Kept one with nice caption
         nice_caption = f"{key.replace('_', ' ').title()} (Restored)"
@@ -60,16 +60,16 @@ async def cleanup():
             print(f"     -> Renaming caption to '{nice_caption}'...")
             async with session.patch(patch_url, headers=HEADERS, json=patch_payload) as p_resp:
                 if p_resp.status not in [200, 204]:
-                     print(f"     ❌ Failed to rename: {await p_resp.text()}")
+                     print(f"     [ERROR] Failed to rename: {await p_resp.text()}")
         
         # 2. Delete others
         for item in delete_list:
-            print(f"  🗑️ DELETING Duplicate: {item['filename']} ({item['created_at']})")
+            print(f"  [DELETE] DELETING Duplicate: {item['filename']} ({item['created_at']})")
             del_url = f"{SUPABASE_URL}/rest/v1/media?id=eq.{item['id']}"
             async with aiohttp.ClientSession() as session:
                 async with session.delete(del_url, headers=HEADERS) as d_resp:
                     if d_resp.status not in [200, 204]:
-                        print(f"     ❌ Failed to delete: {await d_resp.text()}")
+                        print(f"     [ERROR] Failed to delete: {await d_resp.text()}")
 
 if __name__ == "__main__":
     if os.name == 'nt':

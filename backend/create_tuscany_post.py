@@ -16,7 +16,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABAS
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 
 if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
-    print("❌ Missing API Keys")
+    print("[ERROR] Missing API Keys")
     exit(1)
 
 # Uses centralized genai_client (gemini-3.0-flash)
@@ -64,12 +64,12 @@ async def upload_image(session, file_path):
     filename = os.path.basename(file_path)
     mime_type = mimetypes.guess_type(file_path)[0] or "image/jpeg"
     unique_name = f"tuscany_{filename}"
-    print(f"   ⬆️ Uploading {filename}...")
+    print(f"   [UP] Uploading {filename}...")
     try:
         with open(file_path, "rb") as f:
             file_data = f.read()
     except FileNotFoundError:
-        print(f"      ❌ File not found: {file_path}")
+        print(f"      [ERROR] File not found: {file_path}")
         return None
 
     url = f"{SUPABASE_URL}/storage/v1/object/blog-media/{unique_name}"
@@ -81,7 +81,7 @@ async def upload_image(session, file_path):
 
     async with session.post(url, headers=headers, data=file_data) as resp:
         if resp.status not in [200, 201]:
-            print(f"      ❌ Upload failed: {await resp.text()}")
+            print(f"      [ERROR] Upload failed: {await resp.text()}")
             return None, None, None, None
         return f"{SUPABASE_URL}/storage/v1/object/public/blog-media/{unique_name}", mime_type, len(file_data), unique_name
 
@@ -128,7 +128,7 @@ async def main():
     
     async with aiohttp.ClientSession() as session:
         # CLEANUP: Delete existing media entries for these files to avoid broken link confusion
-        print("      🧹 Cleaning up old media records...")
+        print("      [ICON] Cleaning up old media records...")
         targets = [f"tuscany_{os.path.basename(f)}" for f in IMAGE_FILES]
         targets.append(f"tuscany_{os.path.basename(FEATURED_FILE)}")
         
@@ -172,9 +172,9 @@ async def main():
                 }
                 async with session.post(f"{SUPABASE_URL}/rest/v1/media", headers=headers, json=media_payload) as m_resp:
                     if m_resp.status == 201:
-                         print(f"      ✅ Tagged & Saved: {fname} | Tags: {meta['tags']}")
+                         print(f"      [OK] Tagged & Saved: {fname} | Tags: {meta['tags']}")
                     else:
-                         print(f"      ⚠️ Media DB Insert Failed: {await m_resp.text()}")
+                         print(f"      [WARNING] Media DB Insert Failed: {await m_resp.text()}")
 
             else:
                 uploaded_urls.append("https://placehold.co/600x400")
@@ -205,11 +205,11 @@ async def main():
                 }
              async with session.post(f"{SUPABASE_URL}/rest/v1/media", headers=headers, json=media_payload) as m_resp:
                     if m_resp.status == 201:
-                         print(f"      ✅ Featured Image Tagged & Saved")
+                         print(f"      [OK] Featured Image Tagged & Saved")
         else:
              featured_url = uploaded_urls[0]
 
-    print(f"   ✅ {len(uploaded_urls)} content images + 1 featured prepared.")
+    print(f"   [OK] {len(uploaded_urls)} content images + 1 featured prepared.")
 
     print("[2] Expanding Content with AI...")
     
@@ -287,9 +287,9 @@ async def main():
         """
         if placeholder in content_html:
             content_html = content_html.replace(placeholder, img_html)
-            print(f"   ✅ Injected Image {idx}")
+            print(f"   [OK] Injected Image {idx}")
         else:
-            print(f"   ⚠️ Placeholder {placeholder} not found in AI output.")
+            print(f"   [WARNING] Placeholder {placeholder} not found in AI output.")
 
     # [4] Insert to Database
     print("[4] Saving to Database...")
@@ -304,7 +304,7 @@ async def main():
             if users: admin_id = users[0]['id']
 
     if not admin_id:
-        print("❌ No admin user found.")
+        print("[ERROR] No admin user found.")
         return
 
     post_payload = {
@@ -336,22 +336,22 @@ async def main():
         }
 
         # 0. Delete Existing (Cleanup)
-        print(f"   🧹 Checking for existing post: {slug}...")
+        print(f"   [ICON] Checking for existing post: {slug}...")
         async with session.get(f"{SUPABASE_URL}/rest/v1/posts?slug=eq.{slug}&select=id", headers=headers) as existing_resp:
             existing = await existing_resp.json()
             if existing and len(existing) > 0:
                 old_id = existing[0]['id']
-                print(f"      🗑️ Deleting old post: {old_id}")
+                print(f"      [DELETE] Deleting old post: {old_id}")
                 await session.delete(f"{SUPABASE_URL}/rest/v1/posts?id=eq.{old_id}", headers=headers)
         
         # 1. Post
         async with session.post(f"{SUPABASE_URL}/rest/v1/posts", headers=headers, json=post_payload) as resp:
             if resp.status != 201:
-                print(f"❌ Post Insert Failed: {await resp.text()}")
+                print(f"[ERROR] Post Insert Failed: {await resp.text()}")
                 return
             post_res = await resp.json()
             post_id = post_res[0]['id']
-            print(f"   ✅ Post Created! ID: {post_id}")
+            print(f"   [OK] Post Created! ID: {post_id}")
             
             # 2. Map
             map_data = data['map_data']
@@ -368,9 +368,9 @@ async def main():
             
             async with session.post(f"{SUPABASE_URL}/rest/v1/maps", headers=headers, json=new_map) as map_resp:
                  if map_resp.status == 201:
-                     print("   ✅ Map Created.")
+                     print("   [OK] Map Created.")
                  else:
-                     print(f"   ⚠️ Map Failed: {await map_resp.text()}")
+                     print(f"   [WARNING] Map Failed: {await map_resp.text()}")
 
 if __name__ == "__main__":
     asyncio.run(main())

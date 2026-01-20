@@ -5,7 +5,7 @@ from backend.agents.research_agent import research_agent
 from backend.agents.code_review_agent import code_review_agent
 
 async def test_scout_trigger():
-    print("🚀 PROVING SCOUT AUTONOMY...")
+    print("[START] PROVING SCOUT AUTONOMY...")
     
     # 1. Test the Scout's Decision Logic for a coding query
     query = "What are the latest 2026 best practices for AI prompt engineering for scientific validation agents?"

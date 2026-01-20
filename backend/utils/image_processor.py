@@ -40,5 +40,5 @@ class ImageProcessor:
             return output_buffer.getvalue(), width, height
 
         except Exception as e:
-            print(f"❌ Image optimization failed: {e}")
+            print(f"[ERROR] Image optimization failed: {e}")
             return None, 0, 0

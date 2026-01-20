@@ -27,7 +27,7 @@ SYMPTOMS:
 
 ROOT CAUSE ANALYSIS:
 Windows Command Prompt and PowerShell default to legacy ANSI code pages (e.g., cp1252)
-that cannot represent Unicode emojis. When Python tries to print an emoji like "📝",
+that cannot represent Unicode emojis. When Python tries to print an emoji like "[NOTE]",
 it asks the terminal "How do I encode this?" and the terminal responds with an error
 because the legacy encoding has no mapping for modern Unicode characters.
 
@@ -67,7 +67,7 @@ Look for "UnicodeEncodeError" + "charmap" + emoji codepoints starting with \U000
 """
 
 async def main():
-    print("📝 Indexing Windows encoding incident into MemoryAgent...")
+    print("[NOTE] Indexing Windows encoding incident into MemoryAgent...")
     
     try:
         result = await memory_agent.index_problem(
@@ -81,9 +81,9 @@ async def main():
                 "error_pattern": "UnicodeEncodeError charmap codec"
             }
         )
-        print(f"✅ Successfully indexed! Record: {result}")
+        print(f"[OK] Successfully indexed! Record: {result}")
     except Exception as e:
-        print(f"❌ Failed to index: {e}")
+        print(f"[ERROR] Failed to index: {e}")
         raise
 
 if __name__ == "__main__":

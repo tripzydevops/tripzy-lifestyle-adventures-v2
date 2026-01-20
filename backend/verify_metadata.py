@@ -13,7 +13,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABAS
 POST_ID = "fbe1886d-0712-4856-8d81-b632b731f2b6"
 
 async def main():
-    print(f"🔍 Checking Metadata for Post {POST_ID}...")
+    print(f"[SEARCH] Checking Metadata for Post {POST_ID}...")
     
     async with aiohttp.ClientSession() as session:
         url = f"{SUPABASE_URL}/rest/v1/posts?id=eq.{POST_ID}&select=metadata"
@@ -28,12 +28,12 @@ async def main():
             if resp.status == 200:
                 data = await resp.json()
                 if data:
-                    print("✅ Metadata found:")
+                    print("[OK] Metadata found:")
                     print(json.dumps(data[0].get('metadata'), indent=2))
                 else:
-                    print("⚠️ Post not found.")
+                    print("[WARNING] Post not found.")
             else:
-                print(f"❌ Failed: {await resp.text()}")
+                print(f"[ERROR] Failed: {await resp.text()}")
 
 if __name__ == "__main__":
     asyncio.run(main())

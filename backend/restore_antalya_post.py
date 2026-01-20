@@ -13,7 +13,7 @@ SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
 
 if not SUPABASE_KEY:
-    print("❌ Critical: No SUPABASE_KEY found.")
+    print("[ERROR] Critical: No SUPABASE_KEY found.")
     exit(1)
 
 IMAGES_MAP = {
@@ -131,7 +131,7 @@ async def upload_image(session, file_path, file_name):
         with open(file_path, "rb") as f:
             file_data = f.read()
     except Exception as e:
-        print(f"❌ Failed to read {file_path}: {e}")
+        print(f"[ERROR] Failed to read {file_path}: {e}")
         return None
 
     # Bucket Path
@@ -152,17 +152,17 @@ async def upload_image(session, file_path, file_name):
     print(f"   -> Uploading {file_name}...")
     async with session.post(url, data=file_data, headers=headers) as resp:
         if resp.status == 200:
-            print(f"      ✅ Uploaded {file_name}")
+            print(f"      [OK] Uploaded {file_name}")
         elif resp.status == 409: # Loop?
             # It exists, let's try to update (PUT)
              async with session.put(url, data=file_data, headers=headers) as put_resp:
                  if put_resp.status == 200:
-                     print(f"      ✅ Updated {file_name}")
+                     print(f"      [OK] Updated {file_name}")
                  else:
-                     print(f"      ❌ Failed to update {file_name}: {await put_resp.text()}")
+                     print(f"      [ERROR] Failed to update {file_name}: {await put_resp.text()}")
                      return None
         else:
-            print(f"      ❌ Upload Error {resp.status}: {await resp.text()}")
+            print(f"      [ERROR] Upload Error {resp.status}: {await resp.text()}")
             # If 400 or other, return None? Or maybe it works anyway?
             # For now assume failure if not 200/409
             # Actually, return public URL anyway and hope? No.
@@ -186,12 +186,12 @@ async def create_map(session, map_data):
     # Let's try POST.
     async with session.post(url, headers=headers, json=map_data) as resp:
         if resp.status in [200, 201]:
-             print("      ✅ Map created successfully")
+             print("      [OK] Map created successfully")
         else:
-             print(f"      ⚠️ Map creation failed: {await resp.text()}")
+             print(f"      [WARNING] Map creation failed: {await resp.text()}")
 
 async def main():
-    print("🚀 Starting Post Restoration...")
+    print("[START] Starting Post Restoration...")
     
     uploaded_urls = {}
 
@@ -203,7 +203,7 @@ async def main():
             if url:
                 uploaded_urls[key] = url
             else:
-                print(f"⚠️ Skipping image for {key} due to upload failure")
+                print(f"[WARNING] Skipping image for {key} due to upload failure")
 
     # 2. Inject Images into Content
     final_content = RAW_CONTENT
@@ -275,7 +275,7 @@ async def main():
         }
     }
 
-    print("💾 Saving Post to Database...")
+    print("[SAVE] Saving Post to Database...")
     
     post_id = None
 
@@ -287,7 +287,7 @@ async def main():
         async with session.get(user_url, headers=h) as resp:
             # Check for error or empty
             if resp.status != 200:
-                 print(f"⚠️ Failed to fetch specific admin: {resp.status}")
+                 print(f"[WARNING] Failed to fetch specific admin: {resp.status}")
                  users = []
             else:
                  users = await resp.json()
@@ -313,17 +313,17 @@ async def main():
         
         async with session.post(insert_url, headers=insert_headers, params=params, json=post_data) as post_resp:
             if post_resp.status in [200, 201]:
-                print(f"✅ Success! Post saved.")
+                print(f"[OK] Success! Post saved.")
                 d = await post_resp.json()
                 post_id = d[0]['id']
                 print(f"   ID: {d[0]['id']}")
                 print(f"   Slug: {d[0]['slug']}")
             else:
-                print(f"❌ Failed to save post: {await post_resp.text()}")
+                print(f"[ERROR] Failed to save post: {await post_resp.text()}")
 
         # 4. Create Map
         if post_id:
-            print("🗺️ Creating Map...")
+            print("[MAP] Creating Map...")
             map_data = {
                 "post_id": post_id,
                 "name": "Fethiye - Kaş Route",

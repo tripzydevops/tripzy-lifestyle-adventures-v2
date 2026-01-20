@@ -8,7 +8,7 @@ sys.path.append(os.getcwd())
 from backend.agents.graph import Agent
 
 async def verify_proactive_flow():
-    print("🤖 Testing Proactive Orchestration Flow in graph.py")
+    print("[BOT] Testing Proactive Orchestration Flow in graph.py")
     print("Scenario: User asks about 'Quantum Travel Logistics 2030'")
     
     agent = Agent()

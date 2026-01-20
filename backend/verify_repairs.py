@@ -10,7 +10,7 @@ SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not all([SUPABASE_URL, SUPABASE_KEY]):
-    print("❌ Missing Credentials")
+    print("[ERROR] Missing Credentials")
     exit(1)
 
 HEADERS_BLOG = {
@@ -23,18 +23,18 @@ HEADERS_BLOG = {
 }
 
 async def main():
-    print("🔍 Verifying Post Repairs...")
+    print("[SEARCH] Verifying Post Repairs...")
     
     async with aiohttp.ClientSession() as session:
         # Fetch all posts
         url = f"{SUPABASE_URL}/rest/v1/posts?select=id,title,featured_image,content,status"
         async with session.get(url, headers=HEADERS_BLOG) as resp:
             if resp.status != 200:
-                print(f"❌ Failed to fetch posts: {resp.status}")
+                print(f"[ERROR] Failed to fetch posts: {resp.status}")
                 return
             posts = await resp.json()
 
-    print(f"📚 Total Posts: {len(posts)}")
+    print(f"[ICON] Total Posts: {len(posts)}")
     
     external_images = 0
     short_content = 0
@@ -55,20 +55,20 @@ async def main():
             short_content += 1
             broken_posts.append(f"{post['title']} ({word_count} words)")
 
-    print("\n📊 Repair Status Report:")
+    print("\n[DATA] Repair Status Report:")
     print("------------------------------------------------")
     
     if external_images == 0:
-        print("✅ Visual Memory: ALL images migrated to Supabase Storage.")
+        print("[OK] Visual Memory: ALL images migrated to Supabase Storage.")
     else:
-        print(f"⚠️ Visual Memory: {external_images} posts still use external images.")
+        print(f"[WARNING] Visual Memory: {external_images} posts still use external images.")
         for p in unmigrated_images[:3]:
             print(f"   - {p}")
 
     if short_content == 0:
-        print("✅ Content Quality: ALL posts meet length standards (>500 words).")
+        print("[OK] Content Quality: ALL posts meet length standards (>500 words).")
     else:
-        print(f"⚠️ Content Quality: {short_content} posts are too short (potential generation failure).")
+        print(f"[WARNING] Content Quality: {short_content} posts are too short (potential generation failure).")
         for p in broken_posts[:5]:
             print(f"   - {p}")
 

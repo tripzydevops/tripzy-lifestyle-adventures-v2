@@ -4,7 +4,7 @@ import time
 from backend.agents.graph import app_graph
 
 async def simulate_user_request(user_id: str, query: str):
-    print(f"🚀 Starting Stress Request for {user_id}: '{query}'")
+    print(f"[START] Starting Stress Request for {user_id}: '{query}'")
     start_time = time.time()
     try:
         state = {
@@ -14,10 +14,10 @@ async def simulate_user_request(user_id: str, query: str):
         }
         result = await app_graph.ainvoke(state)
         duration = time.time() - start_time
-        print(f"✅ Request {user_id} Completed in {duration:.2f}s (Consensus: {result['analysis']['consensus']['consensus_score']})")
+        print(f"[OK] Request {user_id} Completed in {duration:.2f}s (Consensus: {result['analysis']['consensus']['consensus_score']})")
         return True
     except Exception as e:
-        print(f"❌ Request {user_id} FAILED: {e}")
+        print(f"[ERROR] Request {user_id} FAILED: {e}")
         return False
 
 async def run_stress_test():
@@ -40,9 +40,9 @@ async def run_stress_test():
     print(f"\n--- Stress Test Result: {success_count}/{len(test_suite)} Successes ---")
     
     if success_count == len(test_suite):
-        print("🏆 SYSTEM STABLE UNDER CONCURRENCY")
+        print("[ICON] SYSTEM STABLE UNDER CONCURRENCY")
     else:
-        print("⚠️ CONCURRENCY WARNING DETECTED")
+        print("[WARNING] CONCURRENCY WARNING DETECTED")
 
 if __name__ == "__main__":
     asyncio.run(run_stress_test())

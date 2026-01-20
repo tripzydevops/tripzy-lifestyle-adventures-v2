@@ -156,6 +156,46 @@ async def embed_content(
         timeout=timeout
     )
 
+class _RestClient:
+    """Simple namespace to mimic a client object for compatibility."""
+    def __init__(self):
+        self.api_key = get_api_key()
+        self.model = DEFAULT_GENERATION_MODEL
+        
+    def generate(self, prompt: str, **kwargs):
+        return generate_content_sync(prompt, **kwargs)
+
+def get_client():
+    """Returns a lightweight REST-based client stub for compatibility."""
+    return _RestClient()
+
+class StreamChunk:
+    """Mimics a streaming chunk with a text attribute."""
+    def __init__(self, text: str):
+        self.text = text
+
+def generate_content_stream_sync(
+    prompt: str,
+    model: str = DEFAULT_GENERATION_MODEL,
+    **kwargs
+):
+    """
+    Synchronous streaming content generation.
+    Since the REST API doesn't support true streaming via simple POST,
+    we simulate by returning the full response split into chunks.
+    
+    For true SSE streaming, you'd use the streamGenerateContent endpoint.
+    This is a simplified version for stability.
+    """
+    # Get full response first
+    response = generate_content_sync(prompt, model, **kwargs)
+    full_text = response.text
+    
+    # Simulate streaming by yielding chunks
+    chunk_size = 50  # characters per chunk
+    for i in range(0, len(full_text), chunk_size):
+        yield StreamChunk(full_text[i:i + chunk_size])
+
 if __name__ == "__main__":
     print("--- GenAI Client (REST) Health Check ---")
     try:

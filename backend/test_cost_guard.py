@@ -15,7 +15,7 @@ except ImportError:
     from backend.agents.research_agent import research_agent
 
 async def test_cost_guard():
-    print("--- 💰 Testing Cost Guard Logic ---")
+    print("--- [ICON] Testing Cost Guard Logic ---")
     
     test_queries = [
         ("What is the history of Topkapi Palace?", "INTERNAL_KNOWLEDGE_SUFFICIENT"),
@@ -33,10 +33,10 @@ async def test_cost_guard():
         print(f"  -> Decision: {decision}")
         
         if decision == expected:
-            print("  ✅ PASS")
+            print("  [OK] PASS")
             passed += 1
         else:
-            print(f"  ❌ FAIL (Expected {expected})")
+            print(f"  [ERROR] FAIL (Expected {expected})")
             
     print(f"\n--- Result: {passed}/{len(test_queries)} Passed ---")
 

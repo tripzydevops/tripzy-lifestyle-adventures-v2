@@ -129,14 +129,21 @@ async def supabase_retrieve_context(query_text: str, vibe_filter: str):
         "Content-Type": "application/json"
     }
     
-    # 1. Embed query using new SDK via genai_client
+    # 1. Embed query using REST genai_client
     try:
         embedding_res = await asyncio.to_thread(
             embed_content_sync,
             query_text
         )
-        # New SDK returns response object with .embeddings attribute
-        query_vector = embedding_res.embeddings[0].values
+        # REST client returns {'embedding': [...]} dict format
+        if isinstance(embedding_res, dict) and 'embedding' in embedding_res:
+            query_vector = embedding_res['embedding']
+        elif hasattr(embedding_res, 'embeddings'):
+            # Legacy SDK format fallback
+            query_vector = embedding_res.embeddings[0].values
+        else:
+            print(f"Unexpected embedding format: {type(embedding_res)}")
+            return []
     except Exception as e:
         print(f"Embedding failed: {e}")
         return []

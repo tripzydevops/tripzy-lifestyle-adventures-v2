@@ -34,9 +34,9 @@ async def force_publish(slug):
         payload = {"status": "published"}
         async with session.patch(patch_url, headers=headers, json=payload) as resp:
             if resp.status < 300:
-                print(f"✅ Published: {slug}")
+                print(f"[OK] Published: {slug}")
             else:
-                print(f"❌ Error: {await resp.text()}")
+                print(f"[ERROR] Error: {await resp.text()}")
 
 if __name__ == "__main__":
     asyncio.run(force_publish("nemrut-dagi-gundogumu"))

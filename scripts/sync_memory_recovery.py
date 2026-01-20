@@ -3,7 +3,7 @@ import os
 from backend.agents.memory_agent import memory_agent
 
 async def sync_recovery():
-    print("🧠 MemoryAgent: Indexing System Recovery Incident...")
+    print("[EMOJI] MemoryAgent: Indexing System Recovery Incident...")
     
     problem_desc = """
     Python 3.14 Compatibility Issue: 'httpcore' library (dependency of 'supabase-py') 
@@ -25,7 +25,7 @@ async def sync_recovery():
         metadata={"category": "system_recovery", "phase": "2"}
     )
     
-    print("✅ MemoryAgent: Institutional Knowledge Synchronized.")
+    print("[OK] MemoryAgent: Institutional Knowledge Synchronized.")
 
 if __name__ == "__main__":
     asyncio.run(sync_recovery())

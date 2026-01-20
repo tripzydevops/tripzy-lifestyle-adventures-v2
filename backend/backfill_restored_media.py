@@ -15,7 +15,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 
 if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
-    print("❌ Missing API Keys")
+    print("[ERROR] Missing API Keys")
     exit(1)
 
 visual_memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY)
@@ -29,7 +29,7 @@ def slugify(text: str) -> str:
     return slug or "unnamed-media"
 
 async def backfill():
-    print("🚀 Starting Media Standardization & Intelligence Backfill...")
+    print("[START] Starting Media Standardization & Intelligence Backfill...")
     
     # 1. Fetch records needing fix (restored or recovered)
     # Use Accept-Profile and Content-Profile for the 'blog' schema
@@ -41,7 +41,7 @@ async def backfill():
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=headers) as resp:
             if resp.status != 200:
-                print(f"❌ Failed to fetch blog media: {await resp.text()}")
+                print(f"[ERROR] Failed to fetch blog media: {await resp.text()}")
                 return
             all_media = await resp.json()
 
@@ -53,7 +53,7 @@ async def backfill():
         or (m.get('caption') and m.get('caption', '').endswith('(Restored)'))
     ]
 
-    print(f"📚 Found {len(targets)} records to standardize and analyze.")
+    print(f"[ICON] Found {len(targets)} records to standardize and analyze.")
 
     for item in targets:
         print(f"\nProcessing: {item['filename']}...")
@@ -77,7 +77,7 @@ async def backfill():
                     lib_exists = len(await check_resp.json()) > 0
 
             if not lib_exists:
-                print("   🧠 Running AI Vision analysis...")
+                print("   [ICON] Running AI Vision analysis...")
                 image_data = await visual_memory.processor.download_image(item['url'])
                 if image_data:
                     webp_data, width, height = visual_memory.processor.optimize_image(image_data)
@@ -118,12 +118,12 @@ async def backfill():
                         "size_bytes": item.get('size_bytes', 0)
                     }
                     async with session.post(f"{SUPABASE_URL}/rest/v1/media_library", headers=lib_headers, json=lib_payload) as lib_post:
-                        print(f"   ✅ Indexed in media_library: {lib_post.status}")
+                        print(f"   [OK] Indexed in media_library: {lib_post.status}")
                 else:
-                    print("   ⚠️ Could not download image for analysis.")
+                    print("   [WARNING] Could not download image for analysis.")
                     semantic_tags = [standardized_name] # Fallback
             else:
-                print("   ✅ Already indexed in media_library.")
+                print("   [OK] Already indexed in media_library.")
                 # If it exists, let's just get the tags to sync back if they are missing
                 async with aiohttp.ClientSession() as session:
                     async with session.get(lib_check_url.replace('select=id', 'select=semantic_tags'), headers=lib_headers) as t_resp:
@@ -143,14 +143,14 @@ async def backfill():
             async with aiohttp.ClientSession() as session:
                 async with session.patch(patch_url, headers=headers, json=update_payload) as patch_resp:
                     if patch_resp.status in [200, 204]:
-                        print(f"   ✅ Standardized & repaired in blog.media.")
+                        print(f"   [OK] Standardized & repaired in blog.media.")
                     else:
-                        print(f"   ❌ Save failed: {patch_resp.status}")
+                        print(f"   [ERROR] Save failed: {patch_resp.status}")
 
         except Exception as e:
-            print(f"   ⚠️ Error processing item: {e}")
+            print(f"   [WARNING] Error processing item: {e}")
 
-    print("\n✨ Backfill complete!")
+    print("\n[NEW] Backfill complete!")
 
 if __name__ == "__main__":
     # Uses centralized genai_client (gemini-3.0-flash)

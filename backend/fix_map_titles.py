@@ -12,7 +12,7 @@ SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ Missing API Keys")
+    print("[ERROR] Missing API Keys")
     exit(1)
 
 async def fix_maps():
@@ -43,7 +43,7 @@ async def fix_maps():
 
             async with session.get(f"{SUPABASE_URL}/rest/v1/maps?select=*&order=id", headers=batch_headers) as resp:
                 if resp.status not in [200, 206]:
-                    print(f"❌ Failed to fetch batch: {await resp.text()}")
+                    print(f"[ERROR] Failed to fetch batch: {await resp.text()}")
                     break
                 
                 maps = await resp.json()
@@ -79,7 +79,7 @@ async def fix_maps():
                         if not new_title:
                              new_title = f"Location {idx + 1}"
                              
-                        print(f"      🔧 Repairing Point in '{map_item.get('name', 'Unknown')}': Missing Title -> '{new_title}'")
+                        print(f"      [FIX] Repairing Point in '{map_item.get('name', 'Unknown')}': Missing Title -> '{new_title}'")
                         is_dirty = True
                     
                     # Reconstruct point with guaranteed title
@@ -90,14 +90,14 @@ async def fix_maps():
                 
                 if is_dirty:
                     # Update the map
-                    # print(f"      💾 Saving repairs for map: {map_item.get('name')}...")
+                    # print(f"      [SAVE] Saving repairs for map: {map_item.get('name')}...")
                     update_url = f"{SUPABASE_URL}/rest/v1/maps?id=eq.{map_item['id']}"
                     async with session.patch(update_url, headers=headers, json={"data": new_points}) as patch_resp:
                         if patch_resp.status in [200, 204]:
-                            # print("         ✅ Saved.")
+                            # print("         [OK] Saved.")
                             total_fixed += 1
                         else:
-                            print(f"         ❌ Failed to save: {await patch_resp.text()}")
+                            print(f"         [ERROR] Failed to save: {await patch_resp.text()}")
 
             offset += limit
             # Small yield to prevent event loop blocking if processing is heavy (unlikely here but good practice)

@@ -87,17 +87,17 @@ async def retry_async(
         except Exception as e:
             last_error = e
             if not is_retriable(e):
-                logger.error(f"[{correlation_id}] ❌ Non-retriable error: {e}. Failing fast.")
+                logger.error(f"[{correlation_id}] [ERROR] Non-retriable error: {e}. Failing fast.")
                 raise e
                 
             if attempt < max_retries - 1:
                 # Apply jitter: delay * (0.5 to 1.5)
                 actual_delay = delay * (random.uniform(0.5, 1.5) if use_jitter else 1.0)
-                logger.warning(f"[{correlation_id}] ⚠️ Attempt {attempt + 1}/{max_retries} failed: {e}. Retrying in {actual_delay:.2f}s...")
+                logger.warning(f"[{correlation_id}] [WARNING] Attempt {attempt + 1}/{max_retries} failed: {e}. Retrying in {actual_delay:.2f}s...")
                 await asyncio.sleep(actual_delay)
                 delay *= backoff_multiplier
             else:
-                logger.error(f"[{correlation_id}] ❌ All {max_retries} attempts failed.")
+                logger.error(f"[{correlation_id}] [ERROR] All {max_retries} attempts failed.")
                 raise last_error
 
 async def run_sync_in_thread(
@@ -172,7 +172,7 @@ class BatchProcessor:
             processed += len(batch)
             
             elapsed = time.time() - start_time
-            logger.info(f"💓 Heartbeat: Processed {processed}/{total} items ({processed/total*100:.1f}%) in {elapsed:.1f}s")
+            logger.info(f"[ICON] Heartbeat: Processed {processed}/{total} items ({processed/total*100:.1f}%) in {elapsed:.1f}s")
             
             if on_batch_complete:
                 on_batch_complete(processed, total)

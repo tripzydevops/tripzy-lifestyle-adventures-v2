@@ -41,7 +41,7 @@ class CodeReviewAgent:
         Performs a senior-level code review, validated against latest 2026 standards 
         from the Research Scout.
         """
-        print(f"🕵️ Consulting Research Scout for 2026 standards in: {context}...")
+        print(f"[ICON]️ Consulting Research Scout for 2026 standards in: {context}...")
         scout_findings = await research_agent.scout_best_practices(f"coding patterns for {context or 'Python R&D'}")
         
         prompt = f"""
@@ -68,7 +68,7 @@ class CodeReviewAgent:
         }}
         """
 
-        print("🤖 Agent is contacting Google Gemini...")
+        print("[BOT] Agent is contacting Google Gemini...")
         
         try:
             # Run blocking call in thread via utility with retry and timeout
@@ -79,7 +79,7 @@ class CodeReviewAgent:
         except Exception as e:
             # CAPTURE THE EXACT API ERROR HERE
             error_msg = f"API CALL FAILED: {str(e)}"
-            print(f"❌ {error_msg}")
+            print(f"[ERROR] {error_msg}")
             return ReviewResult(0, [], error_msg)
 
         if not response or not response.text:

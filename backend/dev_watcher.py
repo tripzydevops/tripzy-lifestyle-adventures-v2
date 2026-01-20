@@ -33,7 +33,7 @@ class ScribeEventHandler(FileSystemEventHandler):
         if not (event.src_path.endswith(".py") or event.src_path.endswith(".ts") or event.src_path.endswith(".tsx")):
             return
 
-        print(f"👀 Detected change in: {event.src_path}")
+        print(f"[ICON] Detected change in: {event.src_path}")
         self.changed_files.add(event.src_path)
         self.last_triggered = time.time()
 
@@ -45,7 +45,7 @@ class ScribeEventHandler(FileSystemEventHandler):
             await asyncio.sleep(2)
             
             if self.changed_files and (time.time() - self.last_triggered > self.debounce_seconds):
-                print(f"⚡ Stability detected. Triggering Scribe Agent for {len(self.changed_files)} files...")
+                print(f"[ICON] Stability detected. Triggering Scribe Agent for {len(self.changed_files)} files...")
                 
                 files_snapshot = list(self.changed_files)
                 self.changed_files.clear()
@@ -56,7 +56,7 @@ class ScribeEventHandler(FileSystemEventHandler):
                     filename = os.path.basename(f)
                     summary += f"- {filename}\n"
                 
-                print("📝 Scribe is drafting a Design Log...")
+                print("[NOTE] Scribe is drafting a Design Log...")
                 try:
                     # In a real scenario, we would read the diffs here.
                     # For now, we pass the file list as the 'task state'
@@ -66,15 +66,15 @@ class ScribeEventHandler(FileSystemEventHandler):
                     )
                     
                     if result:
-                        print(f"✅ Design Log created: {result}")
+                        print(f"[OK] Design Log created: {result}")
                     else:
                         print("ℹ️ Scribe decided this change was too minor for a full log.")
                         
                 except Exception as e:
-                    print(f"❌ Scribe Error: {e}")
+                    print(f"[ERROR] Scribe Error: {e}")
 
 async def main():
-    print("🔭 Tripzy R&D Watcher Started. Waiting for code changes...")
+    print("[ICON] Tripzy R&D Watcher Started. Waiting for code changes...")
     print("   (Monitors .py, .ts, .tsx files)")
     
     event_handler = ScribeEventHandler()

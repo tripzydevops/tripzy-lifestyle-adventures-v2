@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 def run_script(script_path):
-    print(f"🚀 Running: {script_path}")
+    print(f"[ICON] Running: {script_path}")
     result = subprocess.run(["python", script_path], capture_output=True, text=True)
     return {
         "status": "success" if result.returncode == 0 else "failed",
@@ -37,7 +37,7 @@ def main():
     with open(report_path, "w") as f:
         json.dump(report, f, indent=4)
     
-    print(f"✅ Audit complete. Report saved to {report_path}")
+    print(f"[ICON] Audit complete. Report saved to {report_path}")
 
 if __name__ == "__main__":
     main()

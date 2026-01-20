@@ -7,7 +7,7 @@ from backend.agents.graph import app_graph
 
 @pytest.mark.asyncio
 async def test_cross_domain_cold_start():
-    print("\n🧪 Testing Cold Start Inference...")
+    print("\n[ICON] Testing Cold Start Inference...")
     query = "I love old libraries and quiet coffee shops"
     persona = await cross_domain_agent.infer_persona(query, [])
     
@@ -20,7 +20,7 @@ async def test_cross_domain_cold_start():
 
 @pytest.mark.asyncio
 async def test_visual_intelligence_retrieval():
-    print("\n🧪 Testing Semantic Visual Retrieval...")
+    print("\n[ICON] Testing Semantic Visual Retrieval...")
     query = "turquoise water and white sand"
     analysis = await visual_agent.discover_scenes(query, limit=2)
     
@@ -34,7 +34,7 @@ async def test_visual_intelligence_retrieval():
 
 @pytest.mark.asyncio
 async def test_integrated_agent_pipeline():
-    print("\n🧪 Testing Integrated Agent Pipeline...")
+    print("\n[ICON] Testing Integrated Agent Pipeline...")
     state = {
         "session_id": "rd-test-session",
         "query": "I want a luxury escape with no crowds",

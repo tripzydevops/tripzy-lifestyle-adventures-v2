@@ -28,7 +28,7 @@ class ProfilerAgent:
         Implements behavioral drift detection and emotional resonance tracking.
         """
         # Fetch historical archetypes for drift analysis
-        print(f"   [Profiler] 🧠 Analyzing Behavioral Soul for User: {user_id}")
+        print(f"   [Profiler] [ICON] Analyzing Behavioral Soul for User: {user_id}")
         
         historical_context = "No previous data."
         try:
@@ -90,7 +90,7 @@ class ProfilerAgent:
                 self.supabase.table("user_archetypes").upsert(data).execute
             )
         except Exception as e:
-            print(f"⚠️ [ProfilerAgent] Persistence failure: {e}")
+            print(f"[WARNING] [ProfilerAgent] Persistence failure: {e}")
         
         return archetype_data
 

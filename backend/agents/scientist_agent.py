@@ -227,7 +227,7 @@ class ScientistAgent:
         Extracts high-fidelity metadata from a travel blog post, considering multilingual context
         and research scout findings.
         """
-        print(f"🧪 [Scientist] Reasoning over metadata for: {post['title']}")
+        print(f"[ICON] [Scientist] Reasoning over metadata for: {post['title']}")
         
         prompt = f"""
         Analyze this travel blog post and extract standardized metadata.
@@ -275,7 +275,7 @@ class ScientistAgent:
         try:
             return json.loads(text)
         except json.JSONDecodeError as e:
-            print(f"⚠️ [Scientist] JSON Parse Error: {e}")
+            print(f"[WARNING] [Scientist] JSON Parse Error: {e}")
             # Fallback to current data or a minimal set
             return {
                 "category": post.get('category', "Destinations"),
@@ -290,13 +290,13 @@ class ScientistAgent:
         Autonomous R&D Hook: Checks institutional memory for 'Major Breakthrough' patterns
         and automatically generates a high-level scientific report if detected.
         """
-        print("   [Scientist] 🧠 Running Autonomous Synthesis Audit...")
+        print("   [Scientist] [ICON] Running Autonomous Synthesis Audit...")
         
         # 1. Fetch recent milestones from Memory
         recent_milestones = await memory_agent.fetch_recent_knowledge(limit=10)
         
         if not recent_milestones:
-            print("   [Scientist] 🛑 Synthesis skipped: Insufficient institutional memory.")
+            print("   [Scientist] [ICON] Synthesis skipped: Insufficient institutional memory.")
             return None
             
         # 2. Heuristic Audit: Look for 'Major Breakthrough' or 'Structural Refactor' patterns
@@ -326,17 +326,17 @@ class ScientistAgent:
             decision = json.loads(data if "{" in data else "{}")
             
             if decision.get("is_major_breakthrough"):
-                print(f"   [Scientist] 🚀 MAJOR BREAKTHROUGH DETECTED: {decision.get('reasoning')}")
+                print(f"   [Scientist] [START] MAJOR BREAKTHROUGH DETECTED: {decision.get('reasoning')}")
                 # Trigger the high-level grant report automatically
                 report_path = await self.generate_grant_report(recent_milestones)
-                print(f"   [Scientist] ✅ SUCCESS: Autonomous Report Generated: {report_path}")
+                print(f"   [Scientist] [OK] SUCCESS: Autonomous Report Generated: {report_path}")
                 return report_path
             else:
-                print("   [Scientist] 💤 Audit complete: No major synthesis required at this time.")
+                print("   [Scientist] [ICON] Audit complete: No major synthesis required at this time.")
                 return None
                 
         except Exception as e:
-            print(f"   [Scientist] ⚠️ Autonomous Synthesis Hook failed: {e}")
+            print(f"   [Scientist] [WARNING] Autonomous Synthesis Hook failed: {e}")
             return None
 
 # Singleton instance

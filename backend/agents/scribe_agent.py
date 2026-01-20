@@ -107,7 +107,7 @@ class ScribeAgent:
                     decision.get('type', "Architectural")
                 )
         except Exception as e:
-            print(f"⚠️ [ScribeAgent] Error parsing milestone decision: {e}")
+            print(f"[WARNING] [ScribeAgent] Error parsing milestone decision: {e}")
         
         return None
 

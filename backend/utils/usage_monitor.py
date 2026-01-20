@@ -48,8 +48,8 @@ class UsageMonitor:
                 ) as response:
                     if response.status >= 400:
                         text = await response.text()
-                        print(f"⚠️ UsageMonitor Error: {response.status} - {text}")
+                        print(f"[WARNING] UsageMonitor Error: {response.status} - {text}")
         except Exception as e:
-            print(f"❌ UsageMonitor Failed: {e}")
+            print(f"[ERROR] UsageMonitor Failed: {e}")
 
 monitor = UsageMonitor()

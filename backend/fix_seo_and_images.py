@@ -69,7 +69,7 @@ async def fix_all():
     }
     
     async with aiohttp.ClientSession() as session:
-        print("🔍 Fetching Posts for Comprehensive Repair...")
+        print("[SEARCH] Fetching Posts for Comprehensive Repair...")
         async with session.get(f"{SUPABASE_URL}/rest/v1/posts?select=*", headers=headers) as r:
             posts = await r.json()
             
@@ -82,7 +82,7 @@ async def fix_all():
             
             # --- CHECK 1: Featured Image ---
             if not post.get('featured_image'):
-                print(f"   📷 [{title}] Missing Featured Image")
+                print(f"   [ICON] [{title}] Missing Featured Image")
                 # Try to find one
                 image_url = await get_unsplash_image(title)
                 if image_url:
@@ -104,7 +104,7 @@ async def fix_all():
             if not curr_kw: seo_needed = True
             
             if seo_needed:
-                print(f"   🧠 [{title}] Needs SEO Fix")
+                print(f"   [ICON] [{title}] Needs SEO Fix")
                 # Wait a bit to avoid rate limits
                 await asyncio.sleep(2) 
                 seo_data = await generate_seo_metadata(title, post.get('content', ''))
@@ -122,9 +122,9 @@ async def fix_all():
                 update_url = f"{SUPABASE_URL}/rest/v1/posts?id=eq.{post['id']}"
                 async with session.patch(update_url, headers=headers, json=updates) as patch_resp:
                     if patch_resp.status == 204:
-                        print(f"      ✅ Fixed {title}")
+                        print(f"      [OK] Fixed {title}")
                     else:
-                        print(f"      ❌ Update Failed: {await patch_resp.text()}")
+                        print(f"      [ERROR] Update Failed: {await patch_resp.text()}")
             
             # Rate limit buffer
             await asyncio.sleep(1)

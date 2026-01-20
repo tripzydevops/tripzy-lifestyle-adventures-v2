@@ -13,7 +13,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABAS
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 
 if not SUPABASE_KEY:
-    print("❌ No Key found")
+    print("[ERROR] No Key found")
     exit(1)
 
 # Initialize Visual Memory for intelligent indexing
@@ -57,7 +57,7 @@ async def list_storage_files(session):
     
     async with session.post(url, headers=HEADERS, json=payload) as resp:
         if resp.status != 200:
-            print(f"❌ Failed to list storage: {await resp.text()}")
+            print(f"[ERROR] Failed to list storage: {await resp.text()}")
             return []
         return await resp.json()
 
@@ -91,7 +91,7 @@ async def insert_media(session, file):
     caption_base = clean_filename.split('.')[0].replace('_', ' ').replace('-', ' ').title()
     standardized_name = slugify(caption_base)
 
-    print(f"   🧠 Ingesting {clean_filename} with Visual Intelligence...")
+    print(f"   [ICON] Ingesting {clean_filename} with Visual Intelligence...")
     
     try:
         # 1. AI Vision Analysis
@@ -130,7 +130,7 @@ async def insert_media(session, file):
             # For simplicity in this script, we'll just hit the REST API
             async with session.post(f"{SUPABASE_URL}/rest/v1/media_library", headers=visual_memory.headers, json=lib_payload) as lib_resp:
                 if lib_resp.status >= 300:
-                    print(f"      ⚠️ media_library indexing warning: {lib_resp.status}")
+                    print(f"      [WARNING] media_library indexing warning: {lib_resp.status}")
 
             # Index in blog.media
             blog_payload = {
@@ -147,20 +147,20 @@ async def insert_media(session, file):
             h["Content-Profile"] = "blog"
             async with session.post(f"{SUPABASE_URL}/rest/v1/media", headers=h, json=blog_payload) as blog_resp:
                 if blog_resp.status == 201:
-                    print(f"      ✅ Intelligent Sync Success: {standardized_name}")
+                    print(f"      [OK] Intelligent Sync Success: {standardized_name}")
                 else:
-                    print(f"      ❌ blog.media sync failed: {blog_resp.status}")
+                    print(f"      [ERROR] blog.media sync failed: {blog_resp.status}")
         else:
-            print(f"   ⚠️ Could not download {clean_filename} for analysis.")
+            print(f"   [WARNING] Could not download {clean_filename} for analysis.")
     except Exception as e:
-        print(f"   ⚠️ Intelligence Error for {clean_filename}: {e}")
+        print(f"   [WARNING] Intelligence Error for {clean_filename}: {e}")
 
 async def main():
-    print("🔄 Starting Storage <-> DB Sync...")
+    print("[REFRESH] Starting Storage <-> DB Sync...")
     
     async with aiohttp.ClientSession() as session:
         files = await list_storage_files(session)
-        print(f"📦 Found {len(files)} files in storage '{BUCKET_ID}/content/'")
+        print(f"[ICON] Found {len(files)} files in storage '{BUCKET_ID}/content/'")
         
         for f in files:
             # f['name'] is likely 'content/filename.jpg' or just 'filename.jpg'?

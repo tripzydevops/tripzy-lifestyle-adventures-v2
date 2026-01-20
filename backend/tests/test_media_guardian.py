@@ -15,7 +15,7 @@ async def test_guardian():
         repair_res = await guardian.repair_batch(limit=1)
         print(f"   Repair Result: {repair_res['status']}")
     else:
-        print("   ✅ No repair needed. Data integrity 100%.")
+        print("   [OK] No repair needed. Data integrity 100%.")
 
 if __name__ == "__main__":
     asyncio.run(test_guardian())

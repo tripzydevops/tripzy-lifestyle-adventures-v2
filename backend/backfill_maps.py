@@ -65,7 +65,7 @@ async def backfill_maps():
     
     async with aiohttp.ClientSession() as session:
         # 1. Identify missing maps
-        print("🔍 checking missing maps...")
+        print("[SEARCH] checking missing maps...")
         async with session.get(f"{SUPABASE_URL}/rest/v1/posts?select=id,title,content", headers=headers) as r:
             posts = await r.json()
             
@@ -75,10 +75,10 @@ async def backfill_maps():
         map_post_ids = {m['post_id'] for m in maps}
         missing_maps = [p for p in posts if p['id'] not in map_post_ids]
         
-        print(f"⚠️ Found {len(missing_maps)} posts without maps.")
+        print(f"[WARNING] Found {len(missing_maps)} posts without maps.")
         
         for post in missing_maps:
-            print(f"🗺️ Generating map for: {post['title']}...")
+            print(f"[MAP] Generating map for: {post['title']}...")
             
             map_data = await generate_map_data(post['title'], post.get('content', ''))
             
@@ -104,9 +104,9 @@ async def backfill_maps():
                 # Insert
                 async with session.post(f"{SUPABASE_URL}/rest/v1/maps", headers=headers, json=new_map) as resp:
                     if resp.status == 201:
-                        print("   ✅ Map Created!")
+                        print("   [OK] Map Created!")
                     else:
-                        print(f"   ❌ Save Failed: {await resp.text()}")
+                        print(f"   [ERROR] Save Failed: {await resp.text()}")
             
             await asyncio.sleep(2) # Rate limit kindness
 

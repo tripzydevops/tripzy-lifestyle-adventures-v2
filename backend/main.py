@@ -14,7 +14,7 @@ load_dotenv()
 required_env_vars = ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY", "VITE_GEMINI_API_KEY"]
 missing_vars = [var for var in required_env_vars if not os.getenv(var)]
 if missing_vars:
-    print(f"❌ CRITICAL ERROR: Missing required environment variables: {', '.join(missing_vars)}")
+    print(f"[ERROR] CRITICAL ERROR: Missing required environment variables: {', '.join(missing_vars)}")
     print("Please check your .env file or environment configuration.")
     # In a real production environment, we might exit(1) here.
     # For R&D, we'll log it prominently.

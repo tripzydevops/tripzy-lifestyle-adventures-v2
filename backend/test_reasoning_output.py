@@ -28,9 +28,9 @@ async def test_reasoning():
                     expected_keys = ["lifestyleVibe", "constraints", "ui_directive", "thoughts", "reasoning"]
                     missing = [k for k in expected_keys if k not in data]
                     if not missing:
-                        print("\n✅ All expected reasoning keys present!")
+                        print("\n[OK] All expected reasoning keys present!")
                     else:
-                        print(f"\n❌ Missing keys: {missing}")
+                        print(f"\n[ERROR] Missing keys: {missing}")
                 else:
                     print(f"Error: {await r.text()}")
         except Exception as e:

@@ -51,13 +51,13 @@ async def get_duplicates():
                     
                     for bad_item in to_delete:
                         did = bad_item['id']
-                        print(f"   🗑️ Deleting: {did} ({bad_item['created_at']})")
+                        print(f"   [DELETE] Deleting: {did} ({bad_item['created_at']})")
                         del_url = f"{SUPABASE_URL}/rest/v1/media?id=eq.{did}"
                         async with session.delete(del_url, headers=headers) as del_resp:
                             if del_resp.status == 204:
-                                print(f"      ✅ Deleted")
+                                print(f"      [OK] Deleted")
                             else:
-                                print(f"      ❌ Failed: {del_resp.status}")
+                                print(f"      [ERROR] Failed: {del_resp.status}")
 
                     duplicate_count += len(to_delete)
             

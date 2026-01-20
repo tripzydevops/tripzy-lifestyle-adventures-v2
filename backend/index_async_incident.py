@@ -64,7 +64,7 @@ RELATED SCRIPTS AFFECTED:
 """
 
 async def main():
-    print("📝 Indexing embed_posts.py incident into MemoryAgent...")
+    print("[NOTE] Indexing embed_posts.py incident into MemoryAgent...")
     
     try:
         result = await memory_agent.index_problem(
@@ -77,9 +77,9 @@ async def main():
                 "files_affected": ["embed_posts.py", "backfill_visual_intelligence.py"]
             }
         )
-        print(f"✅ Successfully indexed! Record: {result}")
+        print(f"[OK] Successfully indexed! Record: {result}")
     except Exception as e:
-        print(f"❌ Failed to index: {e}")
+        print(f"[ERROR] Failed to index: {e}")
         raise
 
 if __name__ == "__main__":

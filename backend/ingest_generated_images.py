@@ -15,7 +15,7 @@ UNSPLASH_KEY = os.getenv("VITE_UNSPLASH_ACCESS_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not all([SUPABASE_URL, SUPABASE_KEY, UNSPLASH_KEY]):
-    print("❌ Missing Credentials (Supabase or Unsplash)")
+    print("[ERROR] Missing Credentials (Supabase or Unsplash)")
     exit(1)
 
 visual_memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY)
@@ -33,7 +33,7 @@ HEADERS_BLOG["Accept-Profile"] = "blog"
 HEADERS_BLOG["Content-Profile"] = "blog"
 
 async def fetch_unsplash_replacement(query):
-    print(f"      🧹 Healing: Finding Unsplash replacement for '{query}'...")
+    print(f"      [ICON] Healing: Finding Unsplash replacement for '{query}'...")
     url = f"https://api.unsplash.com/search/photos?query={query}&per_page=1&client_id={UNSPLASH_KEY}"
     try:
         async with aiohttp.ClientSession() as session:
@@ -43,22 +43,22 @@ async def fetch_unsplash_replacement(query):
                     if data['results']:
                         return data['results'][0]['urls']['regular']
     except Exception as e:
-        print(f"      ⚠️ Healing failed: {e}")
+        print(f"      [WARNING] Healing failed: {e}")
     return None
 
 async def main():
-    print("🧠 Starting Visual Memory Healer & Ingestion...")
+    print("[ICON] Starting Visual Memory Healer & Ingestion...")
     
     # Fetch posts (BLOG schema)
     async with aiohttp.ClientSession() as session:
         url = f"{SUPABASE_URL}/rest/v1/posts?select=id,title,featured_image,content,tags"
         async with session.get(url, headers=HEADERS_BLOG) as resp:
             if resp.status != 200:
-                print(f"❌ Failed to fetch posts: {resp.status}")
+                print(f"[ERROR] Failed to fetch posts: {resp.status}")
                 return
             posts = await resp.json()
 
-    print(f"📚 Found {len(posts)} posts. Scanning for weak assets...")
+    print(f"[ICON] Found {len(posts)} posts. Scanning for weak assets...")
 
     for post in posts:
         is_updated = False
@@ -99,11 +99,11 @@ async def main():
                 is_updated = True
 
         if is_updated:
-            print(f"   💾 Updating Post Record...")
+            print(f"   [SAVE] Updating Post Record...")
             async with aiohttp.ClientSession() as session:
                 url = f"{SUPABASE_URL}/rest/v1/posts?id=eq.{post['id']}"
                 async with session.patch(url, headers=HEADERS_BLOG, json=updates) as resp:
-                    print(f"      ✅ Saved. (Status: {resp.status})")
+                    print(f"      [OK] Saved. (Status: {resp.status})")
         
         await asyncio.sleep(0.5)
 

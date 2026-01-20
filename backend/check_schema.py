@@ -16,7 +16,7 @@ SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
 
 async def main():
-    print("🔍 Analyzing 'blog.posts' counts...")
+    print("[SEARCH] Analyzing 'blog.posts' counts...")
     
     async with aiohttp.ClientSession() as session:
         headers = {
@@ -33,7 +33,7 @@ async def main():
             if resp.status == 200:
                 data = await resp.json()
                 if not data:
-                    print("⚠️ No posts found.")
+                    print("[WARNING] No posts found.")
                     return
 
                 categories = {}
@@ -88,28 +88,28 @@ async def main():
                             "metadata": post.get("metadata")
                         })
 
-                print("\n🌍 Language Distribution:")
+                print("\n[ICON] Language Distribution:")
                 for lang, count in sorted(languages.items(), key=lambda x: x[1], reverse=True):
                     print(f" - {lang}: {count}")
 
-                print("\n📊 Posts by Category:")
+                print("\n[DATA] Posts by Category:")
                 for cat, count in sorted(categories.items(), key=lambda x: x[1], reverse=True):
                     print(f" - {cat}: {count}")
 
-                print("\n📍 Posts by Location (Inferred):")
+                print("\n[LOCATION] Posts by Location (Inferred):")
                 for loc, count in sorted(locations.items(), key=lambda x: x[1], reverse=True):
                     print(f" - {loc}: {count}")
 
                 if unknown_posts:
-                    print(f"\n🕵️ Analyzing {len(unknown_posts)} 'Unknown' Location Posts:")
+                    print(f"\n[ICON]️ Analyzing {len(unknown_posts)} 'Unknown' Location Posts:")
                     for p in unknown_posts[:5]: # Show first 5
                         print(f" - [{p['lang']}] {p['title']}")
                         print(f"   Tags: {p['tags']}")
                         print(f"   Metadata: {p['metadata']}")
                 
-                print(f"\n✅ Total posts analyzed: {len(data)}")
+                print(f"\n[OK] Total posts analyzed: {len(data)}")
             else:
-                print(f"❌ Failed to fetch data: {await resp.text()}")
+                print(f"[ERROR] Failed to fetch data: {await resp.text()}")
 
 if __name__ == "__main__":
     asyncio.run(main())

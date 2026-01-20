@@ -21,7 +21,7 @@ GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 UNSPLASH_KEY = os.getenv("VITE_UNSPLASH_ACCESS_KEY")
 
 if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
-    print("❌ Missing API Keys in environment")
+    print("[ERROR] Missing API Keys in environment")
     exit(1)
 
 # Initialize
@@ -52,7 +52,7 @@ async def check_duplicate(title):
 async def fetch_featured_image(query):
     """Search Unsplash and Ingest."""
     if not UNSPLASH_KEY: return None
-    print(f"   🔍 Searching Unsplash for: {query}")
+    print(f"   [SEARCH] Searching Unsplash for: {query}")
     url = f"https://api.unsplash.com/search/photos?query={query}&per_page=1&client_id={UNSPLASH_KEY}"
     
     unsplash_url = None
@@ -64,16 +64,16 @@ async def fetch_featured_image(query):
                     if data['results']:
                         unsplash_url = data['results'][0]['urls']['regular']
                 elif resp.status == 403:
-                    print("⚠️ Unsplash Rate Limit 403")
+                    print("[WARNING] Unsplash Rate Limit 403")
     except Exception as e:
-        print(f"⚠️ Fetch failed: {e}")
+        print(f"[WARNING] Fetch failed: {e}")
 
     if unsplash_url:
         return await visual_memory.ingest_image(unsplash_url, query, tags=[query, "test-gen"])
     return None
 
 async def generate_content_ai(post):
-    print(f"\n🧠 Generating content for: {post['title']}...")
+    print(f"\n[ICON] Generating content for: {post['title']}...")
     
     prompt = f"""
     You are an expert investigative travel journalist for a premium lifestyle magazine (like Condé Nast Traveler).
@@ -129,7 +129,7 @@ async def generate_content_ai(post):
         raise e
 
 async def post_process_content(content):
-    print("   🎨 Processing Images...")
+    print("   [ICON] Processing Images...")
     img_pattern = r'\[IMAGE:\s*(.*?)\]'
     matches = re.findall(img_pattern, content, flags=re.IGNORECASE)
     
@@ -148,7 +148,7 @@ async def post_process_content(content):
     return new_content
 
 async def save_to_supabase(post_data, featured_image):
-    print(f"   💾 Saving to Supabase (REST)...")
+    print(f"   [SAVE] Saving to Supabase (REST)...")
     
     # 1. Insert Post
     slug = post_data['title'].lower().replace(' ', '-').replace(':', '').replace('ç','c').replace('ş','s').replace('ğ','g').replace('ü','u').replace('ö','o').replace('ı','i')
@@ -208,7 +208,7 @@ async def save_to_supabase(post_data, featured_image):
                     if profiles: author_id = profiles[0]['id']
         
         if not author_id:
-            print("🔥 Could not find any valid Author ID in 'users' or 'profiles'.")
+            print("[HOT] Could not find any valid Author ID in 'users' or 'profiles'.")
             # Fallback to the hardcoded one just in case it WAS right but maybe schema issue?
             # But the error said it didn't exist.
             # If we really can't find one, we might need to create one? No, too risky.
@@ -226,7 +226,7 @@ async def save_to_supabase(post_data, featured_image):
         placeholders = re.findall(r'\[IMAGE:\s*(.*?)\]', content)
         
         if placeholders:
-            print(f"      🖼️ Found {len(placeholders)} image placeholders. Fetching from Unsplash...")
+            print(f"      [IMAGE] Found {len(placeholders)} image placeholders. Fetching from Unsplash...")
             
             UNSPLASH_ACCESS_KEY = os.getenv("VITE_UNSPLASH_ACCESS_KEY")
             
@@ -245,7 +245,7 @@ async def save_to_supabase(post_data, featured_image):
                             if u_data['results']:
                                 img_url = u_data['results'][0]['urls']['regular']
                 except Exception as e:
-                    print(f"      ⚠️ Unsplash Error: {e}")
+                    print(f"      [WARNING] Unsplash Error: {e}")
 
                 # Replace ONE instance of the placeholder with an HTML img tag
                 # Using a visually pleasing style compatible with the dark theme
@@ -268,7 +268,7 @@ async def save_to_supabase(post_data, featured_image):
         # POST /rest/v1/posts
         async with session.post(f"{SUPABASE_URL}/rest/v1/posts", headers=headers, json=row) as resp:
             if resp.status >= 300:
-                print(f"🔥 Post Insert Failed: {resp.status} - {await resp.text()}")
+                print(f"[HOT] Post Insert Failed: {resp.status} - {await resp.text()}")
                 return
             res_json = await resp.json()
             post_id = res_json[0]['id']
@@ -299,14 +299,14 @@ async def save_to_supabase(post_data, featured_image):
             async with session.post(f"{SUPABASE_URL}/rest/v1/maps", headers=map_headers, json=map_row) as map_resp:
                 if map_resp.status >= 300:
                      # Try public schema if blog fails? or just log
-                     print(f"⚠️ Map Insert Failed: {map_resp.status} - {await map_resp.text()}")
+                     print(f"[WARNING] Map Insert Failed: {map_resp.status} - {await map_resp.text()}")
                 else:
-                     print("   🗺️  Map Data Inserted")
+                     print("   [MAP]  Map Data Inserted")
 
-    print(f"   ✅ Published: {post_data['title']}")
+    print(f"   [OK] Published: {post_data['title']}")
 
 async def main():
-    print("🚀 Starting Test Generation (High Quality Mode)...")
+    print("[START] Starting Test Generation (High Quality Mode)...")
     for p in TEST_POSTS:
         try:
             # 0. Check Duplicate
@@ -330,7 +330,7 @@ async def main():
             await save_to_supabase(data, feat_img)
             
         except Exception as e:
-            print(f"🔥 Error generating {p['title']}: {e}")
+            print(f"[HOT] Error generating {p['title']}: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())

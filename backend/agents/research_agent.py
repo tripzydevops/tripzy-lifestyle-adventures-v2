@@ -57,7 +57,7 @@ class ResearchAgent:
     async def scout_best_practices(self, topic: str) -> str:
         """Scouts web for patterns with jittered retries and timeouts."""
         decision = await self.analyze_query_needs(topic)
-        print(f"💰 Cost Guard Decision for '{topic}': {decision}")
+        print(f"[ICON] Cost Guard Decision for '{topic}': {decision}")
 
         search_query = f"best practices for {topic} 2026 technical implementation guide architecture"
         search_results = ""
@@ -100,7 +100,7 @@ class ResearchAgent:
         
         for feature in features:
             decision = await self.analyze_query_needs(f"patents for {feature}")
-            print(f"⚖️ Patent Scout Decision for '{feature}': {decision}")
+            print(f"[ICON]️ Patent Scout Decision for '{feature}': {decision}")
             
             search_query = f"patents google patents wipo {feature} autonomous agent ai system method 2024 2025"
             

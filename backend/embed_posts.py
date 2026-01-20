@@ -41,7 +41,7 @@ BATCH_SIZE = 10
 COOLDOWN_SECONDS = 1.0
 
 if not SUPABASE_URL or not GEMINI_KEY:
-    logger.error("❌ Missing API Keys. Check your .env file.")
+    logger.error("[ERROR] Missing API Keys. Check your .env file.")
     sys.exit(1)
 
 # Uses centralized genai_client (gemini-3.0-flash)
@@ -85,7 +85,7 @@ class SupabaseClient:
         async def _update():
             async with session.patch(url, headers=self.headers, json=payload) as resp:
                 if resp.status not in (200, 204):
-                    logger.error(f"❌ Failed to save {post_id}: {await resp.text()}")
+                    logger.error(f"[ERROR] Failed to save {post_id}: {await resp.text()}")
                     return False
                 return True
         
@@ -96,19 +96,19 @@ class SupabaseClient:
 # --- Core Processing Logic ---
 async def process_next_batch(supabase: SupabaseClient) -> int:
     """Processes one batch of posts with heartbeats and reliability."""
-    logger.info("🔄 Fetching next batch...")
+    logger.info("[REFRESH] Fetching next batch...")
     
     # 1. Fetch pending posts
     try:
         posts = await supabase.fetch_pending_embeddings()
     except Exception as e:
-        logger.error(f"❌ Critical DB Error: {e}")
+        logger.error(f"[ERROR] Critical DB Error: {e}")
         return 0
 
     if not posts:
         return 0
 
-    logger.info(f"🔹 Found {len(posts)} posts. Generating embeddings...")
+    logger.info(f"[ICON] Found {len(posts)} posts. Generating embeddings...")
 
     # 2. Prepare batch texts
     batch_texts = []
@@ -136,7 +136,7 @@ async def process_next_batch(supabase: SupabaseClient) -> int:
         return 0
 
     if len(vectors) != len(posts):
-        logger.error(f"❌ Mismatch! Sent {len(posts)} posts, got {len(vectors)} vectors.")
+        logger.error(f"[ERROR] Mismatch! Sent {len(posts)} posts, got {len(vectors)} vectors.")
         return 0
 
     # 4. Save to Supabase (concurrent updates)
@@ -148,7 +148,7 @@ async def process_next_batch(supabase: SupabaseClient) -> int:
         results = await asyncio.gather(*tasks)
 
     success_count = sum(results)
-    logger.info(f"✅ Batch complete: {success_count}/{len(posts)} saved.")
+    logger.info(f"[OK] Batch complete: {success_count}/{len(posts)} saved.")
     return success_count
 
 
@@ -158,7 +158,7 @@ async def process_all_pending():
     total_processed = 0
     start_time = time.time()
 
-    logger.info(f"🚀 Starting Bulk Embedding Pipeline (Batch Size: {BATCH_SIZE})...")
+    logger.info(f"[START] Starting Bulk Embedding Pipeline (Batch Size: {BATCH_SIZE})...")
 
     while True:
         # Wrap batch in a timeout to prevent script-level freezing
@@ -169,23 +169,23 @@ async def process_all_pending():
                 label="Batch Process"
             )
         except Exception as e:
-            logger.error(f"💥 Batch failed or timed out: {e}")
+            logger.error(f"[CRASH] Batch failed or timed out: {e}")
             break
 
         if count == 0:
-            logger.info("✅ No more pending posts. Job complete.")
+            logger.info("[OK] No more pending posts. Job complete.")
             break
 
         total_processed += count
         elapsed = time.time() - start_time
         
         # --- HEARTBEAT LOG ---
-        logger.info(f"💓 HEARTBEAT: Total processed: {total_processed} | Runtime: {elapsed:.1f}s")
+        logger.info(f"[ICON] HEARTBEAT: Total processed: {total_processed} | Runtime: {elapsed:.1f}s")
 
         # Cooldown to respect rate limits
         await asyncio.sleep(COOLDOWN_SECONDS)
 
-    logger.info(f"🎉 ALL DONE! Total posts embedded: {total_processed}")
+    logger.info(f"[SUCCESS] ALL DONE! Total posts embedded: {total_processed}")
 
 
 if __name__ == "__main__":

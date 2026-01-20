@@ -35,18 +35,18 @@ class VisualMemory:
         if "supabase.co" in url:
             return url
 
-        print(f"      📸 Ingesting: {url[:30]}...")
+        print(f"      [ICON] Ingesting: {url[:30]}...")
         
         # 1. Download
         image_data = await self.processor.download_image(url)
         if not image_data:
-            print("         ❌ Download failed.")
+            print("         [ERROR] Download failed.")
             return url
 
         # 2. Optimize
         webp_data, width, height = self.processor.optimize_image(image_data)
         if not webp_data:
-            print("         ❌ Optimization failed.")
+            print("         [ERROR] Optimization failed.")
             return url
 
         # 3. AI Analysis (Vision + Embedding)
@@ -74,7 +74,7 @@ class VisualMemory:
                 )
                 embedding = embed_result.embeddings[0].values
             except Exception as e:
-                print(f"         ⚠️ AI Analysis Failed: {e}")
+                print(f"         [WARNING] AI Analysis Failed: {e}")
 
         # 4. Generate Path
         file_path = self._generate_path(post_title)
@@ -106,7 +106,7 @@ class VisualMemory:
             async def _upload():
                 async with session.post(url, headers=headers, data=data) as resp:
                     if resp.status not in [200, 201]:
-                        print(f"         ❌ Upload failed: {resp.status}")
+                        print(f"         [ERROR] Upload failed: {resp.status}")
                         return False
                     return True
             return await retry_async(_upload)
@@ -131,7 +131,7 @@ class VisualMemory:
         async with aiohttp.ClientSession() as session:
             async with session.post(db_url, headers=self.headers, json=payload) as resp:
                 if resp.status >= 300:
-                    print(f"         ⚠️ Indexing warning (media_library): {resp.status} - {await resp.text()}")
+                    print(f"         [WARNING] Indexing warning (media_library): {resp.status} - {await resp.text()}")
 
                 # 7. DUAL WRITE INSIDE SESSION
                 # Sync to 'blog.media'
@@ -154,15 +154,15 @@ class VisualMemory:
                     async def _dual_write():
                         async with session.post(blog_url, headers=blog_headers, json=blog_payload) as blog_resp:
                             if blog_resp.status >= 300:
-                                 print(f"         ⚠️ Dual-write warning (blog.media): {blog_resp.status}")
+                                 print(f"         [WARNING] Dual-write warning (blog.media): {blog_resp.status}")
                                  return False
                             else:
-                                 print(f"         ✅ Dual-write success: Synced to blog.media")
+                                 print(f"         [OK] Dual-write success: Synced to blog.media")
                                  return True
                     
                     await retry_async(_dual_write)
                 except Exception as e:
-                    print(f"         ⚠️ Dual-write failed: {e}")
+                    print(f"         [WARNING] Dual-write failed: {e}")
 
 
     async def semantic_search(self, query: str, limit: int = 5) -> List[dict]:
@@ -170,7 +170,7 @@ class VisualMemory:
         R&D Feature: Performs vector similarity search over image embeddings.
         """
         if not self.has_ai:
-            print("⚠️ Semantic Search requires Gemini API Key.")
+            print("[WARNING] Semantic Search requires Gemini API Key.")
             return []
 
         # 1. Generate Embedding for the query
@@ -198,10 +198,10 @@ class VisualMemory:
                     if resp.status == 200:
                         return await resp.json()
                     else:
-                        print(f"❌ match_media RPC failed: {resp.status} - {await resp.text()}")
+                        print(f"[ERROR] match_media RPC failed: {resp.status} - {await resp.text()}")
                         return []
             try:
                 return await retry_async(_search)
             except Exception as e:
-                print(f"❌ Request failed: {e}")
+                print(f"[ERROR] Request failed: {e}")
                 return []

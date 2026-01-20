@@ -15,7 +15,7 @@ SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ Missing API Keys")
+    print("[ERROR] Missing API Keys")
     exit(1)
 
 visual_memory = VisualMemory(SUPABASE_URL, SUPABASE_KEY)
@@ -54,7 +54,7 @@ async def update_post_content(post_id, new_content, new_featured_image=None):
             if resp.status >= 300:
                 print(f"FAILED to update post {post_id}: {await resp.text()}")
             else:
-                print(f"✅ Updated post {post_id}")
+                print(f"[OK] Updated post {post_id}")
 
 async def process_post(post):
     print(f"\nProcessing: {post['title']}")
@@ -111,7 +111,7 @@ async def process_post(post):
         print("  - No changes needed.")
 
 async def main():
-    print("🚀 Starting Visual Memory Migration...")
+    print("[START] Starting Visual Memory Migration...")
     posts = await fetch_all_posts()
     print(f"Found {len(posts)} posts.")
     

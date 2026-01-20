@@ -22,7 +22,7 @@ GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 UNSPLASH_KEY = os.getenv("VITE_UNSPLASH_ACCESS_KEY")
 
 if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
-    print("❌ Missing API Keys in environment")
+    print("[ERROR] Missing API Keys in environment")
     exit(1)
 
 # Initialize Visual Memory
@@ -41,7 +41,7 @@ async def fetch_featured_image(query):
     if not UNSPLASH_KEY:
         return None
     
-    print(f"   🔍 Searching Unsplash for: {query}")
+    print(f"   [SEARCH] Searching Unsplash for: {query}")
     url = f"https://api.unsplash.com/search/photos?query={query}&per_page=1&client_id={UNSPLASH_KEY}"
     
     unsplash_url = None
@@ -59,11 +59,11 @@ async def fetch_featured_image(query):
                         unsplash_alt = img['alt_description'] or query
                         unsplash_credit = f"Photo by {img['user']['name']} on Unsplash"
                 elif resp.status in [403, 429]:
-                     print("      ⚠️ Unsplash Limit. Waiting 5s...")
+                     print("      [WARNING] Unsplash Limit. Waiting 5s...")
                      await asyncio.sleep(5)
                      # Retry once logic could go here
     except Exception as e:
-        print(f"      ⚠️ Fetch failed: {e}")
+        print(f"      [WARNING] Fetch failed: {e}")
 
     if unsplash_url:
         # INGESTION HOOK
@@ -84,7 +84,7 @@ async def post_process_images_in_content(content, post_title=""):
     new_content = content
     
     for match_str in matches:
-        print(f"   🖼️  Processing Placeholder: {match_str}")
+        print(f"   [IMAGE]  Processing Placeholder: {match_str}")
         
         # Parse "Term | Caption" or just "Term"
         parts = match_str.split('|')
@@ -129,7 +129,7 @@ async def post_process_images_in_content(content, post_title=""):
         original_url_stub = f"https://image.pollinations.ai/prompt/{encoded_prompt}"
         prompt = urllib.parse.unquote(encoded_prompt)
         
-        print(f"   🖼️  Found Pollinations Image: {prompt}")
+        print(f"   [IMAGE]  Found Pollinations Image: {prompt}")
         
         # Smart Fallback Search Strategy for Content Images
         # 1. Try exact prompt
@@ -154,9 +154,9 @@ async def post_process_images_in_content(content, post_title=""):
             
             replace_pattern = re.escape(original_url_stub) + r'[^"\'\s\)]*'
             new_content = re.sub(replace_pattern, internal_url, new_content)
-            print(f"      ✅ Replaced with: {internal_url}")
+            print(f"      [OK] Replaced with: {internal_url}")
         else:
-             print("      ❌ Could not replace.")
+             print("      [ERROR] Could not replace.")
 
     return new_content
 
@@ -222,7 +222,7 @@ class SupabaseClient:
 
             async with session.get(url, headers=headers) as resp:
                 if resp.status != 200:
-                    print(f"⚠️ Failed to fetch users: {await resp.text()}")
+                    print(f"[WARNING] Failed to fetch users: {await resp.text()}")
                     return None
                 
                 users = await resp.json()
@@ -234,7 +234,7 @@ class SupabaseClient:
                 
                 # Fallback: return first user
                 if users:
-                    print("⚠️ No admin found, using first available user as author.")
+                    print("[WARNING] No admin found, using first available user as author.")
                     return users[0]['id']
                 
                 return None
@@ -253,7 +253,7 @@ class SupabaseClient:
             async with session.post(url, headers=headers, params=params, json=post_data) as resp:
                 if resp.status not in [200, 201]:
                     error_text = await resp.text()
-                    print(f"❌ Failed to insert {post_data.get('title')}: {error_text}")
+                    print(f"[ERROR] Failed to insert {post_data.get('title')}: {error_text}")
                     return None
                 try:
                     return await resp.json()
@@ -274,7 +274,7 @@ supabase = SupabaseClient(SUPABASE_URL, SUPABASE_KEY)
 # ... (slugify, generate_embedding, fetch_unsplash_image, post_process_images_in_content remain same)
 
 async def research_trending_topics(existing_titles):
-    print("\n🧠 AI Researching Trends & Checking Saturation...")
+    print("\n[ICON] AI Researching Trends & Checking Saturation...")
     
     existing_list = "\n".join(f"- {t}" for t in existing_titles[:50]) # Limit context size
     
@@ -319,7 +319,7 @@ async def research_trending_topics(existing_titles):
         return []
 
 async def autonomous_mode():
-    print("\n🤖 Autonomous Trend Mode")
+    print("\n[BOT] Autonomous Trend Mode")
     print("========================")
     
     # 1. Get Context
@@ -334,7 +334,7 @@ async def autonomous_mode():
         print("   -> No suggestions generated. Try again.")
         return
 
-    print("\n💡 AI Suggestions:")
+    print("\n[TIP] AI Suggestions:")
     for idx, s in enumerate(suggestions):
         print(f"   {idx+1}. {s['title']} ({s['lang']})")
         print(f"      Reason: {s.get('reason', 'N/A')}")
@@ -358,40 +358,40 @@ async def autonomous_mode():
 
     # 4. Execute
     if to_generate:
-        print(f"\n🚀 Starting Generation for {len(to_generate)} posts...")
+        print(f"\n[START] Starting Generation for {len(to_generate)} posts...")
         author_id = await supabase.fetch_admin_user()
         if author_id:
             for item in to_generate:
                 await process_post(item, author_id)
         else:
-            print("❌ Error: Could not authenticate as admin.")
+            print("[ERROR] Error: Could not authenticate as admin.")
 
 async def interactive_mode():
-    print("\n🚀 Tripzy AI Interactive Post Generator")
+    print("\n[START] Tripzy AI Interactive Post Generator")
     print("=======================================")
     
     while True:
-        title = input("\n📝 Enter Post Title (or 'q' to quit): ").strip()
+        title = input("\n[NOTE] Enter Post Title (or 'q' to quit): ").strip()
         if title.lower() == 'q': break
         if not title: continue
 
-        lang_input = input("🗣️  Enter Language (en/tr) [default: tr]: ").strip().lower()
+        lang_input = input("[ICON]️  Enter Language (en/tr) [default: tr]: ").strip().lower()
         lang = lang_input if lang_input in ['en', 'tr'] else 'tr'
 
-        cat_input = input("📂 Enter Category [default: Destinations]: ").strip()
+        cat_input = input("[FOLDER] Enter Category [default: Destinations]: ").strip()
         category = cat_input if cat_input else "Destinations"
 
-        tags_input = input("🏷️  Enter Tags (comma separated): ").strip()
+        tags_input = input("[TAG]  Enter Tags (comma separated): ").strip()
         tags = [t.strip() for t in tags_input.split(',')] if tags_input else ["Travel", "Tripzy"]
 
-        print(f"\n⚙️  Generating '{title}' in '{lang.upper()}'...")
+        print(f"\n[CONFIG]  Generating '{title}' in '{lang.upper()}'...")
         
         author_id = await supabase.fetch_admin_user()
         if author_id:
             item = {"title": title, "lang": lang, "category": category, "tags": tags}
             await process_post(item, author_id)
         else:
-            print("❌ Error: Could not authenticate as admin.")
+            print("[ERROR] Error: Could not authenticate as admin.")
             break
 
 if __name__ == "__main__":

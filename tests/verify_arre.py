@@ -4,7 +4,7 @@ from backend.agents.graph import app_graph
 from backend.agents.memory_agent import memory_agent
 
 async def test_arre_pipeline():
-    print("🚀 Starting ARRE Verification Suite...")
+    print("[START] Starting ARRE Verification Suite...")
 
     # 1. Test MemoryAgent Indexing
     print("\n--- Testing MemoryAgent Indexing ---")
@@ -14,15 +14,15 @@ async def test_arre_pipeline():
     FIX: I've added a check to downscale the image before cropping if it exceeds 2048px.
     """
     await memory_agent.index_problem(context, metadata={"project": "Tripzy-Web"})
-    print("✅ Indexed high-res cropping issue.")
+    print("[OK] Indexed high-res cropping issue.")
 
     # 2. Test MemoryAgent Retrieval
     print("\n--- Testing MemoryAgent Retrieval ---")
     results = await memory_agent.find_related_problems("image crop breaking on large files")
     if results:
-        print(f"✅ Found related problem: {results[0]['problem_title']}")
+        print(f"[OK] Found related problem: {results[0]['problem_title']}")
     else:
-        print("❌ Failed to find related problem.")
+        print("[ERROR] Failed to find related problem.")
 
     # 3. Test Graph Integration (ainvoke)
     print("\n--- Testing Graph Integration (Architectural Check) ---")
@@ -38,12 +38,12 @@ async def test_arre_pipeline():
     final_state = await app_graph.ainvoke(state)
     
     if "scout_report" in final_state:
-        print("✅ ScoutAgent triggered and generated report.")
+        print("[OK] ScoutAgent triggered and generated report.")
     
     if os.path.exists("docs/rd_archive/DESIGN_LOG_MULTI-TENANT_VECTOR_ARCHITECTURE.md"):
-        print("✅ ScribeAgent successfully created design log.")
+        print("[OK] ScribeAgent successfully created design log.")
 
-    print("\n🚀 ARRE Verification Complete!")
+    print("\n[START] ARRE Verification Complete!")
 
 if __name__ == "__main__":
     asyncio.run(test_arre_pipeline())

@@ -21,7 +21,7 @@ async def check_dates():
     async with aiohttp.ClientSession() as session:
         # Fetch the specific post
         title = "Wildlife Safari in Kenya"
-        print(f"🔍 Checking post: {title}")
+        print(f"[SEARCH] Checking post: {title}")
         url = f"{SUPABASE_URL}/rest/v1/posts?title=eq.{title}&select=*"
         
         async with session.get(url, headers=headers) as r:
@@ -32,7 +32,7 @@ async def check_dates():
                 print(f"   published_at (RAW): {post.get('published_at')}")
                 print(f"   created_at (RAW): {post.get('created_at')}")
             else:
-                print("   ❌ Post not found!")
+                print("   [ERROR] Post not found!")
                 
 if __name__ == "__main__":
     asyncio.run(check_dates())

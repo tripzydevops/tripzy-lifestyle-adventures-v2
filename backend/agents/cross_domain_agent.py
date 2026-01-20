@@ -115,7 +115,7 @@ class CrossDomainTransferAgent:
             return TravelPersona(**data)
             
         except Exception as e:
-            print(f"❌ CrossDomain Agent R&D Error: {e}")
+            print(f"[ERROR] CrossDomain Agent R&D Error: {e}")
             return TravelPersona(
                 vibe="General Voyager",
                 budget_tier="Mid-range",

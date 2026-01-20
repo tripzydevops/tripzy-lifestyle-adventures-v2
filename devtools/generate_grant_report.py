@@ -10,7 +10,7 @@ sys.path.insert(0, os.getcwd())
 from backend.agents.scientist_agent import scientist_agent
 
 async def generate_formal_report():
-    print("🧪 [Scientist] Generating Formal Government-Level Grant Progress Report...")
+    print("[SCIENTIST] [Scientist] Generating Formal Government-Level Grant Progress Report...")
     
     milestones = [
         {
@@ -31,7 +31,7 @@ async def generate_formal_report():
     
     try:
         report_path = await scientist_agent.generate_grant_report(milestones)
-        print(f"\n✅ Grant-Level Report Generated: {report_path}")
+        print(f"\n[OK] Grant-Level Report Generated: {report_path}")
         
         # Read the first chunk to show quality
         with open(report_path, "r", encoding="utf-8") as f:
@@ -39,7 +39,7 @@ async def generate_formal_report():
             print("\n--- Formal Report Extract ---")
             print(content[:1000] + "...")
     except Exception as e:
-        print(f"❌ Failed to generate report: {e}")
+        print(f"[ERROR] Failed to generate report: {e}")
 
 if __name__ == "__main__":
     asyncio.run(generate_formal_report())

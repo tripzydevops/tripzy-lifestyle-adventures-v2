@@ -20,7 +20,7 @@ GEMINI_API_KEY = os.getenv("VITE_GEMINI_API_KEY")
 UNSPLASH_KEY = os.getenv("VITE_UNSPLASH_ACCESS_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ Missing Supabase Keys")
+    print("[ERROR] Missing Supabase Keys")
     exit(1)
 
 # Uses centralized genai_client (gemini-3.0-flash)
@@ -46,7 +46,7 @@ async def fetch_all_posts():
                 print(f"   -> Fetched {len(data)} posts.")
                 return data
             else:
-                print(f"❌ Error fetching posts ({resp.status}): {await resp.text()}")
+                print(f"[ERROR] Error fetching posts ({resp.status}): {await resp.text()}")
                 return []
 
 async def fetch_featured_image(query):
@@ -56,7 +56,7 @@ async def fetch_featured_image(query):
     unsplash_url = None
     try:
         if UNSPLASH_KEY:
-            print(f"   🔍 Searching Unsplash for: {query}")
+            print(f"   [SEARCH] Searching Unsplash for: {query}")
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as resp:
                     if resp.status == 200:
@@ -64,22 +64,22 @@ async def fetch_featured_image(query):
                         if data['results']:
                             unsplash_url = data['results'][0]['urls']['regular']
                     elif resp.status == 403:
-                        print("⚠️ Unsplash Rate Limit 403 (Using Fallback)")
+                        print("[WARNING] Unsplash Rate Limit 403 (Using Fallback)")
         else:
-            print("⚠️ No Unsplash Key (Using Fallback)")
+            print("[WARNING] No Unsplash Key (Using Fallback)")
     except Exception as e:
-        print(f"⚠️ Fetch failed: {e}")
+        print(f"[WARNING] Fetch failed: {e}")
 
     # If no Unsplash result or error, return None
     if not unsplash_url:
-        print(f"      ⚠️ No relevant image found for '{query}'. Leaving placeholder and flagging for review.")
+        print(f"      [WARNING] No relevant image found for '{query}'. Leaving placeholder and flagging for review.")
         return None  # Signal that we failed to find an image
 
     # Ingest using visual memory (downloads + embeds + uploads to supabase)
     return await visual_memory.ingest_image(unsplash_url, query, tags=[query, "repair-gen"])
 
 async def post_process_content(content):
-    print("   🎨 Processing Images...")
+    print("   [ICON] Processing Images...")
     img_pattern = r'\[IMAGE:\s*(.*?)\]'
     matches = re.findall(img_pattern, content, flags=re.IGNORECASE)
     
@@ -102,7 +102,7 @@ async def post_process_content(content):
     return new_content, missing_images
 
 async def generate_high_quality_content(post):
-    print(f"\n🧠 Re-Generating: {post['title']}...")
+    print(f"\n[ICON] Re-Generating: {post['title']}...")
     prompt = f"""
     You are an expert investigative travel journalist.
     Rewrite this blog post to be a DEEP, COMPREHENSIVE, LONG-FORM guide.
@@ -142,12 +142,12 @@ async def generate_high_quality_content(post):
         return None
 
 async def update_post(post_id, data, map_data, missing_images=False):
-    print(f"   💾 Updating Post {post_id}...")
+    print(f"   [SAVE] Updating Post {post_id}...")
     
     # Determined Status
     new_status = 'draft' if missing_images else 'published'
     if missing_images:
-        print("      ⚠️ Post has missing images. Downgrading to DRAFT.")
+        print("      [WARNING] Post has missing images. Downgrading to DRAFT.")
     
     # 1. Update Post Content
     post_payload = {
@@ -180,10 +180,10 @@ async def update_post(post_id, data, map_data, missing_images=False):
              }
              mk_url = f"{SUPABASE_URL}/rest/v1/maps"
              await session.post(mk_url, headers=headers, json=map_payload)
-             print("   🗺️ Map updated.")
+             print("   [MAP] Map updated.")
 
 async def main():
-    print("🚀 Starting Content Repair Audit...")
+    print("[START] Starting Content Repair Audit...")
     posts = await fetch_all_posts()
     print(f"Found {len(posts)} posts.")
     
@@ -196,17 +196,17 @@ async def main():
             has_img_tags = '<img' in content
             
             if not is_long_enough:
-                 print(f"🔧 Full Regen: {post['title']} (Too Short)")
+                 print(f"[FIX] Full Regen: {post['title']} (Too Short)")
                  new_data = await generate_high_quality_content(post)
                  if new_data:
                      # Process newly generated placeholders
                      final_content, missing_images = await post_process_content(new_data['content'])
                      new_data['content'] = final_content
                      await update_post(post['id'], new_data, new_data.get('map_data'), missing_images=missing_images)
-                     print("   ✅ REGEN COMPLETE.")
+                     print("   [OK] REGEN COMPLETE.")
             
             elif has_placeholders:
-                 print(f"🔧 Image Fix Only: {post['title']} (Converting Placeholders)")
+                 print(f"[FIX] Image Fix Only: {post['title']} (Converting Placeholders)")
                  # Process existing content placeholders
                  final_content, missing_images = await post_process_content(content)
                  
@@ -218,22 +218,22 @@ async def main():
                  }
                  
                  await update_post(post['id'], partial_data, None, missing_images=missing_images)
-                 print("   ✅ IMAGES FIXED.")
+                 print("   [OK] IMAGES FIXED.")
                  
             elif not has_img_tags:
-                 print(f"🔧 Full Regen: {post['title']} (Missing Visuals)")
+                 print(f"[FIX] Full Regen: {post['title']} (Missing Visuals)")
                  new_data = await generate_high_quality_content(post)
                  if new_data:
                      new_data['content'], missing_images = await post_process_content(new_data['content'])
                      await update_post(post['id'], new_data, new_data.get('map_data'), missing_images=missing_images)
-                     print("   ✅ REGEN COMPLETE.")
+                     print("   [OK] REGEN COMPLETE.")
             
             else:
                 pass
-                # print(f"✅ OK: {post['title']}")
+                # print(f"[OK] OK: {post['title']}")
 
         except Exception as e:
-            print(f"🔥 Critical processing error for {post.get('title')}: {e}")
+            print(f"[HOT] Critical processing error for {post.get('title')}: {e}")
             continue
 
 if __name__ == "__main__":

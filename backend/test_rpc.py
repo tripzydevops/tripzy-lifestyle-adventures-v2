@@ -14,17 +14,17 @@ SUPABASE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 
 if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
-    print("❌ Missing API Keys")
+    print("[ERROR] Missing API Keys")
     exit(1)
 
 # Uses centralized genai_client (gemini-3.0-flash)
 
 async def test_rpc_function():
-    print("🧪 Testing RPC Function: match_posts\n")
+    print("[ICON] Testing RPC Function: match_posts\n")
     
     # 1. Generate a test embedding for "beach vacation"
     test_query = "sunny beach vacation with relaxation"
-    print(f"📝 Test Query: '{test_query}'")
+    print(f"[NOTE] Test Query: '{test_query}'")
     
     print("Generating embedding...")
     embedding_res = embed_content_sync(test_query)
@@ -46,33 +46,33 @@ async def test_rpc_function():
     }
     
     async with aiohttp.ClientSession() as session:
-        print(f"🌐 Calling RPC: {rpc_url}")
+        print(f"[WEB] Calling RPC: {rpc_url}")
         async with session.post(rpc_url, headers=headers, json=payload) as resp:
-            print(f"📡 Status: {resp.status}")
+            print(f"[ICON] Status: {resp.status}")
             
             if resp.status == 404:
-                print("❌ RPC function not found!")
+                print("[ERROR] RPC function not found!")
                 print("   The function might not be exposed via PostgREST.")
                 print("   Make sure you ran the migration in Supabase SQL Editor.")
                 return
             
             if resp.status != 200:
                 error_text = await resp.text()
-                print(f"❌ Error: {error_text}")
+                print(f"[ERROR] Error: {error_text}")
                 return
             
             matches = await resp.json()
-            print(f"✅ Found {len(matches)} matches\n")
+            print(f"[OK] Found {len(matches)} matches\n")
             
             if not matches:
-                print("⚠️  No matches found. This could mean:")
+                print("[WARNING]  No matches found. This could mean:")
                 print("   - Posts don't have embeddings yet")
                 print("   - Similarity threshold is too high")
                 print("   - No published posts in database")
                 return
             
             # 3. Fetch full post details
-            print("📚 Matched Posts:")
+            print("[ICON] Matched Posts:")
             print("-" * 60)
             
             for i, match in enumerate(matches, 1):
@@ -99,7 +99,7 @@ async def test_rpc_function():
                             print(f"   Excerpt: {excerpt[:100]}...")
             
             print("\n" + "=" * 60)
-            print("✅ RPC Function Test Complete!")
+            print("[OK] RPC Function Test Complete!")
 
 if __name__ == "__main__":
     asyncio.run(test_rpc_function())

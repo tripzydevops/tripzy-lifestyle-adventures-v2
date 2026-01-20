@@ -16,11 +16,11 @@ async def fetch_post_by_slug(slug):
                 data = await resp.json()
                 if data:
                     return data[0]
-            print(f"❌ Error fetching post {slug}: {await resp.text()}")
+            print(f"[ERROR] Error fetching post {slug}: {await resp.text()}")
             return None
 
 async def main():
-    print(f"🔧 Force Repairing: {slug}")
+    print(f"[FIX] Force Repairing: {slug}")
     post = await fetch_post_by_slug(slug)
     
     if not post:

@@ -11,9 +11,9 @@ load_dotenv(find_dotenv())
 
 try:
     from backend.agents.research_agent import research_agent
-    print("✅ Successfully imported ResearchAgent")
+    print("[OK] Successfully imported ResearchAgent")
 except ImportError as e:
-    print(f"❌ Failed to import ResearchAgent: {e}")
+    print(f"[ERROR] Failed to import ResearchAgent: {e}")
     exit(1)
 
 async def test_scout():
@@ -21,9 +21,9 @@ async def test_scout():
     
     # Check Key State
     if research_agent.tavily:
-        print("✅ Tavily Client is initialized (Key found).")
+        print("[OK] Tavily Client is initialized (Key found).")
     else:
-        print("⚠️ Tavily Client NOT initialized (Key missing). Agent will use internal knowledge.")
+        print("[WARNING] Tavily Client NOT initialized (Key missing). Agent will use internal knowledge.")
 
     # Test logic
     query = "latest travel restrictions Japan January 2026"
@@ -35,9 +35,9 @@ async def test_scout():
         report = await research_agent.scout_best_practices(query)
         print("\n--- Scout Report Preview ---")
         print(report[:200] + "...")
-        print("\n✅ Scout execution successful.")
+        print("\n[OK] Scout execution successful.")
     except Exception as e:
-        print(f"❌ Scout execution failed: {e}")
+        print(f"[ERROR] Scout execution failed: {e}")
 
 if __name__ == "__main__":
     asyncio.run(test_scout())

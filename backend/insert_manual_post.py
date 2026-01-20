@@ -18,7 +18,7 @@ SUPABASE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
 GEMINI_KEY = os.getenv("VITE_GEMINI_API_KEY")
 
 if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
-    print("❌ Missing API Keys")
+    print("[ERROR] Missing API Keys")
     exit(1)
 
 # Uses centralized genai_client (gemini-3.0-flash)
@@ -86,7 +86,7 @@ Günübirlik turlarda Ayasofya, Topkapı, Sultanahmet ve öğle yemeğini tek pa
 
 Boğazı mutlaka bir kez denizden görmek tavsiye ediliyor; bu, ister kısa bir vapur geçişi ister akşamüstü kısa Boğaz turu şeklinde olabilir.
 
-## 🛠 TRIPZY INTELLIGENCE DATA
+## [ICON] TRIPZY INTELLIGENCE DATA
 - **Inferred Vibe:** Tarih, sokak yemekleri ve Boğaz manzarasını tek günde harmanlayan, tempolu ama fotoğraf ve molalara da alan tanıyan dengeli bir şehir kaçamağı.
 - **Primary Constraint:** Zaman yönetimi; müze kuyrukları ve semtler arası mesafeler nedeniyle detaylı keşif yerine özenle seçilmiş duraklara odaklanma gerekliliği.
 - **UI Directive:** Kullanıcıya saat bazlı, harita üzerinde takip edilebilir, “sabaha–öğle–akşam” sekmeli bir rota göster; hızlı seçim için “daha çok tarih / daha çok manzara / daha çok lezzet” filtreleri sun.
@@ -108,7 +108,7 @@ class SupabaseClient:
             async with session.post(url, headers=self.headers, json=post_data) as resp:
                 if resp.status not in (200, 201):
                     text = await resp.text()
-                    print(f"❌ Failed to insert: {text}")
+                    print(f"[ERROR] Failed to insert: {text}")
                     return None
                 return await resp.json()
 
@@ -121,7 +121,7 @@ async def generate_embedding(text):
         return None
 
 async def main():
-    print(f"🚀 Publishing: {POST_TITLE}")
+    print(f"[START] Publishing: {POST_TITLE}")
     
     # Generate Embedding
     full_text = f"{POST_TITLE} {POST_EXCERPT} {POST_CONTENT}"
@@ -146,7 +146,7 @@ async def main():
                      author_id = users[0]['id']
     
     if not author_id:
-        print("❌ No author found.")
+        print("[ERROR] No author found.")
         return
 
     post = {
@@ -169,7 +169,7 @@ async def main():
     res = await client.insert_post(post)
     
     if res:
-        print("✅ Published successfully!")
+        print("[OK] Published successfully!")
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -28,7 +28,7 @@ BATCH_SIZE = 5  # Conservative for vision API
 COOLDOWN_SECONDS = 1.5
 
 if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_KEY]):
-    print("❌ Missing API Keys")
+    print("[ERROR] Missing API Keys")
     exit(1)
 
 # Uses centralized genai_client (gemini-3.0-flash)
@@ -56,7 +56,7 @@ async def update_item_intelligence(
     payload = {"ai_description": ai_description, "embedding": embedding}
     async with session.patch(url, headers=visual_memory.headers, json=payload) as resp:
         if resp.status not in (200, 204):
-            print(f"❌ Failed to save {item_id}: {await resp.text()}")
+            print(f"[ERROR] Failed to save {item_id}: {await resp.text()}")
             return False
         return True
 
@@ -87,14 +87,14 @@ async def process_single_item(session: aiohttp.ClientSession, item: dict) -> boo
         # 1. Download image
         image_data = await visual_memory.processor.download_image(item['public_url'])
         if not image_data:
-            print(f"   ❌ Download failed")
+            print(f"   [ERROR] Download failed")
             return False
         
         # 2. Optimize image
         webp_data, _, _ = visual_memory.processor.optimize_image(image_data)
         
         # 3. Generate vision description (with retry, in thread)
-        print(f"   👀 Analyzing image...")
+        print(f"   [ICON] Analyzing image...")
         ai_desc = await retry_sync_in_thread(
             generate_vision_description_sync,
             webp_data,
@@ -103,7 +103,7 @@ async def process_single_item(session: aiohttp.ClientSession, item: dict) -> boo
         print(f"      → {ai_desc[:50]}...")
         
         # 4. Generate embedding (with retry, in thread)
-        print(f"   🧠 Vectorizing...")
+        print(f"   [ICON] Vectorizing...")
         tags = item.get('semantic_tags') or []
         text_to_embed = f"{title} {ai_desc} {' '.join(tags)}"
         embedding = await retry_sync_in_thread(
@@ -120,28 +120,28 @@ async def process_single_item(session: aiohttp.ClientSession, item: dict) -> boo
         )
         
         if success:
-            print(f"   ✅ Saved.")
+            print(f"   [OK] Saved.")
         return success
         
     except Exception as e:
-        print(f"   ⚠️ Error processing {item_id}: {e}")
+        print(f"   [WARNING] Error processing {item_id}: {e}")
         return False
 
 
 async def process_next_batch(session: aiohttp.ClientSession) -> int:
     """Process one batch. Returns number of successfully processed items."""
-    print("🔄 Fetching next batch...")
+    print("[REFRESH] Fetching next batch...")
     
     try:
         items = await retry_async(fetch_pending_items, session, BATCH_SIZE)
     except Exception as e:
-        print(f"❌ Failed to fetch: {e}")
+        print(f"[ERROR] Failed to fetch: {e}")
         return 0
     
     if not items:
         return 0
     
-    print(f"📚 Found {len(items)} items to process.")
+    print(f"[ICON] Found {len(items)} items to process.")
     
     # Process items concurrently within batch
     tasks = [process_single_item(session, item) for item in items]
@@ -152,7 +152,7 @@ async def process_next_batch(session: aiohttp.ClientSession) -> int:
 
 async def backfill():
     """Main loop: Process all pending items in batches."""
-    print(f"🧠 Starting Visual Intelligence Backfill (Batch Size: {BATCH_SIZE})...")
+    print(f"[ICON] Starting Visual Intelligence Backfill (Batch Size: {BATCH_SIZE})...")
     total_processed = 0
     
     async with aiohttp.ClientSession() as session:
@@ -160,15 +160,15 @@ async def backfill():
             count = await process_next_batch(session)
             
             if count == 0:
-                print("✅ No more pending items. Job complete.")
+                print("[OK] No more pending items. Job complete.")
                 break
             
             total_processed += count
             
-            print(f"⏳ Cooldown {COOLDOWN_SECONDS}s...")
+            print(f"[WAIT] Cooldown {COOLDOWN_SECONDS}s...")
             await asyncio.sleep(COOLDOWN_SECONDS)
     
-    print(f"\n🎉 ALL DONE! Total items processed: {total_processed}")
+    print(f"\n[SUCCESS] ALL DONE! Total items processed: {total_processed}")
 
 
 if __name__ == "__main__":
