@@ -73,7 +73,16 @@ async def run_council_audit(task_summary: str, files: list, diff_context: str = 
                 "milestone": "development_refactor"
             }
         )
-        print(f"[OK] Patterns Indexed in Supabase (Record ID: {result[0]['id'] if result else 'Success'})")
+        # Handle different return structures from Supabase
+        record_id = "Unknown"
+        if result:
+            if isinstance(result, list) and len(result) > 0:
+                record_id = result[0].get('id', 'Success')
+            elif isinstance(result, dict):
+                record_id = result.get('id', 'Success')
+            else:
+                record_id = "Success"
+        print(f"[OK] Patterns Indexed in Supabase (Record ID: {record_id})")
     except Exception as e:
         print(f"[WARNING] [Memory] Indexing failed: {e}")
 
