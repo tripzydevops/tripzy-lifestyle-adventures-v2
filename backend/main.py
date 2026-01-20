@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Mandatory UTF-8 for Windows stability
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # Startup Validation
 required_env_vars = ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY", "VITE_GEMINI_API_KEY"]
 missing_vars = [var for var in required_env_vars if not os.getenv(var)]

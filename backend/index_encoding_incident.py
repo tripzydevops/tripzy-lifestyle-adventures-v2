@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.agents.memory_agent import memory_agent
 
-INCIDENT_CONTEXT = """
+INCIDENT_CONTEXT = r"""
 INCIDENT ID: ARRE-2026-003-002
 DATE: 2026-01-18
 TITLE: Windows Terminal Emoji/Unicode Encoding Failure

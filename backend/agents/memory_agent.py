@@ -124,7 +124,7 @@ class MemoryAgent:
         # Use a localized timeout for DB operations
         DB_TIMEOUT = 10.0 
         
-        async def fetch():
+        def fetch():
             result = self.supabase.table("developer_knowledge") \
                 .select("*") \
                 .order("created_at", desc=True) \

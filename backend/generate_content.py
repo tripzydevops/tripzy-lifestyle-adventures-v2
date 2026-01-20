@@ -259,6 +259,7 @@ class SupabaseClient:
                     return await resp.json()
                 except Exception:
                     # In case it returns 204 or empty success
+                    return None
     async def fetch_existing_titles(self):
         async with aiohttp.ClientSession() as session:
             url = f"{self.url}/rest/v1/posts?select=title"

@@ -44,7 +44,7 @@ async def fetch_posts_to_refine():
     url = f"{SUPABASE_URL}/rest/v1/posts?select=id,title,excerpt,tags,lang,category,related_destination,location_city,location_country,location_region"
     
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as resp:
+        async with session.get(url, headers=headers, timeout=30.0) as resp:
             if resp.status != 200:
                 print(f"[ERROR] [Error] Supabase API returned status {resp.status}")
                 error_body = await resp.text()
@@ -63,7 +63,7 @@ async def update_post_metadata(post_id, updates):
     url = f"{SUPABASE_URL}/rest/v1/posts?id=eq.{post_id}"
     
     async with aiohttp.ClientSession() as session:
-        async with session.patch(url, headers=headers, json=updates) as resp:
+        async with session.patch(url, headers=headers, json=updates, timeout=20.0) as resp:
             return resp.status in (200, 204)
 
 async def refine_post(post):

@@ -1,8 +1,13 @@
 
 import os
+import sys
 import json
 import asyncio
 import aiohttp
+
+# Mandatory UTF-8 for Windows stability
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
 # SDK Migration: Using centralized genai_client instead of deprecated google.generativeai
 from backend.utils.genai_client import get_client, generate_content_sync, embed_content_sync, generate_content_stream_sync
 from typing import List, Dict, Any, Optional
@@ -59,7 +64,7 @@ async def supabase_fetch_signals(session_id: str):
     
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(url, headers=headers, params=params) as r:
+            async with session.get(url, headers=headers, params=params, timeout=15.0) as r:
                 r.raise_for_status()
                 return await r.json()
         except Exception as e:
@@ -94,7 +99,7 @@ async def supabase_save_profile(session_id: str, user_id: Optional[str], analysi
     
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.post(url, headers=headers, json=payload) as r:
+            async with session.post(url, headers=headers, json=payload, timeout=10.0) as r:
                 if r.status >= 300:
                     text = await r.text()
                     print(f"Supabase Profile Save Warning: {r.status} - {text}")
@@ -170,7 +175,7 @@ async def supabase_retrieve_context(query_text: str, vibe_filter: str):
             # So depending on exposure, this might need tweaking.
             # Assuming it works for now or returns 404.
             
-            async with session.post(rpc_url, headers=headers, json=payload) as r:
+            async with session.post(rpc_url, headers=headers, json=payload, timeout=20.0) as r:
                 if r.status == 404:
                    print("RPC match_posts not found. Is it exposed?")
                    return []
@@ -199,7 +204,7 @@ async def supabase_retrieve_context(query_text: str, vibe_filter: str):
                 read_headers = headers.copy()
                 read_headers["Accept-Profile"] = "blog" 
                 
-                async with session.get(post_url, headers=read_headers, params=post_params) as detail_r:
+                async with session.get(post_url, headers=read_headers, params=post_params, timeout=20.0) as detail_r:
                     posts = await detail_r.json()
                     return posts
 
