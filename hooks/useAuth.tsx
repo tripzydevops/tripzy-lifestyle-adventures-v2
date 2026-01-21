@@ -19,7 +19,7 @@ interface AuthContextType {
   isAuthor: boolean;
   login: (
     email: string,
-    pass: string
+    pass: string,
   ) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const login = async (
     email: string,
-    pass: string
+    pass: string,
   ): Promise<{ success: boolean; error?: string }> => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin.replace(/\/$/, ""),
+        redirectTo: `${window.location.origin.replace(/\/$/, "")}/admin/dashboard`,
       },
     });
 
